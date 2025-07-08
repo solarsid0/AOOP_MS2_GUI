@@ -220,10 +220,6 @@ public class AttendanceDetailsGUI extends javax.swing.JFrame {
                 }
             }
             
-            // Add missing work days with zero hours
-            if (dateFilter != null && !dateFilter.equals("All")) {
-                addMissingWorkDays(records, dateFilter, isRankAndFile);
-            }
             
         } catch (SQLException e) {
             System.err.println("Error fetching attendance records: " + e.getMessage());
@@ -233,58 +229,7 @@ public class AttendanceDetailsGUI extends javax.swing.JFrame {
         return records;
     }
     
-    /**
-     * Adds missing work days (weekdays where employee didn't attend) to the records list.
-     * Missing days will show 0.00 hours for all categories.
-     */
-    private void addMissingWorkDays(List<AttendanceRecord> records, String dateFilter, boolean isRankAndFile) {
-        try {
-            LocalDate startDate, endDate;
-            
-            if (dateFilter.length() == 4) { // Year format
-                int year = Integer.parseInt(dateFilter);
-                startDate = LocalDate.of(year, 1, 1);
-                endDate = LocalDate.of(year, 12, 31);
-            } else { // Month format (YYYY-MM)
-                String[] parts = dateFilter.split("-");
-                int year = Integer.parseInt(parts[0]);
-                int month = Integer.parseInt(parts[1]);
-                startDate = LocalDate.of(year, month, 1);
-                endDate = startDate.withDayOfMonth(startDate.lengthOfMonth());
-            }
-            
-            // Get set of existing attendance dates
-            Set<LocalDate> attendedDates = records.stream()
-                .map(r -> r.date)
-                .collect(Collectors.toSet());
-            
-            // Generate all work days in range and add missing ones
-            LocalDate current = startDate;
-            while (!current.isAfter(endDate)) {
-                // Check if it's a weekday (Monday=1 to Friday=5)
-                if (current.getDayOfWeek().getValue() <= 5 && !attendedDates.contains(current)) {
-                    AttendanceRecord missingDay = new AttendanceRecord();
-                    missingDay.employeeId = Integer.parseInt(employeeId);
-                    missingDay.date = current;
-                    missingDay.timeIn = null;
-                    missingDay.timeOut = null;
-                    missingDay.hoursWorked = 0.00;
-                    missingDay.lateHours = 0.00;
-                    missingDay.overtimeHours = 0.00;
-                    missingDay.payMonth = current.format(DateTimeFormatter.ofPattern("yyyy-MM"));
-                    
-                    records.add(missingDay);
-                }
-                current = current.plusDays(1);
-            }
-            
-            // Sort by date descending
-            records.sort((a, b) -> b.date.compareTo(a.date));
-            
-        } catch (Exception e) {
-            System.err.println("Error adding missing work days: " + e.getMessage());
-        }
-    }
+
 
     /**
      * Opens the overtime request popup if the employee is eligible.
@@ -390,6 +335,8 @@ public class AttendanceDetailsGUI extends javax.swing.JFrame {
             this.dispose();
         }
     }
+
+
 
     /**
      * This method is called from within the constructor to initialize the form.
@@ -572,6 +519,7 @@ public class AttendanceDetailsGUI extends javax.swing.JFrame {
         // Apply the date filter immediately when selection changes
         filterAttendanceByMonth();
     }//GEN-LAST:event_dateFilterActionPerformed
+                                         
     /**
      * Data model for attendance records with calculated hours.
      * Maps to the attendance table with business logic calculations.

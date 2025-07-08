@@ -27,7 +27,6 @@ public class AdminAccounting extends JFrame {
         initComponents();
         updateLabels();
         updateDateTime();
-        disableTemporaryButtons();
         
         setTitle("MotorPH Admin Dashboard | Welcome, " + user.getFirstName() + " " + user.getLastName() + "!");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -51,11 +50,6 @@ public class AdminAccounting extends JFrame {
                upperRole.contains("HR");
     }
     
-    private void disableTemporaryButtons() {
-        
-        payrollManagement.setEnabled(false);
-        payrollManagement.setToolTipText("Coming soon - being updated to new system");
-    }
     
     private void updateLabels() {
         if (loggedInUser != null) {
@@ -429,10 +423,17 @@ public class AdminAccounting extends JFrame {
     }//GEN-LAST:event_requestleaveemppgPBActionPerformed
 
     private void payrollManagementActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_payrollManagementActionPerformed
-        JOptionPane.showMessageDialog(this, 
-            "Payroll Management page is being updated to the new system.\nComing soon!", 
-            "Feature Updating", 
-            JOptionPane.INFORMATION_MESSAGE);
+    try {
+        PayrollManagement payrollManagement = new PayrollManagement(loggedInUser);
+        payrollManagement.setVisible(true);
+        this.dispose(); // Close the current AdminAccounting window
+    } catch (Exception e) {
+        JOptionPane.showMessageDialog(this,
+            "Error opening Payroll Management: " + e.getMessage(),
+            "Error",
+            JOptionPane.ERROR_MESSAGE);
+        e.printStackTrace();
+    }
     }//GEN-LAST:event_payrollManagementActionPerformed
 
     /**

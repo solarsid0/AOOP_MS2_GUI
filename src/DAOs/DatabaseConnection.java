@@ -13,10 +13,15 @@ import java.time.ZoneId;          // For timezone operations
 import java.time.ZonedDateTime;    // For timezone-aware date/time
 import java.time.format.DateTimeFormatter; // For date formatting
 
+// Additional imports for report functionality
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+
 /**
  * Enhanced database connection for MotorPH payroll system.
  * This class provides both static and instance methods for database connectivity
- * with Manila timezone support and view querying capabilities.
+ * with Manila timezone support, view querying capabilities, and report operations.
  * @author User
  */
 public class DatabaseConnection {
@@ -53,6 +58,10 @@ public class DatabaseConnection {
     public static final double STANDARD_WORK_HOURS = 8.0;
     public static final double LUNCH_BREAK_HOURS = 1.0;
     public static final double OVERTIME_MULTIPLIER = 1.25;
+    
+    // Report configuration constants
+    private static final int CONNECTION_TIMEOUT = 30; // seconds
+    private static final String CONFIG_FILE = "src/config/database.properties";
     
     // The "address" where your database is located (server + port + database name)
     private static final String URL = "jdbc:mysql://localhost:3306/payrollsystem_db";
@@ -102,6 +111,139 @@ public class DatabaseConnection {
         
         // Actually create and return the connection
         return DriverManager.getConnection(URL, props);
+    }
+    
+    /**
+     * Get read-only database connection optimized for reports (static method)
+     * @return Read-only connection for better report performance
+     * @throws SQLException if connection fails
+     */
+    public static Connection getReadOnlyConnection() throws SQLException {
+        Connection conn = getConnection();
+        conn.setReadOnly(true);
+        conn.setTransactionIsolation(Connection.TRANSACTION_READ_UNCOMMITTED); // For better performance
+        return conn;
+    }
+    
+    /**
+     * Test database connection (static method)
+     * @return true if connection is valid, false otherwise
+     */
+    public static boolean testDatabaseConnection() {
+        try (Connection conn = getConnection()) {
+            return conn.isValid(5); // 5 second timeout
+        } catch (SQLException e) {
+            System.err.println("Database connection test failed: " + e.getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Test connection to the payroll summary view specifically (static method)
+     * @return true if payroll summary view is accessible, false otherwise
+     */
+    public static boolean testPayrollSummaryView() {
+        String testQuery = "SELECT COUNT(*) FROM " + VIEW_MONTHLY_PAYROLL_SUMMARY + " LIMIT 1";
+        
+        try (Connection conn = getReadOnlyConnection();
+             PreparedStatement stmt = conn.prepareStatement(testQuery);
+             ResultSet rs = stmt.executeQuery()) {
+            
+            if (rs.next()) {
+                int count = rs.getInt(1);
+                System.out.println("Payroll summary view test successful. Records found: " + count);
+                return true;
+            }
+            return false;
+            
+        } catch (SQLException e) {
+            System.err.println("Payroll summary view test failed: " + e.getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Get database metadata for debugging and reports (static method)
+     * @return Database information string
+     */
+    public static String getDatabaseInfo() {
+        try (Connection conn = getConnection()) {
+            java.sql.DatabaseMetaData metaData = conn.getMetaData();
+            StringBuilder info = new StringBuilder();
+            
+            info.append("Database Info:\n");
+            info.append("=============\n");
+            info.append("Product Name: ").append(metaData.getDatabaseProductName()).append("\n");
+            info.append("Product Version: ").append(metaData.getDatabaseProductVersion()).append("\n");
+            info.append("Driver Name: ").append(metaData.getDriverName()).append("\n");
+            info.append("Driver Version: ").append(metaData.getDriverVersion()).append("\n");
+            info.append("URL: ").append(metaData.getURL()).append("\n");
+            info.append("Username: ").append(metaData.getUserName()).append("\n");
+            info.append("Connection Valid: ").append(conn.isValid(5)).append("\n");
+            
+            return info.toString();
+            
+        } catch (SQLException e) {
+            return "Error getting database info: " + e.getMessage();
+        }
+    }
+    
+    /**
+     * Validate payroll data structure for reports (static method)
+     * @return Validation report string
+     */
+    public static String validatePayrollDataStructure() {
+        StringBuilder result = new StringBuilder();
+        
+        try (Connection conn = getReadOnlyConnection()) {
+            // Get table metadata
+            java.sql.DatabaseMetaData metaData = conn.getMetaData();
+            
+            result.append("Payroll Summary View Structure:\n");
+            result.append("===============================\n");
+            result.append("View: ").append(VIEW_MONTHLY_PAYROLL_SUMMARY).append("\n\n");
+            
+            // Get column information
+            try (ResultSet columns = metaData.getColumns(null, "payrollsystem_db", "monthly_payroll_summary_report", "%")) {
+                result.append("Columns:\n");
+                while (columns.next()) {
+                    String columnName = columns.getString("COLUMN_NAME");
+                    String dataType = columns.getString("TYPE_NAME");
+                    int columnSize = columns.getInt("COLUMN_SIZE");
+                    String nullable = columns.getString("IS_NULLABLE");
+                    
+                    result.append(String.format("  %-30s %-15s (%d) %s\n", 
+                        columnName, dataType, columnSize, nullable.equals("YES") ? "NULL" : "NOT NULL"));
+                }
+            }
+            
+            // Test data availability
+            String countQuery = "SELECT COUNT(*) as total_records FROM " + VIEW_MONTHLY_PAYROLL_SUMMARY;
+            try (PreparedStatement stmt = conn.prepareStatement(countQuery);
+                 ResultSet rs = stmt.executeQuery()) {
+                
+                if (rs.next()) {
+                    result.append("\nData Availability:\n");
+                    result.append("Total Records: ").append(rs.getInt("total_records")).append("\n");
+                }
+            }
+            
+            // Test recent data
+            String recentQuery = "SELECT MAX(`Pay Date`) as latest_date FROM " + VIEW_MONTHLY_PAYROLL_SUMMARY;
+            try (PreparedStatement stmt = conn.prepareStatement(recentQuery);
+                 ResultSet rs = stmt.executeQuery()) {
+                
+                if (rs.next()) {
+                    java.sql.Date latestDate = rs.getDate("latest_date");
+                    result.append("Latest Pay Date: ").append(latestDate != null ? latestDate.toString() : "No data").append("\n");
+                }
+            }
+            
+        } catch (SQLException e) {
+            result.append("Error validating data structure: ").append(e.getMessage()).append("\n");
+        }
+        
+        return result.toString();
     }
     
     /**
@@ -291,6 +433,83 @@ public class DatabaseConnection {
         return dayOfWeek >= 1 && dayOfWeek <= 5; // Monday=1, Friday=5
     }
     
+    /**
+     * Close connection safely
+     * @param conn Connection to close
+     */
+    public static void closeConnection(Connection conn) {
+        if (conn != null) {
+            try {
+                conn.close();
+            } catch (SQLException e) {
+                System.err.println("Error closing connection: " + e.getMessage());
+            }
+        }
+    }
+    
+    /**
+     * Close prepared statement safely
+     * @param stmt PreparedStatement to close
+     */
+    public static void closePreparedStatement(PreparedStatement stmt) {
+        if (stmt != null) {
+            try {
+                stmt.close();
+            } catch (SQLException e) {
+                System.err.println("Error closing prepared statement: " + e.getMessage());
+            }
+        }
+    }
+    
+    /**
+     * Close result set safely
+     * @param rs ResultSet to close
+     */
+    public static void closeResultSet(ResultSet rs) {
+        if (rs != null) {
+            try {
+                rs.close();
+            } catch (SQLException e) {
+                System.err.println("Error closing result set: " + e.getMessage());
+            }
+        }
+    }
+    
+    /**
+     * Create a sample database configuration file
+     * @return true if file created successfully, false otherwise
+     */
+    public static boolean createSampleDatabaseConfig() {
+        File configDir = new File("src/config");
+        if (!configDir.exists()) {
+            configDir.mkdirs();
+        }
+        
+        try (java.io.FileWriter writer = new java.io.FileWriter(CONFIG_FILE)) {
+            writer.write("# MotorPH Database Configuration\n");
+            writer.write("# Customize these settings for your database setup\n\n");
+            
+            writer.write("# Database connection settings\n");
+            writer.write("db.url=" + URL + "\n");
+            writer.write("db.username=" + USER + "\n");
+            writer.write("db.password=" + PASSWORD + "\n\n");
+            
+            writer.write("# Connection settings\n");
+            writer.write("db.connection.timeout=" + CONNECTION_TIMEOUT + "\n\n");
+            
+            writer.write("# For production, consider using:\n");
+            writer.write("# db.url=jdbc:mysql://your-server:3306/payrollsystem_db?useSSL=true\n");
+            writer.write("# db.username=your_username\n");
+            writer.write("# db.password=your_secure_password\n");
+            
+            System.out.println("Sample database configuration created: " + CONFIG_FILE);
+            return true;
+        } catch (IOException e) {
+            System.err.println("Error creating database config file: " + e.getMessage());
+            return false;
+        }
+    }
+    
     ///////////////////////////////////////////////////////////////////////////
     
     // INSTANCE METHODS (for BaseDAO compatibility)
@@ -306,9 +525,7 @@ public class DatabaseConnection {
      * Most of the time, you'll use this one
      */
     public DatabaseConnection() {
-        this.url = URL;           // Use the default database URL
-        this.username = USER;     // Use the default username
-        this.password = PASSWORD; // Use the default password
+        loadConfiguration();
     }
     
     /**
@@ -324,6 +541,29 @@ public class DatabaseConnection {
         this.url = url;           // Store the custom database URL
         this.username = username; // Store the custom username
         this.password = password; // Store the custom password
+    }
+    
+    /**
+     * Load database configuration from properties file or use defaults
+     */
+    private void loadConfiguration() {
+        Properties props = new Properties();
+        
+        // Try to load from config file
+        File configFile = new File(CONFIG_FILE);
+        if (configFile.exists()) {
+            try (FileInputStream fis = new FileInputStream(configFile)) {
+                props.load(fis);
+                System.out.println("Database configuration loaded from file");
+            } catch (IOException e) {
+                System.out.println("Could not load database config, using defaults: " + e.getMessage());
+            }
+        }
+        
+        // Set configuration with defaults
+        this.url = props.getProperty("db.url", URL);
+        this.username = props.getProperty("db.username", USER);
+        this.password = props.getProperty("db.password", PASSWORD);
     }
     
     /**
@@ -348,7 +588,17 @@ public class DatabaseConnection {
         props.setProperty("serverTimezone", "Asia/Manila");      // Philippine timezone
         
         // Create and return the connection using this instance's URL
-        return DriverManager.getConnection(url, props);
+        Connection conn = DriverManager.getConnection(url, props);
+        
+        // Set connection properties for better performance with reports
+        conn.setAutoCommit(true);
+        
+        // Set timeout
+        try (PreparedStatement stmt = conn.prepareStatement("SELECT 1")) {
+            stmt.setQueryTimeout(CONNECTION_TIMEOUT);
+        }
+        
+        return conn;
     }
     
     /**
@@ -367,6 +617,14 @@ public class DatabaseConnection {
             return false;
         }
         // The "try-with-resources" automatically closes the connection when done
+    }
+    
+    /**
+     * Test connection to the payroll summary table specifically
+     * @return true if payroll summary table is accessible, false otherwise
+     */
+    public boolean testPayrollSummaryTable() {
+        return testPayrollSummaryView(); // Use the static method
     }
     
     /**
@@ -449,4 +707,7 @@ public class DatabaseConnection {
         }
     }
     
+    // Getters for configuration (useful for debugging)
+    public String getUrl() { return url; }
+    public String getUsername() { return username; }
 }

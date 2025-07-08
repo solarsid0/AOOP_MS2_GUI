@@ -70,7 +70,7 @@ public class UserManagement extends javax.swing.JFrame {
             return;
         }
         
-        setTitle("User Management - MotorPH Payroll System");
+        setTitle("User Management - MotorPH");
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
     }

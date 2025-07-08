@@ -54,9 +54,7 @@ public class AdminHR extends JFrame {
         
         attendanceeTracking.setEnabled(false);
         attendanceeTracking.setToolTipText("Coming soon - being updated to new system");
-        
-        empManagement.setEnabled(false);
-        empManagement.setToolTipText("Coming soon - being updated to new system");
+
     }
 
 
@@ -124,7 +122,7 @@ public class AdminHR extends JFrame {
         personaldetPB = new javax.swing.JButton();
         attendanceemppgPB = new javax.swing.JButton();
         payrollemppgPB = new javax.swing.JButton();
-        requestleaveemppgPB = new javax.swing.JButton();
+        payrollsummarypgPB = new javax.swing.JButton();
         redOrangeDesign = new javax.swing.JLabel();
         MotorPHLogo = new javax.swing.JLabel();
         leaveRequestManagement = new javax.swing.JButton();
@@ -132,6 +130,7 @@ public class AdminHR extends JFrame {
         empManagement = new javax.swing.JButton();
         lblWelcomeMessage = new javax.swing.JLabel();
         jLabelEmpName = new javax.swing.JLabel();
+        requestleaveemppgPB1 = new javax.swing.JButton();
 
         jPopupMenu1.setBackground(new java.awt.Color(0, 0, 0));
         jPopupMenu1.setToolTipText("MENU BAR");
@@ -242,7 +241,7 @@ public class AdminHR extends JFrame {
             }
         });
         emppagemainPNL.add(personaldetPB);
-        personaldetPB.setBounds(410, 140, 200, 80);
+        personaldetPB.setBounds(190, 320, 200, 80);
 
         attendanceemppgPB.setBackground(new java.awt.Color(153, 0, 0));
         attendanceemppgPB.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
@@ -268,20 +267,21 @@ public class AdminHR extends JFrame {
             }
         });
         emppagemainPNL.add(payrollemppgPB);
-        payrollemppgPB.setBounds(410, 230, 200, 80);
+        payrollemppgPB.setBounds(410, 140, 200, 80);
 
-        requestleaveemppgPB.setBackground(new java.awt.Color(153, 0, 0));
-        requestleaveemppgPB.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        requestleaveemppgPB.setForeground(new java.awt.Color(255, 255, 255));
-        requestleaveemppgPB.setIcon(new javax.swing.ImageIcon(getClass().getResource("/media/REQUEST LEAVE 64 X 64.png"))); // NOI18N
-        requestleaveemppgPB.setText("Request Leave");
-        requestleaveemppgPB.addActionListener(new java.awt.event.ActionListener() {
+        payrollsummarypgPB.setBackground(new java.awt.Color(153, 0, 0));
+        payrollsummarypgPB.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
+        payrollsummarypgPB.setForeground(new java.awt.Color(255, 255, 255));
+        payrollsummarypgPB.setIcon(new javax.swing.ImageIcon(getClass().getResource("/media/REPORTING (64X64).png"))); // NOI18N
+        payrollsummarypgPB.setText("Payslip Reporting");
+        payrollsummarypgPB.setActionCommand("");
+        payrollsummarypgPB.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                requestleaveemppgPBActionPerformed(evt);
+                payrollsummarypgPBActionPerformed(evt);
             }
         });
-        emppagemainPNL.add(requestleaveemppgPB);
-        requestleaveemppgPB.setBounds(410, 320, 200, 80);
+        emppagemainPNL.add(payrollsummarypgPB);
+        payrollsummarypgPB.setBounds(410, 320, 200, 80);
 
         redOrangeDesign.setIcon(new javax.swing.ImageIcon(getClass().getResource("/media/Red-Orange Design.png"))); // NOI18N
         redOrangeDesign.setText("RedOrangeDesign");
@@ -352,6 +352,19 @@ public class AdminHR extends JFrame {
         jLabelEmpName.setVerticalTextPosition(javax.swing.SwingConstants.TOP);
         emppagemainPNL.add(jLabelEmpName);
         jLabelEmpName.setBounds(220, 100, 570, 25);
+
+        requestleaveemppgPB1.setBackground(new java.awt.Color(153, 0, 0));
+        requestleaveemppgPB1.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
+        requestleaveemppgPB1.setForeground(new java.awt.Color(255, 255, 255));
+        requestleaveemppgPB1.setIcon(new javax.swing.ImageIcon(getClass().getResource("/media/REQUEST LEAVE 64 X 64.png"))); // NOI18N
+        requestleaveemppgPB1.setText("Request Leave");
+        requestleaveemppgPB1.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                requestleaveemppgPB1ActionPerformed(evt);
+            }
+        });
+        emppagemainPNL.add(requestleaveemppgPB1);
+        requestleaveemppgPB1.setBounds(410, 230, 200, 80);
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
@@ -459,24 +472,28 @@ public class AdminHR extends JFrame {
     }
     }//GEN-LAST:event_payrollemppgPBActionPerformed
 
-    private void requestleaveemppgPBActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_requestleaveemppgPBActionPerformed
-    try {
-        // Open the Leave Request page with the logged-in user
-        LeaveRequest leaveRequestPage = new LeaveRequest(loggedInUser);
-        leaveRequestPage.setVisible(true);
+    private void payrollsummarypgPBActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_payrollsummarypgPBActionPerformed
+            try {
+        System.out.println("Launching Payroll Summary Report...");
         
-        // Close the current window
-        this.dispose();
+        // Create and show the PayrollSummaryReport with current user
+        PayrollSummaryReport payrollReport = new PayrollSummaryReport(loggedInUser);
+        payrollReport.setVisible(true);
+        
+        // Optional: Close current window (uncomment if you want this behavior)
+        // this.dispose();
         
     } catch (Exception e) {
-        System.err.println("Error opening Leave Request page: " + e.getMessage());
+        System.err.println("Error launching Payroll Summary Report: " + e.getMessage());
         e.printStackTrace();
-        JOptionPane.showMessageDialog(this, 
-            "Error opening Leave Request page: " + e.getMessage(), 
-            "Error", 
-            JOptionPane.ERROR_MESSAGE);
+        
+        // Show error dialog to user
+        javax.swing.JOptionPane.showMessageDialog(this,
+            "Error launching Payroll Summary Report:\n" + e.getMessage(),
+            "Launch Error",
+            javax.swing.JOptionPane.ERROR_MESSAGE);
     }
-    }//GEN-LAST:event_requestleaveemppgPBActionPerformed
+    }//GEN-LAST:event_payrollsummarypgPBActionPerformed
 
     private void leaveRequestManagementActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_leaveRequestManagementActionPerformed
         JOptionPane.showMessageDialog(this, 
@@ -493,11 +510,36 @@ public class AdminHR extends JFrame {
     }//GEN-LAST:event_attendanceeTrackingActionPerformed
 
     private void empManagementActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_empManagementActionPerformed
+    try {
+        EmployeeManagement empManagement = new EmployeeManagement(loggedInUser);
+        empManagement.setVisible(true);
+        this.dispose();
+    } catch (Exception e) {
+        System.err.println("Error opening Employee Management: " + e.getMessage());
         JOptionPane.showMessageDialog(this, 
-            "Employee Management is being updated to the new system.\nComing soon!", 
-            "Feature Updating", 
-            JOptionPane.INFORMATION_MESSAGE);
+            "Error opening Employee Management: " + e.getMessage(), 
+            "Navigation Error", JOptionPane.ERROR_MESSAGE);
+    }
     }//GEN-LAST:event_empManagementActionPerformed
+
+    private void requestleaveemppgPB1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_requestleaveemppgPB1ActionPerformed
+    try {
+        // Open the Leave Request page with the logged-in user
+        LeaveRequest leaveRequestPage = new LeaveRequest(loggedInUser);
+        leaveRequestPage.setVisible(true);
+        
+        // Close the current window
+        this.dispose();
+        
+    } catch (Exception e) {
+        System.err.println("Error opening Leave Request page: " + e.getMessage());
+        e.printStackTrace();
+        JOptionPane.showMessageDialog(this, 
+            "Error opening Leave Request page: " + e.getMessage(), 
+            "Error", 
+            JOptionPane.ERROR_MESSAGE);
+    }
+    }//GEN-LAST:event_requestleaveemppgPB1ActionPerformed
 
     /**
      * @param args the command line arguments
@@ -531,9 +573,10 @@ public class AdminHR extends JFrame {
     private javax.swing.JButton leaveRequestManagement;
     private javax.swing.JButton logoutemppgPB;
     private javax.swing.JButton payrollemppgPB;
+    private javax.swing.JButton payrollsummarypgPB;
     private javax.swing.JButton personaldetPB;
     private javax.swing.JLabel redOrangeDesign;
-    private javax.swing.JButton requestleaveemppgPB;
+    private javax.swing.JButton requestleaveemppgPB1;
     private javax.swing.JPanel specialaccessPNL;
     // End of variables declaration//GEN-END:variables
 }

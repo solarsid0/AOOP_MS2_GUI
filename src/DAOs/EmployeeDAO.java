@@ -3,6 +3,7 @@ package DAOs;
 import Models.EmployeeModel;
 import Models.EmployeeModel.EmployeeStatus;
 import Models.PositionModel;
+import Models.GovIdModel;
 import java.math.BigDecimal;
 import java.sql.*;
 import java.time.LocalDate;
@@ -13,9 +14,8 @@ import java.util.List;
 import java.util.ArrayList;
 
 /**
- * Data Access Object for EmployeeModel entities.
- * Enhanced with Manila timezone support, rank-and-file business logic, and soft deletion
- * 
+ * Enhanced EmployeeDAO with integrated Government ID management and Position integration
+ * Handles employee, government ID, and position operations in one place
  * @author User
  */
 public class EmployeeDAO extends BaseDAO<EmployeeModel, Integer> {
@@ -25,7 +25,7 @@ public class EmployeeDAO extends BaseDAO<EmployeeModel, Integer> {
     
     /**
      * Constructor that accepts a DatabaseConnection instance
-     * @param databaseConnection The database connection to use for all operations
+     * @param databaseConnection
      */
     public EmployeeDAO(DatabaseConnection databaseConnection) {
         super(databaseConnection);
@@ -102,11 +102,6 @@ public class EmployeeDAO extends BaseDAO<EmployeeModel, Integer> {
         }
         
         return employee;
-    }
-    
-    // Alternative method name for compatibility with existing code
-    protected EmployeeModel extractEmployeeFromResultSet(ResultSet rs) throws SQLException {
-        return mapResultSetToEntity(rs);
     }
     
     @Override
@@ -217,12 +212,448 @@ public class EmployeeDAO extends BaseDAO<EmployeeModel, Integer> {
         }
     }
     
-    // NEW METHOD FOR SOFT DELETION
+    // GOVERNMENT ID INTEGRATION METHODS
     
     /**
-     * Deactivates an employee by setting their status to TERMINATED and updating the timestamp
-     * @param employeeId The ID of the employee to deactivate
-     * @return true if deactivation was successful, false otherwise
+     * Save employee with government IDs in a transaction
+     * @param employee Employee to save
+     * @param govIds Government IDs to save
+     * @return true if both employee and government IDs were saved successfully
+     */
+    public boolean saveEmployeeWithGovIds(EmployeeModel employee, GovIdModel govIds) {
+        Connection conn = null;
+        try {
+            conn = databaseConnection.createConnection();
+            conn.setAutoCommit(false); // Start transaction
+            
+            // 1. Save employee first
+            boolean employeeSaved = saveEmployeeInTransaction(employee, conn);
+            if (!employeeSaved) {
+                conn.rollback();
+                return false;
+            }
+            
+            // 2. Save government IDs with the employee ID
+            if (govIds != null) {
+                govIds.setEmployeeId(employee.getEmployeeId());
+                boolean govIdsSaved = saveGovIdsInTransaction(govIds, conn);
+                if (!govIdsSaved) {
+                    conn.rollback();
+                    return false;
+                }
+            }
+            
+            conn.commit(); // Commit transaction
+            System.out.println("✅ Employee and government IDs saved successfully");
+            return true;
+            
+        } catch (Exception e) {
+            try {
+                if (conn != null) {
+                    conn.rollback();
+                }
+            } catch (SQLException rollbackEx) {
+                System.err.println("Error rolling back transaction: " + rollbackEx.getMessage());
+            }
+            System.err.println("Error saving employee with government IDs: " + e.getMessage());
+            return false;
+        } finally {
+            try {
+                if (conn != null) {
+                    conn.setAutoCommit(true);
+                    conn.close();
+                }
+            } catch (SQLException e) {
+                System.err.println("Error closing connection: " + e.getMessage());
+            }
+        }
+    }
+    
+    /**
+     * Update employee with government IDs in a transaction
+     * @param employee Employee to update
+     * @param govIds Government IDs to update
+     * @return true if both employee and government IDs were updated successfully
+     */
+    public boolean updateEmployeeWithGovIds(EmployeeModel employee, GovIdModel govIds) {
+        Connection conn = null;
+        try {
+            conn = databaseConnection.createConnection();
+            conn.setAutoCommit(false); // Start transaction
+            
+            // 1. Update employee
+            boolean employeeUpdated = updateEmployeeInTransaction(employee, conn);
+            if (!employeeUpdated) {
+                conn.rollback();
+                return false;
+            }
+            
+            // 2. Update or insert government IDs
+            if (govIds != null) {
+                govIds.setEmployeeId(employee.getEmployeeId());
+                boolean govIdsUpdated = saveOrUpdateGovIdsInTransaction(govIds, conn);
+                if (!govIdsUpdated) {
+                    conn.rollback();
+                    return false;
+                }
+            }
+            
+            conn.commit(); // Commit transaction
+            System.out.println("✅ Employee and government IDs updated successfully");
+            return true;
+            
+        } catch (Exception e) {
+            try {
+                if (conn != null) {
+                    conn.rollback();
+                }
+            } catch (SQLException rollbackEx) {
+                System.err.println("Error rolling back transaction: " + rollbackEx.getMessage());
+            }
+            System.err.println("Error updating employee with government IDs: " + e.getMessage());
+            return false;
+        } finally {
+            try {
+                if (conn != null) {
+                    conn.setAutoCommit(true);
+                    conn.close();
+                }
+            } catch (SQLException e) {
+                System.err.println("Error closing connection: " + e.getMessage());
+            }
+        }
+    }
+    
+    /**
+     * Get employee with government IDs
+     * @param employeeId Employee ID
+     * @return EmployeeWithGovIds object or null if not found
+     */
+    public EmployeeWithGovIds getEmployeeWithGovIds(Integer employeeId) {
+        if (employeeId == null) {
+            return null;
+        }
+        
+        EmployeeModel employee = findById(employeeId);
+        if (employee == null) {
+            return null;
+        }
+        
+        GovIdModel govIds = getEmployeeGovIds(employeeId);
+        
+        return new EmployeeWithGovIds(employee, govIds);
+    }
+    
+    /**
+     * Get government IDs for an employee
+     * @param employeeId Employee ID
+     * @return GovIdModel or null if not found
+     */
+    public GovIdModel getEmployeeGovIds(Integer employeeId) {
+        if (employeeId == null) {
+            return null;
+        }
+        
+        String sql = "SELECT * FROM govid WHERE employeeId = ?";
+        
+        try (Connection conn = databaseConnection.createConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            stmt.setInt(1, employeeId);
+            ResultSet rs = stmt.executeQuery();
+            
+            if (rs.next()) {
+                return mapResultSetToGovId(rs);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting government IDs: " + e.getMessage());
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Delete employee and associated government IDs
+     * @param employeeId Employee ID to delete
+     * @return true if deletion was successful
+     */
+    public boolean deleteEmployeeWithGovIds(Integer employeeId) {
+        Connection conn = null;
+        try {
+            conn = databaseConnection.createConnection();
+            conn.setAutoCommit(false); // Start transaction
+            
+            // 1. Delete government IDs first (foreign key constraint)
+            boolean govIdsDeleted = deleteGovIdsInTransaction(employeeId, conn);
+            
+            // 2. Delete employee
+            boolean employeeDeleted = deleteEmployeeInTransaction(employeeId, conn);
+            
+            if (employeeDeleted) {
+                conn.commit(); // Commit transaction
+                System.out.println("✅ Employee and government IDs deleted successfully");
+                return true;
+            } else {
+                conn.rollback();
+                return false;
+            }
+            
+        } catch (Exception e) {
+            try {
+                if (conn != null) {
+                    conn.rollback();
+                }
+            } catch (SQLException rollbackEx) {
+                System.err.println("Error rolling back transaction: " + rollbackEx.getMessage());
+            }
+            System.err.println("Error deleting employee with government IDs: " + e.getMessage());
+            return false;
+        } finally {
+            try {
+                if (conn != null) {
+                    conn.setAutoCommit(true);
+                    conn.close();
+                }
+            } catch (SQLException e) {
+                System.err.println("Error closing connection: " + e.getMessage());
+            }
+        }
+    }
+    
+    // POSITION INTEGRATION METHODS
+    
+    /**
+     * Get employee with position information
+     * @param employeeId Employee ID
+     * @return EmployeeWithPosition object or null if not found
+     */
+    public EmployeeWithPosition getEmployeeWithPosition(Integer employeeId) {
+        if (employeeId == null) {
+            return null;
+        }
+        
+        EmployeeModel employee = findById(employeeId);
+        if (employee == null) {
+            return null;
+        }
+        
+        PositionModel position = null;
+        if (employee.getPositionId() != null) {
+            PositionDAO positionDAO = new PositionDAO(databaseConnection);
+            position = positionDAO.findById(employee.getPositionId());
+        }
+        
+        return new EmployeeWithPosition(employee, position);
+    }
+    
+    /**
+     * Get all employees with their position information
+     * @return List of EmployeeWithPosition objects
+     */
+    public List<EmployeeWithPosition> getAllEmployeesWithPosition() {
+        List<EmployeeModel> employees = findAll();
+        List<EmployeeWithPosition> result = new ArrayList<>();
+        
+        PositionDAO positionDAO = new PositionDAO(databaseConnection);
+        
+        for (EmployeeModel employee : employees) {
+            PositionModel position = null;
+            if (employee.getPositionId() != null) {
+                position = positionDAO.findById(employee.getPositionId());
+            }
+            result.add(new EmployeeWithPosition(employee, position));
+        }
+        
+        return result;
+    }
+    
+    /**
+     * Get active employees with their position information
+     * @return List of active EmployeeWithPosition objects
+     */
+    public List<EmployeeWithPosition> getActiveEmployeesWithPosition() {
+        List<EmployeeModel> employees = getActiveEmployees();
+        List<EmployeeWithPosition> result = new ArrayList<>();
+        
+        PositionDAO positionDAO = new PositionDAO(databaseConnection);
+        
+        for (EmployeeModel employee : employees) {
+            PositionModel position = null;
+            if (employee.getPositionId() != null) {
+                position = positionDAO.findById(employee.getPositionId());
+            }
+            result.add(new EmployeeWithPosition(employee, position));
+        }
+        
+        return result;
+    }
+    
+    /**
+     * Get employees by department with position information
+     * @param department Department name
+     * @return List of EmployeeWithPosition objects
+     */
+    public List<EmployeeWithPosition> getEmployeesByDepartmentWithPosition(String department) {
+        List<EmployeeModel> employees = getEmployeesByDepartment(department);
+        List<EmployeeWithPosition> result = new ArrayList<>();
+        
+        PositionDAO positionDAO = new PositionDAO(databaseConnection);
+        
+        for (EmployeeModel employee : employees) {
+            PositionModel position = null;
+            if (employee.getPositionId() != null) {
+                position = positionDAO.findById(employee.getPositionId());
+            }
+            result.add(new EmployeeWithPosition(employee, position));
+        }
+        
+        return result;
+    }
+    
+    // PRIVATE TRANSACTION HELPER METHODS
+    
+    /**
+     * Save employee within a transaction
+     */
+    private boolean saveEmployeeInTransaction(EmployeeModel employee, Connection conn) throws SQLException {
+        String sql = """
+            INSERT INTO employee 
+            (firstName, lastName, birthDate, phoneNumber, email, basicSalary, 
+             hourlyRate, userRole, passwordHash, status, lastLogin, positionId, supervisorId) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """;
+        
+        try (PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            setInsertParameters(stmt, employee);
+            
+            int rowsAffected = stmt.executeUpdate();
+            
+            if (rowsAffected > 0) {
+                try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
+                    if (generatedKeys.next()) {
+                        employee.setEmployeeId(generatedKeys.getInt(1));
+                        return true;
+                    }
+                }
+            }
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Update employee within a transaction
+     */
+    private boolean updateEmployeeInTransaction(EmployeeModel employee, Connection conn) throws SQLException {
+        String sql = """
+            UPDATE employee SET 
+            firstName = ?, lastName = ?, birthDate = ?, phoneNumber = ?, email = ?, 
+            basicSalary = ?, hourlyRate = ?, userRole = ?, passwordHash = ?, status = ?, 
+            lastLogin = ?, positionId = ?, supervisorId = ?, updatedAt = ? 
+            WHERE employeeId = ?
+            """;
+        
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            setUpdateParameters(stmt, employee);
+            // Set Manila time for updatedAt
+            stmt.setTimestamp(14, Timestamp.valueOf(getManilaTime()));
+            
+            return stmt.executeUpdate() > 0;
+        }
+    }
+    
+    /**
+     * Save government IDs within a transaction
+     */
+    private boolean saveGovIdsInTransaction(GovIdModel govIds, Connection conn) throws SQLException {
+        String sql = "INSERT INTO govid (sss, philhealth, tin, pagibig, employeeId) VALUES (?, ?, ?, ?, ?)";
+        
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, govIds.getSss());
+            stmt.setString(2, govIds.getPhilhealth());
+            stmt.setString(3, govIds.getTin());
+            stmt.setString(4, govIds.getPagibig());
+            stmt.setInt(5, govIds.getEmployeeId());
+            
+            return stmt.executeUpdate() > 0;
+        }
+    }
+    
+    /**
+     * Save or update government IDs within a transaction
+     */
+    private boolean saveOrUpdateGovIdsInTransaction(GovIdModel govIds, Connection conn) throws SQLException {
+        // Check if government IDs already exist
+        String checkSQL = "SELECT govId FROM govid WHERE employeeId = ?";
+        
+        try (PreparedStatement checkStmt = conn.prepareStatement(checkSQL)) {
+            checkStmt.setInt(1, govIds.getEmployeeId());
+            ResultSet rs = checkStmt.executeQuery();
+            
+            if (rs.next()) {
+                // Update existing government IDs
+                String updateSQL = "UPDATE govid SET sss = ?, philhealth = ?, tin = ?, pagibig = ? WHERE employeeId = ?";
+                
+                try (PreparedStatement updateStmt = conn.prepareStatement(updateSQL)) {
+                    updateStmt.setString(1, govIds.getSss());
+                    updateStmt.setString(2, govIds.getPhilhealth());
+                    updateStmt.setString(3, govIds.getTin());
+                    updateStmt.setString(4, govIds.getPagibig());
+                    updateStmt.setInt(5, govIds.getEmployeeId());
+                    
+                    return updateStmt.executeUpdate() > 0;
+                }
+            } else {
+                // Insert new government IDs
+                return saveGovIdsInTransaction(govIds, conn);
+            }
+        }
+    }
+    
+    /**
+     * Delete government IDs within a transaction
+     */
+    private boolean deleteGovIdsInTransaction(Integer employeeId, Connection conn) throws SQLException {
+        String sql = "DELETE FROM govid WHERE employeeId = ?";
+        
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, employeeId);
+            stmt.executeUpdate(); // Don't check rows affected - it's okay if no gov IDs exist
+            return true;
+        }
+    }
+    
+    /**
+     * Delete employee within a transaction
+     */
+    private boolean deleteEmployeeInTransaction(Integer employeeId, Connection conn) throws SQLException {
+        String sql = "DELETE FROM employee WHERE employeeId = ?";
+        
+        try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setInt(1, employeeId);
+            return stmt.executeUpdate() > 0;
+        }
+    }
+    
+    /**
+     * Map ResultSet to GovIdModel
+     */
+    private GovIdModel mapResultSetToGovId(ResultSet rs) throws SQLException {
+        GovIdModel govId = new GovIdModel();
+        govId.setGovId(rs.getInt("govId"));
+        govId.setSss(rs.getString("sss"));
+        govId.setPhilhealth(rs.getString("philhealth"));
+        govId.setTin(rs.getString("tin"));
+        govId.setPagibig(rs.getString("pagibig"));
+        govId.setEmployeeId(rs.getInt("employeeId"));
+        return govId;
+    }
+    
+    // EXISTING METHODS FROM YOUR ORIGINAL DAO
+    
+    /**
+     * Deactivates an employee by setting their status to TERMINATED
      */
     public boolean deactivateEmployee(Integer employeeId) {
         if (employeeId == null) {
@@ -248,43 +679,130 @@ public class EmployeeDAO extends BaseDAO<EmployeeModel, Integer> {
         }
     }
     
-    // MANILA TIMEZONE UTILITIES
-    
     /**
      * Gets current Manila time
-     * @return LocalDateTime in Manila timezone
      */
     public static LocalDateTime getManilaTime() {
         return ZonedDateTime.now(MANILA_TIMEZONE).toLocalDateTime();
     }
     
     /**
-     * Gets current Manila date
-     * @return LocalDate in Manila timezone
+     * Get all active employees (not terminated)
+     * @return 
      */
-    public static LocalDate getManilaDate() {
-        return ZonedDateTime.now(MANILA_TIMEZONE).toLocalDate();
+    public List<EmployeeModel> getActiveEmployees() {
+        String sql = "SELECT * FROM employee WHERE status != 'Terminated' ORDER BY employeeId ASC";
+        return executeQuery(sql);
     }
     
     /**
-     * Converts any LocalDateTime to Manila timezone
-     * @param dateTime LocalDateTime to convert
-     * @return LocalDateTime in Manila timezone
+     * Find employee by email
      */
-    public static LocalDateTime toManilaTime(LocalDateTime dateTime) {
-        if (dateTime == null) return null;
-        return dateTime.atZone(ZoneId.systemDefault())
-                      .withZoneSameInstant(MANILA_TIMEZONE)
-                      .toLocalDateTime();
+    public EmployeeModel findByEmail(String email) {
+        if (email == null || email.trim().isEmpty()) {
+            return null;
+        }
+        String sql = "SELECT * FROM employee WHERE email = ?";
+        return executeSingleQuery(sql, email);
     }
     
-    // RANK-AND-FILE CLASSIFICATION METHODS
+    /**
+     * Find all employees by position ID
+     * @param positionId Position ID to search for
+     * @return List of employees in the specified position
+     */
+    public List<EmployeeModel> findByPosition(Integer positionId) {
+        if (positionId == null) {
+            return new ArrayList<>();
+        }
+        
+        String sql = "SELECT * FROM employee WHERE positionId = ? AND status != 'Terminated' ORDER BY lastName, firstName";
+        return executeQuery(sql, positionId);
+    }
     
     /**
-     * Check if employee is rank-and-file based on position
-     * Rule: department = 'rank-and-file' OR position LIKE '%rank-and-file%'
-     * @param employeeId The employee ID to check
-     * @return true if employee is rank-and-file
+     * Find all employees by position ID including terminated employees
+     * @param positionId Position ID to search for
+     * @return List of all employees (including terminated) in the specified position
+     */
+    public List<EmployeeModel> findByPositionIncludingTerminated(Integer positionId) {
+        if (positionId == null) {
+            return new ArrayList<>();
+        }
+        
+        String sql = "SELECT * FROM employee WHERE positionId = ? ORDER BY lastName, firstName";
+        return executeQuery(sql, positionId);
+    }
+    
+    /**
+     * Find employees by position with position information
+     * @param positionId Position ID to search for
+     * @return List of EmployeeWithPosition objects
+     */
+    public List<EmployeeWithPosition> findByPositionWithPosition(Integer positionId) {
+        List<EmployeeModel> employees = findByPosition(positionId);
+        List<EmployeeWithPosition> result = new ArrayList<>();
+        
+        PositionDAO positionDAO = new PositionDAO(databaseConnection);
+        PositionModel position = positionDAO.findById(positionId);
+        
+        for (EmployeeModel employee : employees) {
+            result.add(new EmployeeWithPosition(employee, position));
+        }
+        
+        return result;
+    }
+    
+    /**
+     * Count employees in a specific position
+     * @param positionId Position ID to count
+     * @return Number of active employees in the position
+     */
+    public int countEmployeesByPosition(Integer positionId) {
+        if (positionId == null) {
+            return 0;
+        }
+        
+        String sql = "SELECT COUNT(*) FROM employee WHERE positionId = ? AND status != 'Terminated'";
+        
+        try (Connection conn = databaseConnection.createConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            stmt.setInt(1, positionId);
+            ResultSet rs = stmt.executeQuery();
+            
+            if (rs.next()) {
+                return rs.getInt(1);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error counting employees by position: " + e.getMessage());
+        }
+        
+        return 0;
+    }
+    
+    /**
+     * Get employees by department
+     * @param department
+     */
+    public List<EmployeeModel> getEmployeesByDepartment(String department) {
+        if (department == null || department.trim().isEmpty()) {
+            return new ArrayList<>();
+        }
+        
+        String sql = """
+            SELECT e.* FROM employee e 
+            JOIN position p ON e.positionId = p.positionId 
+            WHERE p.department = ? 
+            AND e.status != 'Terminated'
+            ORDER BY e.lastName, e.firstName
+            """;
+        return executeQuery(sql, department);
+    }
+    
+    /**
+     * Check if employee is rank-and-file
      */
     public boolean isEmployeeRankAndFile(Integer employeeId) {
         if (employeeId == null) {
@@ -323,463 +841,89 @@ public class EmployeeDAO extends BaseDAO<EmployeeModel, Integer> {
      */
     public List<EmployeeModel> getRankAndFileEmployees() {
         String sql = """
-            SELECT e.* 
-            FROM employee e 
+            SELECT e.* FROM employee e 
             JOIN position p ON e.positionId = p.positionId 
-            WHERE (LOWER(p.department) = 'rank-and-file' 
-                   OR LOWER(p.position) LIKE '%rank%file%')
-            AND e.status != 'Terminated'
+            WHERE e.status != 'Terminated'
+            AND (LOWER(p.department) = 'rank-and-file' 
+                 OR LOWER(p.position) LIKE '%rank%file%'
+                 OR (LOWER(p.position) NOT LIKE '%manager%' 
+                     AND LOWER(p.position) NOT LIKE '%supervisor%' 
+                     AND LOWER(p.position) NOT LIKE '%head%' 
+                     AND LOWER(p.position) NOT LIKE '%director%' 
+                     AND LOWER(p.position) NOT LIKE '%ceo%' 
+                     AND LOWER(p.position) NOT LIKE '%coo%' 
+                     AND LOWER(p.position) NOT LIKE '%cfo%' 
+                     AND LOWER(p.department) != 'leadership'))
             ORDER BY e.lastName, e.firstName
             """;
-        
         return executeQuery(sql);
     }
     
     /**
-     * Get all non rank-and-file employees
+     * Get all non rank-and-file employees (management/leadership)
      * @return List of non rank-and-file employees
      */
     public List<EmployeeModel> getNonRankAndFileEmployees() {
         String sql = """
-            SELECT e.* 
-            FROM employee e 
-            JOIN position p ON e.positionId = p.positionId 
-            WHERE NOT (LOWER(p.department) = 'rank-and-file' 
-                      OR LOWER(p.position) LIKE '%rank%file%')
-            AND e.status != 'Terminated'
-            ORDER BY e.lastName, e.firstName
-            """;
-        
-        return executeQuery(sql);
-    }
-    
-    /**
-     * Get employees by rank-and-file classification
-     * @param isRankAndFile true for rank-and-file, false for non rank-and-file
-     * @return List of employees in the specified category
-     */
-    public List<EmployeeModel> getEmployeesByRankAndFileStatus(boolean isRankAndFile) {
-        if (isRankAndFile) {
-            return getRankAndFileEmployees();
-        } else {
-            return getNonRankAndFileEmployees();
-        }
-    }
-    
-    /**
-     * Get employee with position information for payroll processing
-     * @param employeeId The employee ID
-     * @return EmployeeWithPosition object containing both employee and position data
-     */
-    public EmployeeWithPosition getEmployeeWithPosition(Integer employeeId) {
-        if (employeeId == null) {
-            return null;
-        }
-        
-        String sql = """
-            SELECT e.*, p.position, p.department, p.positionDescription
-            FROM employee e 
-            JOIN position p ON e.positionId = p.positionId 
-            WHERE e.employeeId = ?
-            """;
-        
-        try (Connection conn = databaseConnection.createConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            
-            stmt.setInt(1, employeeId);
-            ResultSet rs = stmt.executeQuery();
-            
-            if (rs.next()) {
-                EmployeeModel employee = mapResultSetToEntity(rs);
-                PositionModel position = new PositionModel();
-                position.setPositionId(employee.getPositionId());
-                position.setPosition(rs.getString("position"));
-                position.setPositionDescription(rs.getString("positionDescription"));
-                position.setDepartment(rs.getString("department"));
-                
-                return new EmployeeWithPosition(employee, position);
-            }
-            
-        } catch (SQLException e) {
-            System.err.println("Error getting employee with position: " + e.getMessage());
-        }
-        
-        return null;
-    }
-    
-    // OVERTIME ELIGIBILITY METHODS
-    
-    /**
-     * Get employees eligible for overtime pay (rank-and-file employees only)
-     * @return List of employees eligible for overtime
-     */
-    public List<EmployeeModel> getOvertimeEligibleEmployees() {
-        return getRankAndFileEmployees();
-    }
-    
-    /**
-     * Check if employee is eligible for overtime pay
-     * @param employeeId Employee ID to check
-     * @return true if employee is eligible for overtime
-     */
-    public boolean isEligibleForOvertime(Integer employeeId) {
-        return isEmployeeRankAndFile(employeeId);
-    }
-    
-    // LEAVE REQUEST VALIDATION METHODS
-    
-    /**
-     * Check if employee can submit leave request for the given date
-     * Rule: Can only submit for today or future dates (Manila time)
-     * @param employeeId Employee ID
-     * @param leaveDate Requested leave date
-     * @return true if leave request is valid
-     */
-    public boolean canSubmitLeaveRequest(Integer employeeId, LocalDate leaveDate) {
-        if (employeeId == null || leaveDate == null) {
-            return false;
-        }
-        
-        // Check if employee exists and is active
-        EmployeeModel employee = findById(employeeId);
-        if (employee == null || !employee.isActive()) {
-            return false;
-        }
-        
-        // Check date validity - can only request for today or future dates
-        LocalDate today = getManilaDate();
-        return !leaveDate.isBefore(today);
-    }
-    
-    /**
-     * Check if employee can submit overtime request for the given date
-     * Rule: Can only submit for today or future dates (Manila time) and only rank-and-file
-     * @param employeeId Employee ID
-     * @param overtimeDate Requested overtime date
-     * @return true if overtime request is valid
-     */
-    public boolean canSubmitOvertimeRequest(Integer employeeId, LocalDate overtimeDate) {
-        if (employeeId == null || overtimeDate == null) {
-            return false;
-        }
-        
-        // Check if employee exists and is active
-        EmployeeModel employee = findById(employeeId);
-        if (employee == null || !employee.isActive()) {
-            return false;
-        }
-        
-        // Check if employee is eligible for overtime (rank-and-file only)
-        if (!isEmployeeRankAndFile(employeeId)) {
-            return false;
-        }
-        
-        // Check date validity - can only request for today or future dates
-        LocalDate today = getManilaDate();
-        return !overtimeDate.isBefore(today);
-    }
-    
-    // PAYROLL STATISTICS AND REPORTING
-    
-    /**
-     * Get payroll summary statistics
-     * @return PayrollStatistics object with employee counts by category
-     */
-    public PayrollStatistics getPayrollStatistics() {
-        String sql = """
-            SELECT 
-                COUNT(*) as total_employees,
-                SUM(CASE WHEN (LOWER(p.department) = 'rank-and-file' 
-                              OR LOWER(p.position) LIKE '%rank%file%') 
-                         THEN 1 ELSE 0 END) as rank_and_file_count,
-                SUM(CASE WHEN NOT (LOWER(p.department) = 'rank-and-file' 
-                                  OR LOWER(p.position) LIKE '%rank%file%') 
-                         THEN 1 ELSE 0 END) as non_rank_and_file_count,
-                COUNT(CASE WHEN e.status = 'Terminated' THEN 1 END) as terminated_count
-            FROM employee e 
-            JOIN position p ON e.positionId = p.positionId
-            """;
-        
-        try (Connection conn = databaseConnection.createConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            
-            ResultSet rs = stmt.executeQuery();
-            
-            if (rs.next()) {
-                return new PayrollStatistics(
-                    rs.getInt("total_employees"),
-                    rs.getInt("rank_and_file_count"),
-                    rs.getInt("non_rank_and_file_count"),
-                    rs.getInt("terminated_count")
-                );
-            }
-            
-        } catch (SQLException e) {
-            System.err.println("Error getting payroll statistics: " + e.getMessage());
-        }
-        
-        return new PayrollStatistics(0, 0, 0, 0);
-    }
-    
-    /**
-     * Get employees ready for payroll processing (active employees with valid positions and salary info)
-     * @return List of employees ready for payroll
-     */
-    public List<EmployeeModel> getPayrollReadyEmployees() {
-        String sql = """
-            SELECT e.* 
-            FROM employee e 
-            JOIN position p ON e.positionId = p.positionId 
-            WHERE e.status != 'Terminated'
-            AND e.basicSalary IS NOT NULL
-            AND e.hourlyRate IS NOT NULL
-            AND e.basicSalary > 0
-            AND e.hourlyRate > 0
-            ORDER BY e.lastName, e.firstName
-            """;
-        
-        return executeQuery(sql);
-    }
-    
-    /**
-     * Get employees with missing salary information
-     * @return List of employees with incomplete salary data
-     */
-    public List<EmployeeModel> getEmployeesWithMissingSalaryInfo() {
-        String sql = """
-            SELECT e.* 
-            FROM employee e 
-            WHERE e.status != 'Terminated'
-            AND (e.basicSalary IS NULL 
-                 OR e.hourlyRate IS NULL 
-                 OR e.basicSalary <= 0 
-                 OR e.hourlyRate <= 0)
-            ORDER BY e.lastName, e.firstName
-            """;
-        
-        return executeQuery(sql);
-    }
-    
-    // WORK SCHEDULE VALIDATION METHODS
-    
-    /**
-     * Check if a date is a valid workday (Monday to Friday)
-     * @param date Date to check
-     * @return true if it's a weekday
-     */
-    public static boolean isWorkDay(LocalDate date) {
-        if (date == null) return false;
-        
-        java.time.DayOfWeek dayOfWeek = date.getDayOfWeek();
-        return dayOfWeek.getValue() >= 1 && dayOfWeek.getValue() <= 5; // Monday = 1, Friday = 5
-    }
-    
-    /**
-     * Calculate total weekdays in a given month
-     * @param year Year
-     * @param month Month (1-12)
-     * @return Number of weekdays in the month
-     */
-    public static int calculateWeekdaysInMonth(int year, int month) {
-        LocalDate firstDay = LocalDate.of(year, month, 1);
-        LocalDate lastDay = firstDay.withDayOfMonth(firstDay.lengthOfMonth());
-        
-        int weekdays = 0;
-        for (LocalDate date = firstDay; !date.isAfter(lastDay); date = date.plusDays(1)) {
-            if (isWorkDay(date)) {
-                weekdays++;
-            }
-        }
-        
-        return weekdays;
-    }
-    
-    /**
-     * Calculate total weekdays between two dates (inclusive)
-     * @param startDate Start date
-     * @param endDate End date
-     * @return Number of weekdays between the dates
-     */
-    public static int calculateWeekdaysBetween(LocalDate startDate, LocalDate endDate) {
-        if (startDate == null || endDate == null || startDate.isAfter(endDate)) {
-            return 0;
-        }
-        
-        int weekdays = 0;
-        for (LocalDate date = startDate; !date.isAfter(endDate); date = date.plusDays(1)) {
-            if (isWorkDay(date)) {
-                weekdays++;
-            }
-        }
-        
-        return weekdays;
-    }
-    
-    // METHODS REQUIRED BY OTHER CLASSES
-    
-    /**
-     * Gets all employees supervised by a specific supervisor
-     * @param supervisorId The supervisor's employee ID
-     * @return List of employees under this supervisor
-     */
-    public List<EmployeeModel> getEmployeesBySupervisor(Integer supervisorId) {
-        if (supervisorId == null) {
-            return new ArrayList<>();
-        }
-        
-        String sql = """
-            SELECT e.* 
-            FROM employee e 
-            WHERE e.supervisorId = ? 
-            AND e.status != 'Terminated'
-            ORDER BY e.lastName, e.firstName
-            """;
-        
-        return executeQuery(sql, supervisorId);
-    }
-    
-    /**
-     * Gets all employees in a specific position
-     * @param positionId The position ID
-     * @return List of employees in the position
-     */
-    public List<EmployeeModel> findByPosition(Integer positionId) {
-        if (positionId == null) {
-            return new ArrayList<>();
-        }
-        
-        String sql = """
-            SELECT e.* 
-            FROM employee e 
-            WHERE e.positionId = ? 
-            AND e.status != 'Terminated'
-            ORDER BY e.lastName, e.firstName
-            """;
-        
-        return executeQuery(sql, positionId);
-    }
-    
-    // CUSTOM EMPLOYEE METHODS
-    
-    /**
-     * Finds an employee by their email address
-     * @param email The email address to search for
-     * @return The EmployeeModel if found, null if not found
-     */
-    public EmployeeModel findByEmail(String email) {
-        if (email == null || email.trim().isEmpty()) {
-            return null;
-        }
-        String sql = "SELECT * FROM employee WHERE email = ?";
-        return executeSingleQuery(sql, email);
-    }
-    
-    /**
-     * Finds all employees with a specific status
-     * @param status The employee status to search for
-     * @return List of employees with the specified status
-     */
-    public List<EmployeeModel> findByStatus(EmployeeStatus status) {
-        if (status == null) {
-            return new ArrayList<>();
-        }
-        String sql = "SELECT * FROM employee WHERE status = ?";
-        return executeQuery(sql, status.getValue());
-    }
-    
-    /**
-     * Updates the last login timestamp for an employee to Manila time
-     * @param employeeId The employee ID
-     * @return true if update was successful, false otherwise
-     */
-    public boolean updateLastLoginToManilaTime(Integer employeeId) {
-        if (employeeId == null) {
-            return false;
-        }
-        
-        String sql = "UPDATE employee SET lastLogin = ? WHERE employeeId = ?";
-        Timestamp manilaTime = Timestamp.valueOf(getManilaTime());
-        
-        int rowsAffected = executeUpdate(sql, manilaTime, employeeId);
-        return rowsAffected > 0;
-    }
-    
-    /**
-     * Gets all active employees (not terminated)
-     * @return List of active employees
-     */
-    public List<EmployeeModel> getActiveEmployees() {
-        String sql = "SELECT * FROM employee WHERE status != 'Terminated' ORDER BY lastName, firstName";
-        return executeQuery(sql);
-    }
-    
-    /**
-     * Finds employees by department name
-     * @param department The department name to search for
-     * @return List of employees in the specified department
-     */
-    public List<EmployeeModel> getEmployeesByDepartment(String department) {
-        if (department == null || department.trim().isEmpty()) {
-            return new ArrayList<>();
-        }
-        
-        String sql = """
             SELECT e.* FROM employee e 
             JOIN position p ON e.positionId = p.positionId 
-            WHERE p.department =
-
- ? 
-            AND e.status != 'Terminated'
+            WHERE e.status != 'Terminated'
+            AND (LOWER(p.position) LIKE '%manager%' 
+                 OR LOWER(p.position) LIKE '%supervisor%' 
+                 OR LOWER(p.position) LIKE '%head%' 
+                 OR LOWER(p.position) LIKE '%director%' 
+                 OR LOWER(p.position) LIKE '%ceo%' 
+                 OR LOWER(p.position) LIKE '%coo%' 
+                 OR LOWER(p.position) LIKE '%cfo%' 
+                 OR LOWER(p.department) = 'leadership')
             ORDER BY e.lastName, e.firstName
             """;
-        return executeQuery(sql, department);
+        return executeQuery(sql);
     }
     
     /**
-     * Finds employees by user role
-     * @param userRole The user role to search for
-     * @return List of employees with the specified role
+     * Get rank-and-file employees with position information
+     * @return List of rank-and-file EmployeeWithPosition objects
      */
-    public List<EmployeeModel> getEmployeesByRole(String userRole) {
-        String sql = "SELECT * FROM employee WHERE userRole = ? AND status != 'Terminated' ORDER BY lastName, firstName";
-        return executeQuery(sql, userRole);
-    }
-    
-    /**
-     * Updates employee salary information with Manila timezone tracking
-     * @param employeeId The employee ID to update
-     * @param basicSalary The new basic salary
-     * @param hourlyRate The new hourly rate
-     * @return true if update was successful, false otherwise
-     */
-    public boolean updateSalaryWithManilaTime(Integer employeeId, BigDecimal basicSalary, BigDecimal hourlyRate) {
-        if (employeeId == null || basicSalary == null || hourlyRate == null) {
-            return false;
+    public List<EmployeeWithPosition> getRankAndFileEmployeesWithPosition() {
+        List<EmployeeModel> employees = getRankAndFileEmployees();
+        List<EmployeeWithPosition> result = new ArrayList<>();
+        
+        PositionDAO positionDAO = new PositionDAO(databaseConnection);
+        
+        for (EmployeeModel employee : employees) {
+            PositionModel position = null;
+            if (employee.getPositionId() != null) {
+                position = positionDAO.findById(employee.getPositionId());
+            }
+            result.add(new EmployeeWithPosition(employee, position));
         }
         
-        String sql = "UPDATE employee SET basicSalary = ?, hourlyRate = ?, updatedAt = ? WHERE employeeId = ?";
-        Timestamp manilaTime = Timestamp.valueOf(getManilaTime());
+        return result;
+    }
+    
+    /**
+     * Get non rank-and-file employees with position information
+     * @return List of non rank-and-file EmployeeWithPosition objects
+     */
+    public List<EmployeeWithPosition> getNonRankAndFileEmployeesWithPosition() {
+        List<EmployeeModel> employees = getNonRankAndFileEmployees();
+        List<EmployeeWithPosition> result = new ArrayList<>();
         
-        int rowsAffected = executeUpdate(sql, basicSalary, hourlyRate, manilaTime, employeeId);
-        return rowsAffected > 0;
+        PositionDAO positionDAO = new PositionDAO(databaseConnection);
+        
+        for (EmployeeModel employee : employees) {
+            PositionModel position = null;
+            if (employee.getPositionId() != null) {
+                position = positionDAO.findById(employee.getPositionId());
+            }
+            result.add(new EmployeeWithPosition(employee, position));
+        }
+        
+        return result;
     }
     
-    // OVERRIDE METHODS - Use custom SQL
-    
-    private String buildInsertSQL() {
-        return "INSERT INTO employee " +
-               "(firstName, lastName, birthDate, phoneNumber, email, basicSalary, " +
-               "hourlyRate, userRole, passwordHash, status, lastLogin, positionId, supervisorId) " +
-               "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-    }
-    
-    private String buildUpdateSQL() {
-        return "UPDATE employee SET " +
-               "firstName = ?, lastName = ?, birthDate = ?, phoneNumber = ?, email = ?, " +
-               "basicSalary = ?, hourlyRate = ?, userRole = ?, passwordHash = ?, status = ?, " +
-               "lastLogin = ?, positionId = ?, supervisorId = ?, updatedAt = ? " +
-               "WHERE employeeId = ?";
-    }
+    // OVERRIDE SAVE AND UPDATE METHODS TO USE CUSTOM SQL
     
     @Override
     public boolean save(EmployeeModel employee) {
@@ -797,7 +941,12 @@ public class EmployeeDAO extends BaseDAO<EmployeeModel, Integer> {
             return false;
         }
 
-        String sql = buildInsertSQL();
+        String sql = """
+            INSERT INTO employee 
+            (firstName, lastName, birthDate, phoneNumber, email, basicSalary, 
+             hourlyRate, userRole, passwordHash, status, lastLogin, positionId, supervisorId) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """;
 
         try (Connection conn = databaseConnection.createConnection();
              PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -822,31 +971,114 @@ public class EmployeeDAO extends BaseDAO<EmployeeModel, Integer> {
         }
     }
     
-    @Override
-    public boolean update(EmployeeModel employee) {
-        if (employee == null || employee.getEmployeeId() == null) {
-            return false;
+        @Override
+        public boolean update(EmployeeModel employee) {
+            if (employee == null || employee.getEmployeeId() == null) {
+                return false;
+            }
+
+            String sql = """
+                UPDATE employee SET 
+                firstName = ?, lastName = ?, birthDate = ?, phoneNumber = ?, email = ?, 
+                basicSalary = ?, hourlyRate = ?, userRole = ?, passwordHash = ?, status = ?, 
+                lastLogin = ?, positionId = ?, supervisorId = ?, updatedAt = ? 
+                WHERE employeeId = ?
+                """;
+
+            try (Connection conn = databaseConnection.createConnection();
+                 PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+                int paramIndex = 1;
+
+                // Set all fields except employeeId
+                stmt.setString(paramIndex++, employee.getFirstName());
+                stmt.setString(paramIndex++, employee.getLastName());
+
+                if (employee.getBirthDate() != null) {
+                    stmt.setDate(paramIndex++, Date.valueOf(employee.getBirthDate()));
+                } else {
+                    stmt.setNull(paramIndex++, Types.DATE);
+                }
+
+                stmt.setString(paramIndex++, employee.getPhoneNumber());
+                stmt.setString(paramIndex++, employee.getEmail());
+                stmt.setBigDecimal(paramIndex++, employee.getBasicSalary());
+                stmt.setBigDecimal(paramIndex++, employee.getHourlyRate());
+                stmt.setString(paramIndex++, employee.getUserRole());
+                stmt.setString(paramIndex++, employee.getPasswordHash());
+                stmt.setString(paramIndex++, employee.getStatus().getValue());
+
+                if (employee.getLastLogin() != null) {
+                    stmt.setTimestamp(paramIndex++, employee.getLastLogin());
+                } else {
+                    stmt.setNull(paramIndex++, Types.TIMESTAMP);
+                }
+
+                stmt.setInt(paramIndex++, employee.getPositionId());
+
+                if (employee.getSupervisorId() != null) {
+                    stmt.setInt(paramIndex++, employee.getSupervisorId());
+                } else {
+                    stmt.setNull(paramIndex++, Types.INTEGER);
+                }
+
+                // Set updatedAt timestamp
+                stmt.setTimestamp(paramIndex++, Timestamp.valueOf(getManilaTime()));
+
+                // Finally set employeeId for WHERE clause
+                stmt.setInt(paramIndex++, employee.getEmployeeId());
+
+                int rowsAffected = stmt.executeUpdate();
+                return rowsAffected > 0;
+
+            } catch (SQLException e) {
+                System.err.println("Error updating employee: " + e.getMessage());
+                return false;
+            }
+        }
+    
+    // INNER CLASSES FOR DATA TRANSFER OBJECTS
+    
+    /**
+     * Data transfer object for employee with government IDs
+     */
+    public static class EmployeeWithGovIds {
+        private final EmployeeModel employee;
+        private final GovIdModel govIds;
+        
+        public EmployeeWithGovIds(EmployeeModel employee, GovIdModel govIds) {
+            this.employee = employee;
+            this.govIds = govIds;
         }
         
-        String sql = buildUpdateSQL();
+        public EmployeeModel getEmployee() {
+            return employee;
+        }
         
-        try (Connection conn = databaseConnection.createConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            
-            setUpdateParameters(stmt, employee);
-            // Set Manila time for updatedAt
-            stmt.setTimestamp(14, Timestamp.valueOf(getManilaTime()));
-            
-            int rowsAffected = stmt.executeUpdate();
-            return rowsAffected > 0;
-            
-        } catch (SQLException e) {
-            System.err.println("Error updating employee: " + e.getMessage());
-            return false;
+        public GovIdModel getGovIds() {
+            return govIds;
+        }
+        
+        /**
+         * Check if employee has complete government IDs
+         */
+        public boolean hasCompleteGovIds() {
+            return govIds != null && govIds.isComplete();
+        }
+        
+        /**
+         * Check if all government IDs are valid
+         */
+        public boolean hasValidGovIds() {
+            return govIds != null && govIds.isAllValid();
+        }
+        
+        @Override
+        public String toString() {
+            return String.format("EmployeeWithGovIds{employee=%s, govIdsComplete=%s}", 
+                               employee.getFullName(), hasCompleteGovIds());
         }
     }
-    
-    // INNER CLASSES FOR COMPLEX OPERATIONS
     
     /**
      * Data transfer object for employee with position information
@@ -869,118 +1101,76 @@ public class EmployeeDAO extends BaseDAO<EmployeeModel, Integer> {
         }
         
         /**
-         * Check if this employee is rank-and-file
-         * @return true if rank-and-file
+         * Get position name or empty string if no position
+         */
+        public String getPositionName() {
+            return position != null ? position.getPosition() : "";
+        }
+        
+        /**
+         * Get department or empty string if no position
+         */
+        public String getDepartment() {
+            return position != null ? position.getDepartment() : "";
+        }
+        
+        /**
+         * Check if employee has a position assigned
+         */
+        public boolean hasPosition() {
+            return position != null;
+        }
+        
+        /**
+         * Get full employee name with position
+         */
+        public String getEmployeeWithPositionInfo() {
+            String name = employee.getFullName();
+            if (hasPosition()) {
+                return name + " (" + getPositionName() + ")";
+            }
+            return name;
+        }
+        
+        /**
+         * Check if employee is in management position
+         */
+        public boolean isManagement() {
+            if (!hasPosition()) {
+                return false;
+            }
+            String positionName = getPositionName().toLowerCase();
+            String department = getDepartment().toLowerCase();
+            
+            return positionName.contains("manager") || 
+                   positionName.contains("supervisor") || 
+                   positionName.contains("head") || 
+                   positionName.contains("director") || 
+                   positionName.contains("ceo") || 
+                   positionName.contains("coo") || 
+                   positionName.contains("cfo") || 
+                   department.contains("leadership");
+        }
+        
+        /**
+         * Check if employee is rank-and-file
          */
         public boolean isRankAndFile() {
-            if (position == null) return false;
-            
-            String department = position.getDepartment();
-            String positionTitle = position.getPosition();
-            
-            if (department != null && department.toLowerCase().equals("rank-and-file")) {
-                return true;
+            if (!hasPosition()) {
+                return false;
             }
+            String department = getDepartment().toLowerCase();
+            String positionName = getPositionName().toLowerCase();
             
-            if (positionTitle != null && positionTitle.toLowerCase().contains("rank") && 
-                positionTitle.toLowerCase().contains("file")) {
-                return true;
-            }
-            
-            return false;
-        }
-        
-        /**
-         * Check if employee is eligible for overtime
-         * @return true if eligible for overtime
-         */
-        public boolean isEligibleForOvertime() {
-            return isRankAndFile();
-        }
-        
-        /**
-         * Get employee category for payroll
-         * @return Category string
-         */
-        public String getPayrollCategory() {
-            return isRankAndFile() ? "Rank-and-File" : "Non Rank-and-File";
-        }
-        
-        /**
-         * Get monthly rate calculation method
-         * @return Description of how monthly rate is calculated
-         */
-        public String getMonthlyRateMethod() {
-            return isRankAndFile() ? 
-                "Daily Rate × Days Worked (with late deductions)" : 
-                "Fixed Basic Salary (no late deductions)";
+            return department.contains("rank") || 
+                   positionName.contains("rank") || 
+                   (!isManagement() && !department.contains("leadership"));
         }
         
         @Override
         public String toString() {
-            return String.format("EmployeeWithPosition{employee=%s, position=%s, category=%s}", 
-                               employee.getFullName(), 
-                               position != null ? position.getPosition() : "Unknown",
-                               getPayrollCategory());
-        }
-    }
-    
-    /**
-     * Statistics object for payroll reporting
-     */
-    public static class PayrollStatistics {
-        private final int totalEmployees;
-        private final int rankAndFileCount;
-        private final int nonRankAndFileCount;
-        private final int terminatedCount;
-        
-        public PayrollStatistics(int totalEmployees, int rankAndFileCount, 
-                               int nonRankAndFileCount, int terminatedCount) {
-            this.totalEmployees = totalEmployees;
-            this.rankAndFileCount = rankAndFileCount;
-            this.nonRankAndFileCount = nonRankAndFileCount;
-            this.terminatedCount = terminatedCount;
-        }
-        
-        public int getTotalEmployees() {
-            return totalEmployees;
-        }
-        
-        public int getRankAndFileCount() {
-            return rankAndFileCount;
-        }
-        
-        public int getNonRankAndFileCount() {
-            return nonRankAndFileCount;
-        }
-        
-        public int getTerminatedCount() {
-            return terminatedCount;
-        }
-        
-        public int getActiveEmployees() {
-            return totalEmployees - terminatedCount;
-        }
-        
-        public int getOvertimeEligibleCount() {
-            return rankAndFileCount;
-        }
-        
-        public double getRankAndFilePercentage() {
-            return totalEmployees > 0 ? (double) rankAndFileCount / totalEmployees * 100 : 0;
-        }
-        
-        public double getNonRankAndFilePercentage() {
-            return totalEmployees > 0 ? (double) nonRankAndFileCount / totalEmployees * 100 : 0;
-        }
-        
-        @Override
-        public String toString() {
-            return String.format("PayrollStatistics{total=%d, rankAndFile=%d (%.1f%%), " +
-                               "nonRankAndFile=%d (%.1f%%), active=%d, terminated=%d, overtimeEligible=%d}", 
-                               totalEmployees, rankAndFileCount, getRankAndFilePercentage(),
-                               nonRankAndFileCount, getNonRankAndFilePercentage(),
-                               getActiveEmployees(), terminatedCount, getOvertimeEligibleCount());
+            return String.format("EmployeeWithPosition{employee=%s, position=%s}", 
+                               employee.getFullName(), getPositionName());
         }
     }
 }
