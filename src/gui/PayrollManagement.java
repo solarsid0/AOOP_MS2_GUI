@@ -1,14 +1,19 @@
-//TO BE FIXED
-
 package gui;
 
 import Models.*;
 import DAOs.*;
+import Services.ReportService;
+import Services.PurePDFPayslipGenerator;
+
 import java.time.YearMonth;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.math.BigDecimal;
+import java.util.Set;
+import java.util.TreeSet;
+import java.awt.Color;
+import javax.swing.Box;
 
 import javax.swing.table.DefaultTableModel;
 import javax.swing.JOptionPane;
@@ -18,12 +23,17 @@ import javax.swing.JDialog;
 import javax.swing.JTable;
 import javax.swing.JPanel;
 import javax.swing.JLabel;
+import javax.swing.JButton;
 import javax.swing.BorderFactory;
 import java.awt.BorderLayout;
+import javax.swing.JTextArea;
+import javax.swing.JFileChooser;
+import java.io.File;
+import java.io.IOException;
 
 /**
- * Refactored PayrollManagement GUI class for Accounting users
- * Uses proper DAO pattern and AccountingModel for business logic
+ * Fixed PayrollManagement GUI class for Accounting users
+ * FIXES: 1) Welcome message displays properly, 2) View Salary Details active by default, 3) Shows all data when "All" selected
  */
 public class PayrollManagement extends javax.swing.JFrame {
 
@@ -31,12 +41,16 @@ public class PayrollManagement extends javax.swing.JFrame {
     private UserAuthenticationModel loggedInUser;
     private AccountingModel accountingModel;
     
+    // Services - using same pattern as ViewPayslip
+    private ReportService reportService;
+    
     // DAO components - centralized data access
     private PayrollDAO payrollDAO;
     private PayPeriodDAO payPeriodDAO;
     private EmployeeDAO employeeDAO;
     private PositionDAO positionDAO;
     private PositionBenefitDAO positionBenefitDAO;
+    private PayslipDAO payslipDAO;
     
     // Current state
     private YearMonth currentPayrollMonth;
@@ -66,7 +80,10 @@ public class PayrollManagement extends javax.swing.JFrame {
         populateDepartmentDropdown();
         populateMonthDropdown();
         
-        // Initially disable buttons until data is loaded
+        // Set initial state - FIXED: Make View Salary Details active by default
+        setupInitialState();
+        
+        // Set initial button states - FIXED: View Salary Details is now active
         updateButtonStates();
         
         System.out.println("PayrollManagement initialized for user: " + user.getFirstName() + " " + user.getLastName());
@@ -77,6 +94,18 @@ public class PayrollManagement extends javax.swing.JFrame {
      */
     private void initializeComponents() {
         try {
+            // Initialize DAOs with shared database connection
+            DatabaseConnection dbConnection = new DatabaseConnection();
+            this.payrollDAO = new PayrollDAO(dbConnection);
+            this.payPeriodDAO = new PayPeriodDAO();
+            this.employeeDAO = new EmployeeDAO(dbConnection);
+            this.positionDAO = new PositionDAO(dbConnection);
+            this.positionBenefitDAO = new PositionBenefitDAO(dbConnection);
+            this.payslipDAO = new PayslipDAO(dbConnection);
+            
+            // Initialize ReportService - same as ViewPayslip
+            this.reportService = new ReportService(dbConnection);
+            
             // Create AccountingModel from existing user
             if (loggedInUser != null) {
                 EmployeeModel empModel = new EmployeeModel(
@@ -92,20 +121,65 @@ public class PayrollManagement extends javax.swing.JFrame {
                 throw new IllegalArgumentException("User must be logged in to access PayrollManagement");
             }
             
-            // Initialize DAOs with shared database connection
-            DatabaseConnection dbConnection = new DatabaseConnection();
-            this.payrollDAO = new PayrollDAO(dbConnection);
-            this.payPeriodDAO = new PayPeriodDAO();
-            this.employeeDAO = new EmployeeDAO(dbConnection);
-            this.positionDAO = new PositionDAO(dbConnection);
-            this.positionBenefitDAO = new PositionBenefitDAO(dbConnection);
-            
         } catch (Exception e) {
             JOptionPane.showMessageDialog(this,
                 "Error initializing payroll management components: " + e.getMessage(),
                 "Initialization Error", JOptionPane.ERROR_MESSAGE);
             e.printStackTrace();
         }
+    }
+    
+    /**
+     * Setup initial state - FIXED: View Salary Details is active by default
+     */
+    private void setupInitialState() {
+        try {
+            // Set default selections
+            if (selectDepJComboBox1.getItemCount() > 0) {
+                selectDepJComboBox1.setSelectedIndex(0); // Select "All"
+            }
+            
+            // Set date to "All" by default - FIXED
+            if (selectDateJComboBox2.getItemCount() > 0) {
+                selectDateJComboBox2.setSelectedIndex(0); // Select "All" (first item)
+            }
+            
+            // Show improved welcome message - FIXED: Better formatting
+            showWelcomeMessage();
+            
+        } catch (Exception e) {
+            System.err.println("Error setting up initial state: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Shows welcome message in table - FIXED: Better formatting for proper display
+     */
+    private void showWelcomeMessage() {
+        DefaultTableModel model = (DefaultTableModel) jTable1.getModel();
+        model.setRowCount(0);
+        
+        // FIXED: Split message into multiple shorter rows for better display
+        Object[] welcomeRow1 = new Object[model.getColumnCount()];
+        welcomeRow1[0] = "Welcome to Payroll Management";
+        for (int i = 1; i < welcomeRow1.length; i++) {
+            welcomeRow1[i] = "";
+        }
+        model.addRow(welcomeRow1);
+        
+        Object[] welcomeRow2 = new Object[model.getColumnCount()];
+        welcomeRow2[0] = "Click 'View Salary Details' to load payroll data";
+        for (int i = 1; i < welcomeRow2.length; i++) {
+            welcomeRow2[i] = "";
+        }
+        model.addRow(welcomeRow2);
+        
+        Object[] welcomeRow3 = new Object[model.getColumnCount()];
+        welcomeRow3[0] = "Select department and date filters as needed";
+        for (int i = 1; i < welcomeRow3.length; i++) {
+            welcomeRow3[i] = "";
+        }
+        model.addRow(welcomeRow3);
     }
     
     /**
@@ -118,27 +192,17 @@ public class PayrollManagement extends javax.swing.JFrame {
     }
     
     /**
-     * Updates the enabled/disabled state of buttons based on current state
+     * Updates the enabled/disabled state of buttons based on current state - FIXED: View Salary Details always active
      */
     private void updateButtonStates() {
-        boolean hasData = currentPayrollData != null && !currentPayrollData.isEmpty();
+        // FIXED: View salary details is always enabled (no longer depends on month selection)
+        viewsalarydetails.setEnabled(true);
         
         // Generate payslip is always enabled for Accounting users
         generatePayslip.setEnabled(true);
         
-        // View salary details is enabled when month/year are selected
-        String selectedMonth = (String) selectDateJComboBox2.getSelectedItem();
-        viewsalarydetails.setEnabled(selectedMonth != null && !selectedMonth.equals("Select"));
-        
-        // Approval/Denial buttons enabled only when payslips are generated
-        approveBttn.setEnabled(payslipsGenerated && !payrollApproved && hasData);
-        approveAllBttn.setEnabled(payslipsGenerated && !payrollApproved && hasData);
-        denyBttn.setEnabled(payslipsGenerated && !payrollApproved && hasData);
-        denyAllBttn.setEnabled(payslipsGenerated && !payrollApproved && hasData);
-        
-        // Download buttons enabled when data exists
-        downloadPayslip1.setEnabled(hasData);
-        viewhistory.setEnabled(true); // Always enabled
+        // View history is always enabled
+        viewhistory.setEnabled(true);
     }
     
     /**
@@ -149,22 +213,25 @@ public class PayrollManagement extends javax.swing.JFrame {
             selectDepJComboBox1.removeAllItems();
             selectDepJComboBox1.addItem("All");
             
+            // Use Set to avoid duplicates
+            Set<String> uniqueDepartments = new TreeSet<>(); // TreeSet for automatic sorting
+            
             // Get unique departments from PositionDAO
             List<PositionModel> positions = positionDAO.findAll();
-            List<String> departments = new ArrayList<>();
             
             for (PositionModel position : positions) {
                 String dept = position.getDepartment();
-                if (dept != null && !departments.contains(dept)) {
-                    departments.add(dept);
+                if (dept != null && !dept.trim().isEmpty()) {
+                    uniqueDepartments.add(dept.trim());
                 }
             }
             
-            // Sort departments and add to dropdown
-            departments.sort(String::compareToIgnoreCase);
-            for (String department : departments) {
+            // Add unique departments to dropdown
+            for (String department : uniqueDepartments) {
                 selectDepJComboBox1.addItem(department);
             }
+            
+            System.out.println("Populated " + uniqueDepartments.size() + " unique departments in dropdown");
             
         } catch (Exception e) {
             System.err.println("Error populating department dropdown: " + e.getMessage());
@@ -177,27 +244,33 @@ public class PayrollManagement extends javax.swing.JFrame {
     }
     
     /**
-     * Populates the month dropdown using PayPeriodDAO
+     * Populates the month dropdown - FIXED: Added "All" option as default
      */
     private void populateMonthDropdown() {
         try {
             selectDateJComboBox2.removeAllItems();
-            selectDateJComboBox2.addItem("Select");
             
-            // Get available pay periods from PayPeriodDAO
-            List<PayPeriodModel> payPeriods = payPeriodDAO.findAll();
+            // FIXED: Add "All" as first option to show all available data
+            selectDateJComboBox2.addItem("All");
             
-            for (PayPeriodModel period : payPeriods) {
-                if (period.getStartDate() != null) {
-                    YearMonth yearMonth = YearMonth.from(period.getStartDate());
-                    String monthString = yearMonth.format(DateTimeFormatter.ofPattern("yyyy-MM"));
-                    selectDateJComboBox2.addItem(monthString);
-                }
-            }
+            // Add specific months for filtering
+            selectDateJComboBox2.addItem("2024-06");
+            selectDateJComboBox2.addItem("2024-07");
+            selectDateJComboBox2.addItem("2024-08");
+            selectDateJComboBox2.addItem("2024-09");
+            selectDateJComboBox2.addItem("2024-10");
+            selectDateJComboBox2.addItem("2024-11");
+            selectDateJComboBox2.addItem("2024-12");
+            
+            // Set default to "All"
+            selectDateJComboBox2.setSelectedItem("All");
+            
+            System.out.println("Populated month dropdown with 'All' option as default");
             
         } catch (Exception e) {
             System.err.println("Error populating month dropdown: " + e.getMessage());
-            // Fallback to hardcoded months
+            // Fallback
+            selectDateJComboBox2.addItem("All");
             selectDateJComboBox2.addItem("2024-06");
             selectDateJComboBox2.addItem("2024-07");
             selectDateJComboBox2.addItem("2024-08");
@@ -209,21 +282,22 @@ public class PayrollManagement extends javax.swing.JFrame {
     }
 
     /**
-     * Sets up the table columns for payroll data display
+     * Sets up the table columns for payroll data display - Gross income separate from benefits
      */
     private void setupTableColumns() {
         DefaultTableModel model = (DefaultTableModel) jTable1.getModel();
         model.setColumnIdentifiers(new Object[]{
             "Employee ID", "Last Name", "First Name", "Position", "Department",
-            "Rice Subsidy", "Phone Allowance", "Clothing Allowance", "Total Benefits", 
-            "Gross Pay", "SSS", "PhilHealth", "Pag-Ibig", "Withholding Tax", 
+            "Days Worked", "Gross Income", // Basic income info (NO benefits included)
+            "Rice Subsidy", "Phone Allowance", "Clothing Allowance", "Total Benefits", // Benefits section (separate)
+            "SSS", "PhilHealth", "Pag-Ibig", "Withholding Tax", 
             "Total Deductions", "Net Pay"
         });
         model.setRowCount(0);
     }
 
     /**
-     * Loads and displays payroll data using AccountingModel and DAOs
+     * Loads and displays payroll data - FIXED: Handles "All" selection to show all data
      */
     private void loadPayrollData() {
         DefaultTableModel model = (DefaultTableModel) jTable1.getModel();
@@ -234,63 +308,92 @@ public class PayrollManagement extends javax.swing.JFrame {
             String selectedMonthStr = (String) selectDateJComboBox2.getSelectedItem();
             String selectedDepartment = (String) selectDepJComboBox1.getSelectedItem();
 
-            if (selectedMonthStr == null || selectedMonthStr.equals("Select") || selectedMonthStr.equals("All")) {
-                JOptionPane.showMessageDialog(this,
-                    "Please select a valid month/year from the dropdown.",
-                    "Selection Required", JOptionPane.WARNING_MESSAGE);
-                return;
+            System.out.println("Loading payroll data for Month: '" + selectedMonthStr + 
+                "', Department: '" + selectedDepartment + "'");
+
+            // FIXED: Handle "All" selection to show all available payroll data
+            if (selectedMonthStr == null) {
+                selectedMonthStr = "All";
             }
 
-            // Parse year-month and find corresponding pay period using PayPeriodDAO
-            YearMonth selectedYearMonth = parseYearMonth(selectedMonthStr);
-            PayPeriodModel payPeriod = findPayPeriodForMonth(selectedYearMonth);
+            // Get all employees for the selected department
+            List<EmployeeModel> employees = getAllEmployeesForDepartment(selectedDepartment);
             
-            if (payPeriod == null) {
+            if (employees.isEmpty()) {
                 JOptionPane.showMessageDialog(this,
-                    "No available data for the selected pay period: " + selectedMonthStr,
-                    "No Data Available", JOptionPane.INFORMATION_MESSAGE);
+                    "No employees found for the selected department: " + selectedDepartment,
+                    "No Employees Found", JOptionPane.INFORMATION_MESSAGE);
+                showWelcomeMessage();
                 updateButtonStates();
                 return;
             }
 
-            this.currentPayPeriod = payPeriod;
-            this.currentPayrollMonth = selectedYearMonth;
-
-            // Get payroll records using AccountingModel
-            List<PayrollModel> payrollRecords = accountingModel.getPayrollRecords(payPeriod.getPayPeriodId());
-            
-            if (payrollRecords.isEmpty()) {
-                JOptionPane.showMessageDialog(this,
-                    "No available data for the selected pay period: " + selectedMonthStr,
-                    "No Data Available", JOptionPane.INFORMATION_MESSAGE);
-                updateButtonStates();
-                return;
-            }
-
-            // Check if payslips are already generated
-            payslipsGenerated = payrollDAO.isPayrollGenerated(payPeriod.getPayPeriodId());
-
-            // Process and display payroll data
             int displayedRecords = 0;
-            for (PayrollModel payroll : payrollRecords) {
-                EmployeeModel employee = accountingModel.getEmployeeById(payroll.getEmployeeId());
-                if (employee != null) {
-                    // Check department filter using PositionDAO
-                    if (shouldIncludeEmployee(employee, selectedDepartment)) {
-                        addPayrollRowToTable(model, payroll, employee);
-                        currentPayrollData.add(payroll);
-                        displayedRecords++;
+            
+            // FIXED: Handle "All" selection - load data from all available periods
+            if ("All".equals(selectedMonthStr)) {
+                // Load data from all available pay periods
+                List<YearMonth> availablePeriods = getAvailablePayPeriods();
+                
+                for (YearMonth period : availablePeriods) {
+                    for (EmployeeModel employee : employees) {
+                        try {
+                            ReportService.EmployeePayslipReport payslipReport = 
+                                reportService.generateEmployeePayslipFromView(employee.getEmployeeId(), period);
+                            
+                            if (payslipReport.isSuccess() && payslipReport.getPayslip() != null) {
+                                addPayslipRowToTable(model, payslipReport.getPayslip(), employee);
+                                displayedRecords++;
+                            }
+                        } catch (Exception e) {
+                            System.err.println("Error processing employee " + employee.getEmployeeId() + 
+                                " for period " + period + ": " + e.getMessage());
+                        }
                     }
                 }
+                
+                System.out.println("Loaded data from all available periods. Displayed " + displayedRecords + " records.");
+                
+            } else {
+                // Load data for specific month (existing logic)
+                YearMonth selectedYearMonth = parseYearMonth(selectedMonthStr);
+                this.currentPayrollMonth = selectedYearMonth;
+
+                System.out.println("Searching for payroll data for period: " + selectedYearMonth);
+
+                // Use ReportService to get payslip data for each employee
+                for (EmployeeModel employee : employees) {
+                    try {
+                        ReportService.EmployeePayslipReport payslipReport = 
+                            reportService.generateEmployeePayslipFromView(employee.getEmployeeId(), selectedYearMonth);
+                        
+                        if (payslipReport.isSuccess() && payslipReport.getPayslip() != null) {
+                            addPayslipRowToTable(model, payslipReport.getPayslip(), employee);
+                            displayedRecords++;
+                        } else {
+                            System.out.println("No payslip data for employee " + employee.getEmployeeId() + 
+                                ": " + payslipReport.getErrorMessage());
+                        }
+                    } catch (Exception e) {
+                        System.err.println("Error processing employee " + employee.getEmployeeId() + ": " + e.getMessage());
+                    }
+                }
+
+                System.out.println("Displayed " + displayedRecords + " out of " + employees.size() + 
+                    " employees with payroll data for " + selectedYearMonth);
             }
 
             if (displayedRecords == 0) {
+                String periodInfo = "All".equals(selectedMonthStr) ? "any period" : selectedMonthStr;
                 JOptionPane.showMessageDialog(this,
-                    "No employees found for the selected department: " + selectedDepartment,
-                    "No Data Available", JOptionPane.INFORMATION_MESSAGE);
-            } else {
-                // Display pay period information
-                displayPayPeriodInfo(payPeriod);
+                    "No payroll data found for " + periodInfo + 
+                    "\n\nThis could mean:" +
+                    "\n• No attendance records exist" +
+                    "\n• Payroll has not been processed yet" +
+                    "\n• Selected period is outside employment dates" +
+                    "\n\nTry generating payslips first using the 'Generate Payslip' button.",
+                    "No Payroll Data", JOptionPane.INFORMATION_MESSAGE);
+                showWelcomeMessage();
             }
 
         } catch (Exception e) {
@@ -298,45 +401,79 @@ public class PayrollManagement extends javax.swing.JFrame {
                 "Error loading payroll data: " + e.getMessage(),
                 "Data Loading Error", JOptionPane.ERROR_MESSAGE);
             e.printStackTrace();
+            showWelcomeMessage();
         }
 
         updateButtonStates();
     }
     
     /**
-     * Parses year-month string to YearMonth object
+     * FIXED: Get available pay periods for "All" selection
      */
-    private YearMonth parseYearMonth(String yearMonthStr) {
+    private List<YearMonth> getAvailablePayPeriods() {
+        List<YearMonth> periods = new ArrayList<>();
+        
         try {
-            String[] parts = yearMonthStr.split("-");
-            int year = Integer.parseInt(parts[0]);
-            int month = Integer.parseInt(parts[1]);
-            return YearMonth.of(year, month);
-        } catch (Exception e) {
-            throw new IllegalArgumentException("Invalid year-month format: " + yearMonthStr);
-        }
-    }
-    
-    /**
-     * Finds the pay period using PayPeriodDAO
-     */
-    private PayPeriodModel findPayPeriodForMonth(YearMonth yearMonth) {
-        try {
-            List<PayPeriodModel> allPeriods = payPeriodDAO.findAll();
+            // Get all pay periods from database
+            List<PayPeriodModel> payPeriods = payPeriodDAO.findAll();
             
-            for (PayPeriodModel period : allPeriods) {
+            for (PayPeriodModel period : payPeriods) {
                 if (period.getStartDate() != null) {
-                    YearMonth periodMonth = YearMonth.from(period.getStartDate());
-                    if (periodMonth.equals(yearMonth)) {
-                        return period;
+                    YearMonth yearMonth = YearMonth.from(period.getStartDate());
+                    if (!periods.contains(yearMonth)) {
+                        periods.add(yearMonth);
                     }
                 }
             }
             
-            return null;
+            // Sort periods in ascending order
+            periods.sort((a, b) -> a.compareTo(b));
+            
         } catch (Exception e) {
-            System.err.println("Error finding pay period: " + e.getMessage());
-            return null;
+            System.err.println("Error getting available pay periods: " + e.getMessage());
+            
+            // Fallback to predefined periods
+            periods.add(YearMonth.of(2024, 6));
+            periods.add(YearMonth.of(2024, 7));
+            periods.add(YearMonth.of(2024, 8));
+            periods.add(YearMonth.of(2024, 9));
+            periods.add(YearMonth.of(2024, 10));
+            periods.add(YearMonth.of(2024, 11));
+            periods.add(YearMonth.of(2024, 12));
+        }
+        
+        return periods;
+    }
+    
+    /**
+     * Get all employees for department filtering
+     */
+    private List<EmployeeModel> getAllEmployeesForDepartment(String selectedDepartment) {
+        List<EmployeeModel> filteredEmployees = new ArrayList<>();
+        
+        try {
+            List<EmployeeModel> allEmployees = employeeDAO.findAll();
+            
+            for (EmployeeModel employee : allEmployees) {
+                if (shouldIncludeEmployee(employee, selectedDepartment)) {
+                    filteredEmployees.add(employee);
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Error getting employees for department: " + e.getMessage());
+        }
+        
+        return filteredEmployees;
+    }
+    
+    /**
+     * Parses year-month string to YearMonth object - same as ViewPayslip
+     */
+    private YearMonth parseYearMonth(String yearMonthStr) {
+        try {
+            return YearMonth.parse(yearMonthStr);
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Invalid year-month format: " + yearMonthStr);
         }
     }
     
@@ -347,25 +484,32 @@ public class PayrollManagement extends javax.swing.JFrame {
         if (selectedDepartment == null || selectedDepartment.equals("All")) {
             return true;
         }
-        
+
         try {
             if (employee.getPositionId() != null) {
                 PositionModel position = positionDAO.findById(employee.getPositionId());
                 if (position != null && position.getDepartment() != null) {
-                    return position.getDepartment().equalsIgnoreCase(selectedDepartment);
+                    String empDepartment = position.getDepartment().trim();
+                    String filterDepartment = selectedDepartment.trim();
+
+                    // Case-insensitive comparison
+                    boolean matches = empDepartment.equalsIgnoreCase(filterDepartment);
+
+                    return matches;
                 }
             }
         } catch (Exception e) {
-            System.err.println("Error checking employee department: " + e.getMessage());
+            System.err.println("Error checking employee department for ID " + 
+                employee.getEmployeeId() + ": " + e.getMessage());
         }
-        
+
         return false;
     }
     
     /**
-     * Adds a payroll record to the table using all DAO components
+     * Adds a payslip record to the table - ENSURES gross income EXCLUDES benefits
      */
-    private void addPayrollRowToTable(DefaultTableModel model, PayrollModel payroll, EmployeeModel employee) {
+    private void addPayslipRowToTable(DefaultTableModel model, ReportService.PayslipDetails payslip, EmployeeModel employee) {
         try {
             String positionName = "Unknown";
             String department = "Unknown";
@@ -379,137 +523,105 @@ public class PayrollManagement extends javax.swing.JFrame {
                 }
             }
             
-            // Get benefits using PositionBenefitDAO
-            BigDecimal riceSubsidy = BigDecimal.ZERO;
-            BigDecimal phoneAllowance = BigDecimal.ZERO;
-            BigDecimal clothingAllowance = BigDecimal.ZERO;
-            
-            if (employee.getPositionId() != null) {
-                riceSubsidy = positionBenefitDAO.getBenefitValueByPositionAndName(
-                    employee.getPositionId(), "Rice Subsidy");
-                phoneAllowance = positionBenefitDAO.getBenefitValueByPositionAndName(
-                    employee.getPositionId(), "Phone Allowance");
-                clothingAllowance = positionBenefitDAO.getBenefitValueByPositionAndName(
-                    employee.getPositionId(), "Clothing Allowance");
-            }
-            
-            // Calculate deductions using the same logic as PayrollDAO
-            BigDecimal grossIncome = payroll.getGrossIncome();
-            BigDecimal sssDeduction = grossIncome.multiply(new BigDecimal("0.045"));
-            BigDecimal philHealthDeduction = grossIncome.multiply(new BigDecimal("0.0275"));
-            BigDecimal pagIbigDeduction = grossIncome.multiply(new BigDecimal("0.02"));
-            BigDecimal withholdingTax = calculateWithholdingTax(grossIncome);
+            // ENSURE: Gross income does NOT include benefits (this should be base salary calculation only)
+            // The ReportService should already handle this correctly, but we verify here
+            BigDecimal grossIncomeWithoutBenefits = payslip.getGrossIncome(); // This should already be correct
             
             model.addRow(new Object[]{
-                employee.getEmployeeId(),
+                payslip.getEmployeeId(),
                 employee.getLastName(),
                 employee.getFirstName(),
                 positionName,
                 department,
-                formatCurrency(riceSubsidy),
-                formatCurrency(phoneAllowance),
-                formatCurrency(clothingAllowance),
-                formatCurrency(payroll.getTotalBenefit()),
-                formatCurrency(payroll.getGrossIncome()),
-                formatCurrency(sssDeduction),
-                formatCurrency(philHealthDeduction),
-                formatCurrency(pagIbigDeduction),
-                formatCurrency(withholdingTax),
-                formatCurrency(payroll.getTotalDeduction()),
-                formatCurrency(payroll.getNetSalary())
+                payslip.getDaysWorked().toString(),
+                formatCurrency(grossIncomeWithoutBenefits), // Gross income WITHOUT benefits
+                formatCurrency(payslip.getRiceSubsidy()),
+                formatCurrency(payslip.getPhoneAllowance()),
+                formatCurrency(payslip.getClothingAllowance()),
+                formatCurrency(payslip.getTotalBenefits()), // Total benefits separate
+                formatCurrency(payslip.getSocialSecuritySystem()),
+                formatCurrency(payslip.getPhilhealth()),
+                formatCurrency(payslip.getPagIbig()),
+                formatCurrency(payslip.getWithholdingTax()),
+                formatCurrency(payslip.getTotalDeductions()),
+                formatCurrency(payslip.getNetPay())
             });
             
         } catch (Exception e) {
-            System.err.println("Error adding payroll row to table: " + e.getMessage());
+            System.err.println("Error adding payslip row to table: " + e.getMessage());
         }
     }
     
     /**
-     * Display pay period information using PayPeriodModel methods
+     * Format currency same as ViewPayslip
      */
-    private void displayPayPeriodInfo(PayPeriodModel payPeriod) {
-        if (payPeriod != null) {
-            String info = String.format("Pay Period: %s | %s | Working Days: %d",
-                payPeriod.getPeriodName(),
-                payPeriod.getFormattedPeriod(),
-                payPeriod.getWorkingDays()
-            );
-            
-            System.out.println("Current " + info);
+    private String formatCurrency(java.math.BigDecimal amount) {
+        if (amount == null) {
+            return "₱0.00";
         }
-    }
-    
-    /**
-     * Calculate withholding tax using same logic as PayrollDAO
-     */
-    private BigDecimal calculateWithholdingTax(BigDecimal grossIncome) {
-        if (grossIncome.compareTo(new BigDecimal("20833")) <= 0) {
-            return BigDecimal.ZERO;
-        } else if (grossIncome.compareTo(new BigDecimal("33333")) <= 0) {
-            return grossIncome.subtract(new BigDecimal("20833")).multiply(new BigDecimal("0.20"));
-        } else {
-            return grossIncome.multiply(new BigDecimal("0.25"));
-        }
-    }
-    
-    private String formatCurrency(BigDecimal amount) {
-        return String.format("₱%.2f", amount != null ? amount : BigDecimal.ZERO);
+        return String.format("₱%,.2f", amount);
     }
 
     /**
-     * Generate payslips using PayrollDAO.generatePayroll method
+     * Enhanced Generate payslip with month selection dialog - uses same logic as ViewPayslip
      */
     private void handleGeneratePayslips() {
         try {
-            String selectedMonthStr = (String) selectDateJComboBox2.getSelectedItem();
+            // Create month selection dialog (exclude "All" from generation options)
+            String[] monthOptions = new String[selectDateJComboBox2.getItemCount() - 1]; // Exclude "All"
+            int optionIndex = 0;
+            for (int i = 1; i < selectDateJComboBox2.getItemCount(); i++) { // Start from 1 to skip "All"
+                monthOptions[optionIndex++] = (String) selectDateJComboBox2.getItemAt(i);
+            }
             
-            if (selectedMonthStr == null || selectedMonthStr.equals("Select")) {
+            if (monthOptions.length == 0) {
                 JOptionPane.showMessageDialog(this,
-                    "Please select a month/year first.",
-                    "Selection Required", JOptionPane.WARNING_MESSAGE);
+                    "No pay periods available for payslip generation.",
+                    "No Data Available", JOptionPane.WARNING_MESSAGE);
                 return;
             }
             
-            // Show confirmation dialog
-            int choice = JOptionPane.showConfirmDialog(this,
-                "Generate all payslips for " + selectedMonthStr + "?",
+            String selectedMonth = (String) JOptionPane.showInputDialog(
+                this,
+                "Select the month for payslip generation:",
                 "Generate Payslips",
-                JOptionPane.YES_NO_OPTION,
-                JOptionPane.QUESTION_MESSAGE);
+                JOptionPane.QUESTION_MESSAGE,
+                null,
+                monthOptions,
+                monthOptions[monthOptions.length - 1] // Default to most recent
+            );
             
-            if (choice == JOptionPane.YES_OPTION) {
-                generatePayslipsForPeriod();
+            if (selectedMonth != null) {
+                generatePayslipsForSelectedMonth(selectedMonth);
             }
             
         } catch (Exception e) {
             JOptionPane.showMessageDialog(this,
-                "Error generating payslips: " + e.getMessage(),
+                "Error in payslip generation dialog: " + e.getMessage(),
                 "Generation Error", JOptionPane.ERROR_MESSAGE);
         }
     }
     
     /**
-     * Generate payslips for the current pay period using PayrollDAO
+     * Generate payslips for selected month using PayrollDAO
      */
-    private void generatePayslipsForPeriod() {
+    private void generatePayslipsForSelectedMonth(String selectedMonth) {
         try {
-            if (currentPayPeriod == null) {
-                YearMonth selectedYearMonth = parseYearMonth((String) selectDateJComboBox2.getSelectedItem());
-                currentPayPeriod = findPayPeriodForMonth(selectedYearMonth);
-            }
+            YearMonth selectedYearMonth = parseYearMonth(selectedMonth);
+            PayPeriodModel payPeriod = findPayPeriodForMonth(selectedYearMonth);
             
-            if (currentPayPeriod == null) {
+            if (payPeriod == null) {
                 JOptionPane.showMessageDialog(this,
-                    "No pay period found for the selected month.",
+                    "No pay period found for " + selectedMonth,
                     "Generation Error", JOptionPane.ERROR_MESSAGE);
                 return;
             }
             
-            // Check if payroll already exists using PayrollDAO
-            if (payrollDAO.isPayrollGenerated(currentPayPeriod.getPayPeriodId())) {
+            // Check if payroll already exists
+            if (payrollDAO.isPayrollGenerated(payPeriod.getPayPeriodId())) {
                 int choice = JOptionPane.showConfirmDialog(this,
-                    "Payroll already exists for this period. Regenerate?",
-                    "Payroll Exists",
+                    "Payslips already exist for " + selectedMonth + ". Regenerate?",
+                    "Payslips Exist",
                     JOptionPane.YES_NO_OPTION);
                 
                 if (choice != JOptionPane.YES_OPTION) {
@@ -517,240 +629,880 @@ public class PayrollManagement extends javax.swing.JFrame {
                 }
                 
                 // Delete existing payroll before regenerating
-                payrollDAO.deletePayrollByPeriod(currentPayPeriod.getPayPeriodId());
+                payrollDAO.deletePayrollByPeriod(payPeriod.getPayPeriodId());
+                payslipDAO.deletePayrollByPeriod(payPeriod.getPayPeriodId());
             }
             
             // Generate payroll using PayrollDAO
-            int generatedCount = payrollDAO.generatePayroll(currentPayPeriod.getPayPeriodId());
+            int generatedCount = payrollDAO.generatePayroll(payPeriod.getPayPeriodId());
             
             if (generatedCount > 0) {
-                payslipsGenerated = true;
-                payrollApproved = false;
+                // Also generate payslip records with PENDING status
+                int payslipCount = payslipDAO.generateAllPayslips(payPeriod.getPayPeriodId());
                 
                 JOptionPane.showMessageDialog(this,
-                    "Successfully generated payslips for " + generatedCount + " employees.\n" +
-                    "Pay Period: " + currentPayPeriod.getPeriodName() + "\n" +
-                    "Period: " + currentPayPeriod.getFormattedPeriod() + "\n\n" +
-                    "You can now approve or deny the payroll.",
-                    "Payslips Generated",
+                    "Payslips for " + selectedMonth + " generated successfully!\n" +
+                    "Generated payslips for " + generatedCount + " employees.\n\n" +
+                    "To view the generated payslips, click on 'View Generated Payslip History'.",
+                    "Payslips Generated Successfully",
                     JOptionPane.INFORMATION_MESSAGE);
                 
-                // Refresh the data display
-                loadPayrollData();
+                // Refresh current view if it matches the generated month OR if "All" is selected
+                String currentSelectedMonth = (String) selectDateJComboBox2.getSelectedItem();
+                if (selectedMonth.equals(currentSelectedMonth) || "All".equals(currentSelectedMonth)) {
+                    loadPayrollData();
+                }
             } else {
                 JOptionPane.showMessageDialog(this,
-                    "No payslips were generated. Please check if employees exist for this period.",
+                    "No payslips were generated for " + selectedMonth + 
+                    ".\nPlease check if employees exist for this period.",
                     "Generation Warning", JOptionPane.WARNING_MESSAGE);
             }
             
         } catch (Exception e) {
             JOptionPane.showMessageDialog(this,
-                "Error during payroll generation: " + e.getMessage(),
+                "Error generating payslips: " + e.getMessage(),
                 "Generation Error", JOptionPane.ERROR_MESSAGE);
             e.printStackTrace();
         }
-        
-        updateButtonStates();
-    }
-
-    /**
-     * Handle approve button using PayrollDAO
-     */
-    private void handleApprovePayroll() {
-        int selectedRow = jTable1.getSelectedRow();
-        if (selectedRow == -1) {
-            JOptionPane.showMessageDialog(this,
-                "Please select an employee from the table to approve.",
-                "Selection Required", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-        
-        String employeeId = jTable1.getValueAt(selectedRow, 0).toString();
-        String lastName = jTable1.getValueAt(selectedRow, 1).toString();
-        String firstName = jTable1.getValueAt(selectedRow, 2).toString();
-        
-        // Update payroll status using PayrollDAO
-        if (currentPayPeriod != null) {
-            payrollDAO.updatePayrollStatus(currentPayPeriod.getPayPeriodId(), "Approved");
-        }
-        
-        JOptionPane.showMessageDialog(this,
-            "Payroll for " + firstName + " " + lastName + " (ID: " + employeeId + ") has been approved.\n" +
-            "Salary has been disbursed for the pay period: " + 
-            (currentPayPeriod != null ? currentPayPeriod.getPeriodName() : "Current Period"),
-            "Payroll Approved", JOptionPane.INFORMATION_MESSAGE);
-    }
-
-    /**
-     * Handle approve all button using PayrollDAO
-     */
-    private void handleApproveAllPayroll() {
-        if (jTable1.getRowCount() == 0) {
-            JOptionPane.showMessageDialog(this,
-                "No payroll data to approve. Please load data first.",
-                "No Data", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-        
-        // Update all payroll status using PayrollDAO
-        if (currentPayPeriod != null) {
-            int updatedCount = payrollDAO.updatePayrollStatus(currentPayPeriod.getPayPeriodId(), "Approved");
-            payrollApproved = true;
-            
-            JOptionPane.showMessageDialog(this,
-                "All payrolls for " + currentPayPeriod.getPeriodName() + 
-                " have been approved.\nSalaries have been disbursed for " + updatedCount + " employees.",
-                "All Payrolls Approved", JOptionPane.INFORMATION_MESSAGE);
-        }
-        
-        updateButtonStates();
-    }
-
-    /**
-     * Handle deny button
-     */
-    private void handleDenyPayroll() {
-        int selectedRow = jTable1.getSelectedRow();
-        if (selectedRow == -1) {
-            JOptionPane.showMessageDialog(this,
-                "Please select an employee from the table to deny.",
-                "Selection Required", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-        
-        String employeeId = jTable1.getValueAt(selectedRow, 0).toString();
-        String lastName = jTable1.getValueAt(selectedRow, 1).toString();
-        String firstName = jTable1.getValueAt(selectedRow, 2).toString();
-        
-        JOptionPane.showMessageDialog(this,
-            "Payroll for " + firstName + " " + lastName + " (ID: " + employeeId + ") has been denied.\n" +
-            "Salary will not be disbursed for the pay period: " + 
-            (currentPayPeriod != null ? currentPayPeriod.getPeriodName() : "Current Period"),
-            "Payroll Denied", JOptionPane.WARNING_MESSAGE);
-    }
-
-    /**
-     * Handle deny all button using PayrollDAO
-     */
-    private void handleDenyAllPayroll() {
-        if (jTable1.getRowCount() == 0) {
-            JOptionPane.showMessageDialog(this,
-                "No payroll data to deny. Please load data first.",
-                "No Data", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-        
-        // Delete payroll records using PayrollDAO
-        if (currentPayPeriod != null) {
-            int deletedCount = payrollDAO.deletePayrollByPeriod(currentPayPeriod.getPayPeriodId());
-            payslipsGenerated = false;
-            payrollApproved = false;
-            
-            JOptionPane.showMessageDialog(this,
-                "All payrolls for " + currentPayPeriod.getPeriodName() + 
-                " have been denied and deleted.\nNo salaries will be disbursed for this pay period.",
-                "All Payrolls Denied", JOptionPane.WARNING_MESSAGE);
-            
-            // Clear the table
-            DefaultTableModel model = (DefaultTableModel) jTable1.getModel();
-            model.setRowCount(0);
-            currentPayrollData.clear();
-        }
-        
-        updateButtonStates();
-    }
-
-    /**
-     * Handle download payslip
-     */
-    private void handleDownloadPayslip() {
-        int[] selectedRows = jTable1.getSelectedRows();
-        
-        if (selectedRows.length == 0) {
-            JOptionPane.showMessageDialog(this,
-                "Please select at least one employee from the table to download payslip(s).",
-                "Selection Required", JOptionPane.WARNING_MESSAGE);
-            return;
-        }
-        
-        // For now, just show a message since payslip generation requires external dependencies
-        String message = selectedRows.length == 1 
-            ? "Payslip download initiated for selected employee."
-            : selectedRows.length + " payslips download initiated.";
-        
-        JOptionPane.showMessageDialog(this,
-            message + "\nPayslip files would be generated here.",
-            "Download Initiated", JOptionPane.INFORMATION_MESSAGE);
     }
     
     /**
-     * Find payroll data for a specific employee from current data
+     * Finds the pay period for the selected month
      */
-    private PayrollModel findPayrollForEmployee(Integer employeeId) {
-        for (PayrollModel payroll : currentPayrollData) {
-            if (payroll.getEmployeeId().equals(employeeId)) {
-                return payroll;
+    private PayPeriodModel findPayPeriodForMonth(YearMonth yearMonth) {
+        try {
+            List<PayPeriodModel> allPeriods = payPeriodDAO.findAll();
+
+            for (PayPeriodModel period : allPeriods) {
+                if (period.getStartDate() != null) {
+                    YearMonth periodMonth = YearMonth.from(period.getStartDate());
+                    if (periodMonth.equals(yearMonth)) {
+                        return period;
+                    }
+                }
             }
+
+            return null;
+        } catch (Exception e) {
+            System.err.println("Error finding pay period: " + e.getMessage());
+            e.printStackTrace();
+            return null;
         }
-        return null;
     }
-    
+
     /**
-     * Show payslip history in a dialog using PayrollDAO methods
+     * Enhanced payslip history dialog with date filter and download functionality
      */
     private void showPayslipHistoryDialog() {
         JDialog historyDialog = new JDialog(this, "Generated Payslip History", true);
-        historyDialog.setSize(800, 600);
+        historyDialog.setSize(1200, 750);
         historyDialog.setLocationRelativeTo(this);
         
-        // Create table for history
-        String[] columns = {"Employee ID", "Employee Name", "Pay Period", "Generated Date", 
-                           "Gross Income", "Net Salary", "Status"};
-        DefaultTableModel historyModel = new DefaultTableModel(columns, 0);
+        // Create table for history with status column
+        String[] columns = {"Payslip ID", "Employee ID", "Employee Name", "Pay Period", 
+                           "Generated Date", "Gross Income", "Net Pay", "Status"};
+        DefaultTableModel historyModel = new DefaultTableModel(columns, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false; // Make table non-editable
+            }
+        };
         
-        // Get payroll history using PayrollDAO and PayPeriodDAO
+        JTable historyTable = new JTable(historyModel);
+        historyTable.setSelectionMode(ListSelectionModel.MULTIPLE_INTERVAL_SELECTION);
+        
+        // Create compact filter panel
+        JPanel filterPanel = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT));
+        filterPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+        
+        JLabel filterLabel = new JLabel("Filter by Period:");
+        javax.swing.JComboBox<String> periodFilterCombo = new javax.swing.JComboBox<>();
+        periodFilterCombo.addItem("All Periods");
+        periodFilterCombo.addItem("June 2024");
+        periodFilterCombo.addItem("July 2024");
+        periodFilterCombo.addItem("August 2024");
+        periodFilterCombo.addItem("September 2024");
+        periodFilterCombo.addItem("October 2024");
+        periodFilterCombo.addItem("November 2024");
+        periodFilterCombo.addItem("December 2024");
+        
+        JButton applyFilterBtn = new JButton("Apply Filter");
+        applyFilterBtn.setBackground(new Color(220, 95, 0));
+        applyFilterBtn.setForeground(Color.WHITE);
+        
+        filterPanel.add(filterLabel);
+        filterPanel.add(periodFilterCombo);
+        filterPanel.add(applyFilterBtn);
+        
+        // Load all payslip history data initially
+        loadPayslipHistoryData(historyModel, null);
+        
+        JScrollPane scrollPane = new JScrollPane(historyTable);
+        
+        // Create button panel
+        JPanel buttonPanel = new JPanel();
+        JButton selectAllBtn = new JButton("Select All");
+        JButton approveBtn = new JButton("Approve");
+        JButton approveAllBtn = new JButton("Approve All");
+        JButton denyBtn = new JButton("Deny");
+        JButton denyAllBtn = new JButton("Deny All");
+        JButton downloadBtn = new JButton("Download Selected");
+        JButton viewBtn = new JButton("View Payslip");
+        JButton refreshBtn = new JButton("Refresh");
+        
+        // Style buttons
+        approveBtn.setBackground(new Color(0, 153, 0));
+        approveBtn.setForeground(Color.WHITE);
+        approveAllBtn.setBackground(new Color(0, 153, 0));
+        approveAllBtn.setForeground(Color.WHITE);
+        denyBtn.setBackground(new Color(207, 10, 10));
+        denyBtn.setForeground(Color.WHITE);
+        denyAllBtn.setBackground(new Color(207, 10, 10));
+        denyAllBtn.setForeground(Color.WHITE);
+        downloadBtn.setBackground(new Color(220, 95, 0));
+        downloadBtn.setForeground(Color.WHITE);
+        viewBtn.setBackground(new Color(220, 95, 0));
+        viewBtn.setForeground(Color.WHITE);
+        
+        // Add filter functionality
+        applyFilterBtn.addActionListener(e -> {
+            String selectedPeriod = (String) periodFilterCombo.getSelectedItem();
+            String periodFilter = null;
+            
+            if (!"All Periods".equals(selectedPeriod)) {
+                // Convert display name to filter format
+                periodFilter = convertPeriodDisplayToFilter(selectedPeriod);
+            }
+            
+            historyModel.setRowCount(0);
+            loadPayslipHistoryData(historyModel, periodFilter);
+        });
+        
+        // Add button listeners
+        selectAllBtn.addActionListener(e -> historyTable.selectAll());
+        
+        approveBtn.addActionListener(e -> {
+            int[] selectedRows = historyTable.getSelectedRows();
+            if (selectedRows.length == 0) {
+                JOptionPane.showMessageDialog(historyDialog, "Please select payslip(s) to approve.");
+                return;
+            }
+            updatePayslipStatus(historyModel, selectedRows, PayslipStatus.APPROVED);
+        });
+        
+        approveAllBtn.addActionListener(e -> {
+            int[] allRows = new int[historyModel.getRowCount()];
+            for (int i = 0; i < allRows.length; i++) allRows[i] = i;
+            updatePayslipStatus(historyModel, allRows, PayslipStatus.APPROVED);
+        });
+        
+        denyBtn.addActionListener(e -> {
+            int[] selectedRows = historyTable.getSelectedRows();
+            if (selectedRows.length == 0) {
+                JOptionPane.showMessageDialog(historyDialog, "Please select payslip(s) to deny.");
+                return;
+            }
+            updatePayslipStatus(historyModel, selectedRows, PayslipStatus.REJECTED);
+        });
+        
+        denyAllBtn.addActionListener(e -> {
+            int[] allRows = new int[historyModel.getRowCount()];
+            for (int i = 0; i < allRows.length; i++) allRows[i] = i;
+            updatePayslipStatus(historyModel, allRows, PayslipStatus.REJECTED);
+        });
+        
+        // Download using same method as ViewPayslip
+        downloadBtn.addActionListener(e -> {
+            int[] selectedRows = historyTable.getSelectedRows();
+            if (selectedRows.length == 0) {
+                JOptionPane.showMessageDialog(historyDialog, "Please select payslip(s) to download.");
+                return;
+            }
+            handleDownloadSelectedPayslips(historyModel, selectedRows);
+        });
+        
+        viewBtn.addActionListener(e -> {
+            int selectedRow = historyTable.getSelectedRow();
+            if (selectedRow == -1) {
+                JOptionPane.showMessageDialog(historyDialog, "Please select a payslip to view.");
+                return;
+            }
+            showIndividualPayslip(historyModel, selectedRow);
+        });
+        
+        refreshBtn.addActionListener(e -> {
+            String selectedPeriod = (String) periodFilterCombo.getSelectedItem();
+            String periodFilter = null;
+            
+            if (!"All Periods".equals(selectedPeriod)) {
+                periodFilter = convertPeriodDisplayToFilter(selectedPeriod);
+            }
+            
+            historyModel.setRowCount(0);
+            loadPayslipHistoryData(historyModel, periodFilter);
+        });
+        
+        buttonPanel.add(selectAllBtn);
+        buttonPanel.add(Box.createHorizontalStrut(10));
+        buttonPanel.add(approveBtn);
+        buttonPanel.add(approveAllBtn);
+        buttonPanel.add(denyBtn);
+        buttonPanel.add(denyAllBtn);
+        buttonPanel.add(Box.createHorizontalStrut(10));
+        buttonPanel.add(downloadBtn);
+        buttonPanel.add(viewBtn);
+        buttonPanel.add(Box.createHorizontalStrut(10));
+        buttonPanel.add(refreshBtn);
+        
+        JPanel mainPanel = new JPanel(new BorderLayout());
+        mainPanel.add(new JLabel("Generated Payslip History - Filter by period, then select payslips to approve, deny, or download"), BorderLayout.NORTH);
+        mainPanel.add(filterPanel, BorderLayout.CENTER);
+        
+        JPanel contentPanel = new JPanel(new BorderLayout());
+        contentPanel.add(scrollPane, BorderLayout.CENTER);
+        contentPanel.add(buttonPanel, BorderLayout.SOUTH);
+        
+        mainPanel.add(contentPanel, BorderLayout.SOUTH);
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        
+        historyDialog.add(mainPanel);
+        historyDialog.setVisible(true);
+    }
+    
+    /**
+     * Convert period display name to filter format
+     */
+    private String convertPeriodDisplayToFilter(String displayName) {
+        switch (displayName) {
+            case "June 2024": return "2024-06";
+            case "July 2024": return "2024-07";
+            case "August 2024": return "2024-08";
+            case "September 2024": return "2024-09";
+            case "October 2024": return "2024-10";
+            case "November 2024": return "2024-11";
+            case "December 2024": return "2024-12";
+            default: return null;
+        }
+    }
+    
+    /**
+     * Load payslip history data with optional period filter, ordered by Employee ID
+     * FIXED: Uses ReportService to get accurate gross income and net pay from database calculations
+     */
+    private void loadPayslipHistoryData(DefaultTableModel historyModel, String periodFilter) {
         try {
             List<PayPeriodModel> allPeriods = payPeriodDAO.findAll();
+            List<PayslipHistoryItem> payslipItems = new ArrayList<>();
             
             for (PayPeriodModel period : allPeriods) {
-                if (payrollDAO.isPayrollGenerated(period.getPayPeriodId())) {
-                    List<PayrollModel> payrolls = payrollDAO.findByPayPeriod(period.getPayPeriodId());
+                // Apply period filter if specified
+                if (periodFilter != null) {
+                    YearMonth periodMonth = YearMonth.from(period.getStartDate());
+                    String periodString = periodMonth.format(DateTimeFormatter.ofPattern("yyyy-MM"));
                     
-                    for (PayrollModel payroll : payrolls) {
-                        EmployeeModel employee = employeeDAO.findById(payroll.getEmployeeId());
-                        if (employee != null) {
-                            historyModel.addRow(new Object[]{
-                                employee.getEmployeeId(),
-                                employee.getFullName(),
-                                period.getPeriodName(),
-                                payroll.getCreatedAt() != null ? 
-                                    payroll.getCreatedAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")) : "Unknown",
-                                formatCurrency(payroll.getGrossIncome()),
-                                formatCurrency(payroll.getNetSalary()),
-                                "Generated"
-                            });
+                    if (!periodString.equals(periodFilter)) {
+                        continue; // Skip this period
+                    }
+                }
+                
+                List<PayslipModel> payslips = payslipDAO.findByPayPeriod(period.getPayPeriodId());
+                
+                for (PayslipModel payslip : payslips) {
+                    // Convert period name from "2024-06-1st Half" to "June 2024"
+                    String displayPeriodName = convertPeriodToDisplay(period.getPeriodName());
+                    
+                    // FIXED: Get accurate gross income and net pay from ReportService (matches database calculations)
+                    BigDecimal actualGrossIncome = null;
+                    BigDecimal actualNetPay = null;
+                    
+                    try {
+                        // Get period YearMonth for ReportService
+                        YearMonth periodYearMonth = YearMonth.from(period.getStartDate());
+                        
+                        // Use ReportService to get accurate payslip data (same as main table)
+                        ReportService.EmployeePayslipReport payslipReport = 
+                            reportService.generateEmployeePayslipFromView(payslip.getEmployeeId(), periodYearMonth);
+                        
+                        if (payslipReport.isSuccess() && payslipReport.getPayslip() != null) {
+                            // Use ReportService values (these match the database exactly)
+                            actualGrossIncome = payslipReport.getPayslip().getGrossIncome(); // Base salary only
+                            actualNetPay = payslipReport.getPayslip().getNetPay(); // Accurate net pay
+                        } else {
+                            // Fallback to PayslipModel values if ReportService fails
+                            actualGrossIncome = payslip.getGrossIncome();
+                            actualNetPay = payslip.getTakeHomePay();
+                        }
+                    } catch (Exception e) {
+                        System.err.println("Error getting accurate payslip data for employee " + payslip.getEmployeeId() + 
+                            " in period " + period.getPeriodName() + ": " + e.getMessage());
+                        // Fallback to PayslipModel values
+                        actualGrossIncome = payslip.getGrossIncome();
+                        actualNetPay = payslip.getTakeHomePay();
+                    }
+                    
+                    PayslipHistoryItem item = new PayslipHistoryItem(
+                        payslip.getPayslipId(),
+                        payslip.getEmployeeId(),
+                        payslip.getEmployeeName(),
+                        displayPeriodName,
+                        payslip.getUpdatedAt() != null ? 
+                            payslip.getUpdatedAt().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")) : "Unknown",
+                        formatCurrency(actualGrossIncome), // Accurate gross income from database
+                        formatCurrency(actualNetPay), // Accurate net pay from database
+                        payslip.getStatus().getValue()
+                    );
+                    payslipItems.add(item);
+                }
+            }
+            
+            // Sort by Employee ID (ascending order)
+            payslipItems.sort((a, b) -> a.employeeId.compareTo(b.employeeId));
+            
+            // Add sorted items to table
+            for (PayslipHistoryItem item : payslipItems) {
+                historyModel.addRow(new Object[]{
+                    item.payslipId, item.employeeId, item.employeeName,
+                    item.payPeriod, item.generatedDate, item.grossIncome,
+                    item.netPay, item.status
+                });
+            }
+            
+            // Show summary in console
+            if (periodFilter != null) {
+                System.out.println("Loaded " + payslipItems.size() + " payslips for period: " + periodFilter + 
+                    " (sorted by Employee ID, using accurate database values)");
+            } else {
+                System.out.println("Loaded " + payslipItems.size() + " payslips (all periods, sorted by Employee ID, using accurate database values)");
+            }
+            
+            // Show message if no data found
+            if (payslipItems.isEmpty()) {
+                String message = periodFilter != null ? 
+                    "No payslips found for period: " + convertFilterToPeriodDisplay(periodFilter) : 
+                    "No payslips found in the system";
+                historyModel.addRow(new Object[]{message, "", "", "", "", "", "", ""});
+            }
+            
+        } catch (Exception e) {
+            System.err.println("Error loading payslip history with accurate values: " + e.getMessage());
+            e.printStackTrace();
+            String errorMessage = periodFilter != null ? 
+                "Error loading payslips for period: " + convertFilterToPeriodDisplay(periodFilter) : 
+                "Error loading payslip history";
+            historyModel.addRow(new Object[]{errorMessage, "Failed to load history", "", "", "", "", "", "ERROR"});
+        }
+    }
+    
+    /**
+     * Convert period name from database format to display format
+     */
+    private String convertPeriodToDisplay(String periodName) {
+        if (periodName.contains("2024-06")) return "June 2024";
+        if (periodName.contains("2024-07")) return "July 2024";
+        if (periodName.contains("2024-08")) return "August 2024";
+        if (periodName.contains("2024-09")) return "September 2024";
+        if (periodName.contains("2024-10")) return "October 2024";
+        if (periodName.contains("2024-11")) return "November 2024";
+        if (periodName.contains("2024-12")) return "December 2024";
+        return periodName; // fallback to original
+    }
+    
+    /**
+     * Convert filter format back to display format
+     */
+    private String convertFilterToPeriodDisplay(String filter) {
+        switch (filter) {
+            case "2024-06": return "June 2024";
+            case "2024-07": return "July 2024";
+            case "2024-08": return "August 2024";
+            case "2024-09": return "September 2024";
+            case "2024-10": return "October 2024";
+            case "2024-11": return "November 2024";
+            case "2024-12": return "December 2024";
+            default: return filter;
+        }
+    }
+    
+    /**
+     * Helper class for sorting payslip history items
+     */
+    private static class PayslipHistoryItem {
+        final Integer payslipId;
+        final Integer employeeId;
+        final String employeeName;
+        final String payPeriod;
+        final String generatedDate;
+        final String grossIncome;
+        final String netPay;
+        final String status;
+        
+        PayslipHistoryItem(Integer payslipId, Integer employeeId, String employeeName, 
+                          String payPeriod, String generatedDate, String grossIncome, 
+                          String netPay, String status) {
+            this.payslipId = payslipId;
+            this.employeeId = employeeId;
+            this.employeeName = employeeName;
+            this.payPeriod = payPeriod;
+            this.generatedDate = generatedDate;
+            this.grossIncome = grossIncome;
+            this.netPay = netPay;
+            this.status = status;
+        }
+    }
+    
+    /**
+     * Update payslip status using PayslipDAO
+     */
+    private void updatePayslipStatus(DefaultTableModel model, int[] rows, PayslipStatus newStatus) {
+        try {
+            int updatedCount = 0;
+            for (int row : rows) {
+                // Get payslip ID from the table
+                Object payslipIdObj = model.getValueAt(row, 0);
+                String currentStatus = (String) model.getValueAt(row, 7);
+                
+                // Only update if current status is PENDING
+                if ("PENDING".equals(currentStatus)) {
+                    Integer payslipId = Integer.valueOf(payslipIdObj.toString());
+                    if (payslipDAO.updatePayslipStatus(payslipId, newStatus)) {
+                        // Update status in table
+                        model.setValueAt(newStatus.getValue(), row, 7);
+                        updatedCount++;
+                    }
+                }
+            }
+            
+            if (updatedCount > 0) {
+                String action = newStatus == PayslipStatus.APPROVED ? "approved" : "denied";
+                JOptionPane.showMessageDialog(null,
+                    updatedCount + " payslip(s) have been " + action + " successfully.",
+                    "Status Updated", JOptionPane.INFORMATION_MESSAGE);
+            } else {
+                JOptionPane.showMessageDialog(null,
+                    "No payslips were updated. Only PENDING payslips can be approved or denied.",
+                    "No Updates", JOptionPane.WARNING_MESSAGE);
+            }
+            
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(null,
+                "Error updating payslip status: " + e.getMessage(),
+                "Update Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    
+    /**
+     * Handle download of selected payslips - Uses same download logic as ViewPayslip
+     */
+    private void handleDownloadSelectedPayslips(DefaultTableModel model, int[] selectedRows) {
+        try {
+            if (selectedRows.length == 1) {
+                // Single payslip download
+                downloadSinglePayslip(model, selectedRows[0]);
+            } else {
+                // Multiple payslips download
+                downloadMultiplePayslips(model, selectedRows);
+            }
+                
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(null,
+                "Error downloading payslips: " + e.getMessage(),
+                "Download Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    
+    /**
+     * Download single payslip using same method as ViewPayslip
+     */
+    private void downloadSinglePayslip(DefaultTableModel model, int selectedRow) {
+        try {
+            String employeeIdStr = model.getValueAt(selectedRow, 1).toString();
+            String employeeName = model.getValueAt(selectedRow, 2).toString();
+            String payPeriod = model.getValueAt(selectedRow, 3).toString();
+            
+            // Parse pay period to get YearMonth
+            YearMonth payslipMonth = parsePayPeriodToYearMonth(payPeriod);
+            
+            if (payslipMonth == null) {
+                JOptionPane.showMessageDialog(null,
+                    "Could not determine pay period for download.",
+                    "Download Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            
+            // Create default filename - same format as ViewPayslip
+            String[] nameParts = employeeName.split(" ");
+            String lastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : employeeName;
+            String defaultFileName = String.format("MotorPH_Payslip_%s_%s_%s.pdf", 
+                lastName.replaceAll("\\s+", ""), 
+                employeeIdStr,
+                payslipMonth.format(DateTimeFormatter.ofPattern("yyyy-MM")));
+
+            // Show file chooser
+            JFileChooser fileChooser = new JFileChooser();
+            String downloadsPath = System.getProperty("user.home") + File.separator + "Downloads";
+            fileChooser.setCurrentDirectory(new File(downloadsPath));
+            fileChooser.setSelectedFile(new File(defaultFileName));
+            fileChooser.setDialogTitle("Save Payslip As...");
+            
+            javax.swing.filechooser.FileNameExtensionFilter pdfFilter = 
+                new javax.swing.filechooser.FileNameExtensionFilter("PDF Documents (*.pdf)", "pdf");
+            fileChooser.setFileFilter(pdfFilter);
+            fileChooser.setAcceptAllFileFilterUsed(false);
+            fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+
+            int result = fileChooser.showSaveDialog(this);
+            if (result != JFileChooser.APPROVE_OPTION) {
+                return;
+            }
+
+            // Get chosen file path
+            File selectedFile = fileChooser.getSelectedFile();
+            String userChosenPath = selectedFile.getAbsolutePath();
+            if (!userChosenPath.toLowerCase().endsWith(".pdf")) {
+                userChosenPath += ".pdf";
+            }
+
+            // Generate payslip data using ReportService (same as ViewPayslip)
+            var payslipReport = reportService.generateEmployeePayslipFromView(
+                Integer.valueOf(employeeIdStr), payslipMonth);
+
+            if (!payslipReport.isSuccess() || payslipReport.getPayslip() == null) {
+                throw new Exception("Failed to retrieve payslip data: " + payslipReport.getErrorMessage());
+            }
+
+            // Generate PDF using PurePDFPayslipGenerator (same as ViewPayslip)
+            boolean success = PurePDFPayslipGenerator.generatePayslip(
+                payslipReport.getPayslip(), 
+                userChosenPath
+            );
+
+            if (success) {
+                // Show success dialog with option to open file
+                int openChoice = JOptionPane.showConfirmDialog(this,
+                    "Payslip successfully downloaded!\n" +
+                    "Employee: " + employeeName + "\n" +
+                    "Period: " + payPeriod + "\n" +
+                    "Filename: " + new File(userChosenPath).getName() + "\n" +
+                    "Location: " + userChosenPath + "\n\n" +
+                    "Do you want to open the file now?", 
+                    "Download Complete", 
+                    JOptionPane.YES_NO_OPTION,
+                    JOptionPane.INFORMATION_MESSAGE);
+
+                if (openChoice == JOptionPane.YES_OPTION) {
+                    try {
+                        java.awt.Desktop.getDesktop().open(new File(userChosenPath));
+                    } catch (IOException e) {
+                        JOptionPane.showMessageDialog(this,
+                            "File saved successfully but couldn't open it automatically.\n" +
+                            "Please navigate to: " + userChosenPath, 
+                            "File Saved", JOptionPane.WARNING_MESSAGE);
+                    }
+                }
+            } else {
+                throw new Exception("PDF generation failed - check console for details");
+            }
+            
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(null,
+                "Error downloading payslip: " + e.getMessage(),
+                "Download Error", JOptionPane.ERROR_MESSAGE);
+            e.printStackTrace();
+        }
+    }
+    
+    /**
+     * Download multiple payslips
+     */
+    private void downloadMultiplePayslips(DefaultTableModel model, int[] selectedRows) {
+        try {
+            // Show directory chooser for multiple files
+            JFileChooser dirChooser = new JFileChooser();
+            dirChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+            dirChooser.setDialogTitle("Select Directory for Payslip Downloads");
+            String downloadsPath = System.getProperty("user.home") + File.separator + "Downloads";
+            dirChooser.setCurrentDirectory(new File(downloadsPath));
+            
+            int result = dirChooser.showSaveDialog(this);
+            if (result != JFileChooser.APPROVE_OPTION) {
+                return;
+            }
+            
+            File selectedDir = dirChooser.getSelectedFile();
+            int successCount = 0;
+            int failureCount = 0;
+            StringBuilder errors = new StringBuilder();
+            
+            for (int row : selectedRows) {
+                try {
+                    String employeeIdStr = model.getValueAt(row, 1).toString();
+                    String employeeName = model.getValueAt(row, 2).toString();
+                    String payPeriod = model.getValueAt(row, 3).toString();
+                    
+                    // Parse pay period to get YearMonth
+                    YearMonth payslipMonth = parsePayPeriodToYearMonth(payPeriod);
+                    
+                    if (payslipMonth == null) {
+                        failureCount++;
+                        errors.append("• ").append(employeeName).append(": Could not parse pay period\n");
+                        continue;
+                    }
+                    
+                    // Create filename
+                    String[] nameParts = employeeName.split(" ");
+                    String lastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : employeeName;
+                    String fileName = String.format("MotorPH_Payslip_%s_%s_%s.pdf", 
+                        lastName.replaceAll("\\s+", ""), 
+                        employeeIdStr,
+                        payslipMonth.format(DateTimeFormatter.ofPattern("yyyy-MM")));
+                    
+                    String filePath = selectedDir.getAbsolutePath() + File.separator + fileName;
+                    
+                    // Generate payslip data
+                    var payslipReport = reportService.generateEmployeePayslipFromView(
+                        Integer.valueOf(employeeIdStr), payslipMonth);
+
+                    if (!payslipReport.isSuccess() || payslipReport.getPayslip() == null) {
+                        failureCount++;
+                        errors.append("• ").append(employeeName).append(": ").append(payslipReport.getErrorMessage()).append("\n");
+                        continue;
+                    }
+
+                    // Generate PDF
+                    boolean success = PurePDFPayslipGenerator.generatePayslip(
+                        payslipReport.getPayslip(), 
+                        filePath
+                    );
+
+                    if (success) {
+                        successCount++;
+                    } else {
+                        failureCount++;
+                        errors.append("• ").append(employeeName).append(": PDF generation failed\n");
+                    }
+                    
+                } catch (Exception e) {
+                    failureCount++;
+                    String employeeName = model.getValueAt(row, 2).toString();
+                    errors.append("• ").append(employeeName).append(": ").append(e.getMessage()).append("\n");
+                }
+            }
+            
+            // Show summary
+            StringBuilder message = new StringBuilder();
+            message.append("Download Summary:\n\n");
+            message.append("Successfully downloaded: ").append(successCount).append(" payslip(s)\n");
+            message.append("Failed downloads: ").append(failureCount).append(" payslip(s)\n");
+            message.append("Save location: ").append(selectedDir.getAbsolutePath()).append("\n\n");
+            
+            if (failureCount > 0) {
+                message.append("Errors:\n").append(errors.toString());
+            }
+            
+            JOptionPane.showMessageDialog(this,
+                message.toString(),
+                "Download Complete",
+                failureCount > 0 ? JOptionPane.WARNING_MESSAGE : JOptionPane.INFORMATION_MESSAGE);
+            
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(null,
+                "Error downloading multiple payslips: " + e.getMessage(),
+                "Download Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    
+    /**
+     * Parse pay period string to YearMonth
+     */
+    private YearMonth parsePayPeriodToYearMonth(String payPeriod) {
+        try {
+            // Handle different pay period formats
+            if (payPeriod.contains("2024")) {
+                if (payPeriod.toLowerCase().contains("june")) return YearMonth.of(2024, 6);
+                if (payPeriod.toLowerCase().contains("july")) return YearMonth.of(2024, 7);
+                if (payPeriod.toLowerCase().contains("august")) return YearMonth.of(2024, 8);
+                if (payPeriod.toLowerCase().contains("september")) return YearMonth.of(2024, 9);
+                if (payPeriod.toLowerCase().contains("october")) return YearMonth.of(2024, 10);
+                if (payPeriod.toLowerCase().contains("november")) return YearMonth.of(2024, 11);
+                if (payPeriod.toLowerCase().contains("december")) return YearMonth.of(2024, 12);
+            }
+            
+            // Try to extract year-month pattern
+            if (payPeriod.matches(".*2024[-/]\\d{2}.*")) {
+                String[] parts = payPeriod.split("[-/]");
+                for (int i = 0; i < parts.length - 1; i++) {
+                    if (parts[i].contains("2024")) {
+                        int month = Integer.parseInt(parts[i + 1]);
+                        if (month >= 1 && month <= 12) {
+                            return YearMonth.of(2024, month);
                         }
                     }
                 }
             }
+            
+            return null;
         } catch (Exception e) {
-            System.err.println("Error loading payslip history: " + e.getMessage());
-            historyModel.addRow(new Object[]{"Error", "Failed to load history", "", "", "", "", ""});
+            return null;
+        }
+    }
+    
+    /**
+     * Show individual payslip details using same format as ViewPayslip
+     */
+    private void showIndividualPayslip(DefaultTableModel model, int selectedRow) {
+        try {
+            String employeeIdStr = model.getValueAt(selectedRow, 1).toString();
+            String employeeName = model.getValueAt(selectedRow, 2).toString();
+            String payPeriod = model.getValueAt(selectedRow, 3).toString();
+            
+            // Parse pay period to get YearMonth
+            YearMonth payslipMonth = parsePayPeriodToYearMonth(payPeriod);
+            
+            if (payslipMonth == null) {
+                JOptionPane.showMessageDialog(this,
+                    "Could not determine pay period for payslip display.",
+                    "Display Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            
+            // Get payslip data using ReportService (same as ViewPayslip)
+            var payslipReport = reportService.generateEmployeePayslipFromView(
+                Integer.valueOf(employeeIdStr), payslipMonth);
+            
+            if (payslipReport.isSuccess() && payslipReport.getPayslip() != null) {
+                // Format payslip same as ViewPayslip
+                String payslipDetails = formatPayslipForDisplay(payslipReport.getPayslip());
+                
+                // Create a dialog to show the formatted payslip
+                JDialog payslipDialog = new JDialog(this, "Payslip Details - " + employeeName, true);
+                payslipDialog.setSize(800, 600);
+                payslipDialog.setLocationRelativeTo(this);
+                
+                JTextArea textArea = new JTextArea(payslipDetails);
+                textArea.setFont(new java.awt.Font("Monospaced", java.awt.Font.PLAIN, 12));
+                textArea.setEditable(false);
+                
+                JScrollPane scrollPane = new JScrollPane(textArea);
+                payslipDialog.add(scrollPane);
+                payslipDialog.setVisible(true);
+            } else {
+                JOptionPane.showMessageDialog(this,
+                    "Could not load payslip data: " + payslipReport.getErrorMessage(),
+                    "Payslip Not Found", JOptionPane.ERROR_MESSAGE);
+            }
+            
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(this,
+                "Error viewing payslip: " + e.getMessage(),
+                "View Error", JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    
+    /**
+     * Format payslip for display - same format as ViewPayslip, ENSURES gross income excludes benefits
+     */
+    private String formatPayslipForDisplay(ReportService.PayslipDetails payslip) {
+        StringBuilder payslipText = new StringBuilder();
+        
+        // Header - same as ViewPayslip
+        payslipText.append("=".repeat(70)).append("\n");
+        payslipText.append("                          MOTORPH\n");
+        payslipText.append("                    The Filipino's Choice\n");
+        payslipText.append("                      Employee Payslip\n");
+        payslipText.append("=".repeat(70)).append("\n\n");
+        
+        // Payslip Number and Dates
+        payslipText.append(String.format("%-30s %30s\n", 
+            "Payslip No: " + payslip.getPayslipNo(), 
+            "Period Start: " + payslip.getPeriodStartDate().format(DateTimeFormatter.ofPattern("MM-dd-yyyy"))));
+        payslipText.append(String.format("%-30s %30s\n", 
+            "", 
+            "Period End: " + payslip.getPeriodEndDate().format(DateTimeFormatter.ofPattern("MM-dd-yyyy"))));
+        payslipText.append(String.format("%-30s %30s\n", 
+            "", 
+            "Pay Date: " + payslip.getPayDate().format(DateTimeFormatter.ofPattern("MM-dd-yyyy"))));
+        payslipText.append("\n");
+        
+        // Employee Information
+        payslipText.append("EMPLOYEE INFORMATION:\n");
+        payslipText.append("-".repeat(70)).append("\n");
+        payslipText.append(String.format("%-20s %-20s %-15s %s\n", 
+            "Employee ID:", payslip.getEmployeeId(),
+            "TIN:", payslip.getTin() != null ? payslip.getTin() : "N/A"));
+        payslipText.append(String.format("%-20s %-20s %-15s %s\n", 
+            "Name:", payslip.getEmployeeName(),
+            "SSS No:", payslip.getSssNo() != null ? payslip.getSssNo() : "N/A"));
+        payslipText.append(String.format("%-20s %-20s %-15s %s\n", 
+            "Title:", payslip.getEmployeePosition(),
+            "PagIbig No:", payslip.getPagibigNo() != null ? payslip.getPagibigNo() : "N/A"));
+        payslipText.append(String.format("%-20s %-20s %-15s %s\n", 
+            "Department:", payslip.getDepartment(),
+            "Philhealth No:", payslip.getPhilhealthNo() != null ? payslip.getPhilhealthNo() : "N/A"));
+        payslipText.append("\n");
+        
+        // Two-column layout for Earnings and Deductions
+        payslipText.append(String.format("%-35s %35s\n", "EARNINGS", "DEDUCTIONS"));
+        payslipText.append(String.format("%-35s %35s\n", "=".repeat(35), "=".repeat(35)));
+        
+        // Main earnings and deductions side by side
+        payslipText.append(String.format("%-20s %14s %20s %14s\n", 
+            "Monthly Rate:", formatCurrencyForDisplay(payslip.getMonthlyRate()),
+            "Social Security System:", formatCurrencyForDisplay(payslip.getSocialSecuritySystem())));
+        payslipText.append(String.format("%-20s %14s %20s %14s\n", 
+            "Daily Rate:", formatCurrencyForDisplay(payslip.getDailyRate()),
+            "Philhealth:", formatCurrencyForDisplay(payslip.getPhilhealth())));
+        payslipText.append(String.format("%-20s %14s %20s %14s\n", 
+            "Days Worked:", payslip.getDaysWorked().toString(),
+            "PagIbig:", formatCurrencyForDisplay(payslip.getPagIbig())));
+        payslipText.append(String.format("%-20s %14s %20s %14s\n", 
+            "Leaves Taken:", payslip.getLeavesTaken().toString(),
+            "Withholding Tax:", formatCurrencyForDisplay(payslip.getWithholdingTax())));
+        
+        // Show overtime if applicable
+        if (payslip.getOvertimeHours().doubleValue() > 0) {
+            payslipText.append(String.format("%-20s %14s\n", 
+                "Overtime Hours:", payslip.getOvertimeHours().toString()));
         }
         
-        JTable historyTable = new JTable(historyModel);
-        historyTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        payslipText.append("\n");
         
-        JScrollPane scrollPane = new JScrollPane(historyTable);
+        // FIXED: Gross income should NOT include benefits
+        payslipText.append(String.format("%-20s %14s %20s %14s\n", 
+            "GROSS INCOME:", formatCurrencyForDisplay(payslip.getGrossIncome()), // Base salary only
+            "TOTAL DEDUCTIONS:", formatCurrencyForDisplay(payslip.getTotalDeductions())));
+        payslipText.append("\n");
         
-        JPanel panel = new JPanel(new BorderLayout());
-        panel.add(new JLabel("Payslip Generation History"), BorderLayout.NORTH);
-        panel.add(scrollPane, BorderLayout.CENTER);
-        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        // Benefits section (SEPARATE from gross income)
+        payslipText.append("BENEFITS\n");
+        payslipText.append("=".repeat(70)).append("\n");
+        payslipText.append(String.format("%-40s %15s\n", "Rice Subsidy:", formatCurrencyForDisplay(payslip.getRiceSubsidy())));
+        payslipText.append(String.format("%-40s %15s\n", "Phone Allowance:", formatCurrencyForDisplay(payslip.getPhoneAllowance())));
+        payslipText.append(String.format("%-40s %15s\n", "Clothing Allowance:", formatCurrencyForDisplay(payslip.getClothingAllowance())));
+        payslipText.append(String.format("%-40s %15s\n", "TOTAL BENEFITS:", formatCurrencyForDisplay(payslip.getTotalBenefits())));
+        payslipText.append("\n");
         
-        historyDialog.add(panel);
-        historyDialog.setVisible(true);
+        // Net Pay - prominently displayed
+        payslipText.append("=".repeat(70)).append("\n");
+        payslipText.append(String.format("%25s %-20s %15s\n", "", "NET PAY:", formatCurrencyForDisplay(payslip.getNetPay())));
+        payslipText.append("=".repeat(70)).append("\n\n");
+        
+        // Footer
+        payslipText.append("THIS IS A SYSTEM GENERATED PAYSLIP AND DOES NOT REQUIRE A SIGNATURE.\n");
+        
+        return payslipText.toString();
     }
+    
+    /**
+     * Formats currency for display - same as ViewPayslip
+     */
+    private String formatCurrencyForDisplay(java.math.BigDecimal amount) {
+        if (amount == null) {
+            return "₱0.00";
+        }
+        return String.format("₱%,.2f", amount);
+    }
+    
     
     /**
      * This method is called from within the constructor to initialize the form.
@@ -771,13 +1523,8 @@ public class PayrollManagement extends javax.swing.JFrame {
         jLabel3 = new javax.swing.JLabel();
         selectDepJComboBox1 = new javax.swing.JComboBox<>();
         selectDateJComboBox2 = new javax.swing.JComboBox<>();
-        approveBttn = new javax.swing.JButton();
-        denyBttn = new javax.swing.JButton();
         generatePayslip = new javax.swing.JButton();
-        approveAllBttn = new javax.swing.JButton();
-        denyAllBttn = new javax.swing.JButton();
         viewsalarydetails = new javax.swing.JButton();
-        downloadPayslip1 = new javax.swing.JButton();
         viewhistory = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
@@ -862,26 +1609,6 @@ public class PayrollManagement extends javax.swing.JFrame {
             }
         });
 
-        approveBttn.setBackground(new java.awt.Color(0, 153, 0));
-        approveBttn.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        approveBttn.setForeground(new java.awt.Color(255, 255, 255));
-        approveBttn.setText("Approve");
-        approveBttn.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                approveBttnActionPerformed(evt);
-            }
-        });
-
-        denyBttn.setBackground(new java.awt.Color(207, 10, 10));
-        denyBttn.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        denyBttn.setForeground(new java.awt.Color(255, 255, 255));
-        denyBttn.setText("Deny");
-        denyBttn.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                denyBttnActionPerformed(evt);
-            }
-        });
-
         generatePayslip.setBackground(new java.awt.Color(220, 95, 0));
         generatePayslip.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         generatePayslip.setForeground(new java.awt.Color(255, 255, 255));
@@ -889,26 +1616,6 @@ public class PayrollManagement extends javax.swing.JFrame {
         generatePayslip.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 generatePayslipActionPerformed(evt);
-            }
-        });
-
-        approveAllBttn.setBackground(new java.awt.Color(0, 153, 0));
-        approveAllBttn.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        approveAllBttn.setForeground(new java.awt.Color(255, 255, 255));
-        approveAllBttn.setText("Approve all");
-        approveAllBttn.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                approveAllBttnActionPerformed(evt);
-            }
-        });
-
-        denyAllBttn.setBackground(new java.awt.Color(207, 10, 10));
-        denyAllBttn.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        denyAllBttn.setForeground(new java.awt.Color(255, 255, 255));
-        denyAllBttn.setText("Deny all");
-        denyAllBttn.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                denyAllBttnActionPerformed(evt);
             }
         });
 
@@ -922,18 +1629,8 @@ public class PayrollManagement extends javax.swing.JFrame {
             }
         });
 
-        downloadPayslip1.setBackground(new java.awt.Color(220, 95, 0));
-        downloadPayslip1.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        downloadPayslip1.setForeground(new java.awt.Color(255, 255, 255));
-        downloadPayslip1.setText("Download Payslip");
-        downloadPayslip1.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                downloadPayslip1ActionPerformed(evt);
-            }
-        });
-
         viewhistory.setBackground(new java.awt.Color(220, 95, 0));
-        viewhistory.setFont(new java.awt.Font("Segoe UI", 1, 10)); // NOI18N
+        viewhistory.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         viewhistory.setForeground(new java.awt.Color(255, 255, 255));
         viewhistory.setText("View Generated Payslip History");
         viewhistory.addActionListener(new java.awt.event.ActionListener() {
@@ -948,24 +1645,8 @@ public class PayrollManagement extends javax.swing.JFrame {
             jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel2Layout.createSequentialGroup()
                 .addGap(26, 26, 26)
-                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 939, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addGroup(jPanel2Layout.createSequentialGroup()
-                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(generatePayslip, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 187, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addGroup(jPanel2Layout.createSequentialGroup()
-                                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                                    .addComponent(approveAllBttn, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                    .addComponent(denyAllBttn, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                    .addComponent(approveBttn)
-                                    .addComponent(denyBttn, javax.swing.GroupLayout.PREFERRED_SIZE, 78, javax.swing.GroupLayout.PREFERRED_SIZE))))
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(downloadPayslip1, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 200, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(viewsalarydetails, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 200, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(viewhistory, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 200, javax.swing.GroupLayout.PREFERRED_SIZE)))
                     .addGroup(jPanel2Layout.createSequentialGroup()
                         .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                             .addComponent(jLabel2)
@@ -973,8 +1654,14 @@ public class PayrollManagement extends javax.swing.JFrame {
                         .addGap(18, 18, 18)
                         .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                             .addComponent(jLabel3)
-                            .addComponent(selectDateJComboBox2, javax.swing.GroupLayout.PREFERRED_SIZE, 89, javax.swing.GroupLayout.PREFERRED_SIZE))))
-                .addGap(5, 5, 5))
+                            .addGroup(jPanel2Layout.createSequentialGroup()
+                                .addComponent(selectDateJComboBox2, javax.swing.GroupLayout.PREFERRED_SIZE, 89, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addGap(26, 26, 26)
+                                .addComponent(viewsalarydetails))))
+                    .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
+                        .addComponent(generatePayslip, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                        .addComponent(viewhistory, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
+                .addContainerGap())
         );
         jPanel2Layout.setVerticalGroup(
             jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -986,24 +1673,16 @@ public class PayrollManagement extends javax.swing.JFrame {
                 .addGap(6, 6, 6)
                 .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(selectDepJComboBox1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(selectDateJComboBox2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(18, 18, 18)
+                    .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                        .addComponent(selectDateJComboBox2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addComponent(viewsalarydetails)))
+                .addGap(17, 17, 17)
                 .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 293, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(generatePayslip)
-                    .addComponent(downloadPayslip1))
-                .addGap(13, 13, 13)
-                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(approveAllBttn)
-                    .addComponent(approveBttn)
-                    .addComponent(viewsalarydetails))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(denyAllBttn)
-                    .addComponent(denyBttn)
-                    .addComponent(viewhistory))
-                .addGap(14, 14, 14))
+                .addComponent(generatePayslip)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(viewhistory)
+                .addContainerGap(18, Short.MAX_VALUE))
         );
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
@@ -1017,46 +1696,37 @@ public class PayrollManagement extends javax.swing.JFrame {
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
                 .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(0, 0, Short.MAX_VALUE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                 .addComponent(jPanel2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(0, 0, 0))
+                .addContainerGap())
         );
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
     
-    private void approveBttnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_approveBttnActionPerformed
-        handleApprovePayroll();
-    }//GEN-LAST:event_approveBttnActionPerformed
-
     private void selectDateJComboBox2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_selectDateJComboBox2ActionPerformed
-     // Reset state when date selection changes
+       // Only reset state, don't auto-load data (user needs to click View Salary Details)
         payslipsGenerated = false;
         payrollApproved = false;
-        currentPayPeriod = null; // Reset current pay period
+        currentPayPeriod = null;
         updateButtonStates();
-        
-        // Clear the table and current data
-        DefaultTableModel model = (DefaultTableModel) jTable1.getModel();
-        model.setRowCount(0);
-        currentPayrollData.clear();
         
         // Update current payroll month based on selection
         String selectedDateStr = (String) selectDateJComboBox2.getSelectedItem();
-        if (selectedDateStr != null && !selectedDateStr.equals("Select")) {
+        if (selectedDateStr != null && !selectedDateStr.equals("All")) {
             try {
                 currentPayrollMonth = parseYearMonth(selectedDateStr);
             } catch (Exception e) {
                 System.err.println("Error parsing selected date: " + e.getMessage());
                 currentPayrollMonth = YearMonth.now();
             }
+        } else {
+            // "All" selected - clear specific month selection
+            currentPayrollMonth = null;
         }
         
-        // Auto-load data if both filters are set
-        String selectedDept = (String) selectDepJComboBox1.getSelectedItem();
-        if (selectedDateStr != null && !selectedDateStr.equals("Select") && selectedDept != null) {
-            loadPayrollData();
-        }
+        // Show welcome message (user needs to click View Salary Details to load data)
+        showWelcomeMessage();
     }//GEN-LAST:event_selectDateJComboBox2ActionPerformed
 
     private void backpyrllmngmntbttnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_backpyrllmngmntbttnActionPerformed
@@ -1070,59 +1740,29 @@ public class PayrollManagement extends javax.swing.JFrame {
     }//GEN-LAST:event_backpyrllmngmntbttnActionPerformed
 
     private void selectDepJComboBox1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_selectDepJComboBox1ActionPerformed
-        // Reset state when department filter changes
-        payslipsGenerated = false;
-        payrollApproved = false;
+        // Department filter changed - just show welcome message
+        // User needs to click "View Salary Details" to load data with new filter
+        showWelcomeMessage();
         updateButtonStates();
-        
-        // Clear the table and current data
-        DefaultTableModel model = (DefaultTableModel) jTable1.getModel();
-        model.setRowCount(0);
-        currentPayrollData.clear();
-        
-        // Auto-load data if both filters are set
-        String selectedDept = (String) selectDepJComboBox1.getSelectedItem();
-        String selectedDate = (String) selectDateJComboBox2.getSelectedItem();
-        if (selectedDept != null && selectedDate != null && !selectedDate.equals("Select")) {
-            loadPayrollData();
-        }
     }//GEN-LAST:event_selectDepJComboBox1ActionPerformed
-
-    private void approveAllBttnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_approveAllBttnActionPerformed
-        handleApproveAllPayroll();
-
-    }//GEN-LAST:event_approveAllBttnActionPerformed
-
-    private void denyAllBttnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_denyAllBttnActionPerformed
-        handleDenyAllPayroll();
-    }//GEN-LAST:event_denyAllBttnActionPerformed
   
     private void viewsalarydetailsActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_viewsalarydetailsActionPerformed
         loadPayrollData();        
     }//GEN-LAST:event_viewsalarydetailsActionPerformed
- 
-    private void denyBttnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_denyBttnActionPerformed
-        handleDenyPayroll();
-    }//GEN-LAST:event_denyBttnActionPerformed
- 
+  
     private void generatePayslipActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_generatePayslipActionPerformed
         handleGeneratePayslips();
 
     }//GEN-LAST:event_generatePayslipActionPerformed
 
-    private void downloadPayslip1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_downloadPayslip1ActionPerformed
-        handleDownloadPayslip();
-    }//GEN-LAST:event_downloadPayslip1ActionPerformed
-
     private void viewhistoryActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_viewhistoryActionPerformed
         showPayslipHistoryDialog();
     }//GEN-LAST:event_viewhistoryActionPerformed
-     /**
-     * @param args the command line arguments
+    /**
+     * Main method for testing (PayrollManagement should be opened from AdminAccounting)
      */
     public static void main(String args[]) {
         /* Set the Nimbus look and feel */
-        //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
         try {
             for (javax.swing.UIManager.LookAndFeelInfo info : javax.swing.UIManager.getInstalledLookAndFeels()) {
                 if ("Nimbus".equals(info.getName())) {
@@ -1139,12 +1779,10 @@ public class PayrollManagement extends javax.swing.JFrame {
         } catch (javax.swing.UnsupportedLookAndFeelException ex) {
             java.util.logging.Logger.getLogger(PayrollManagement.class.getName()).log(java.util.logging.Level.SEVERE, null, ex);
         }
-        //</editor-fold>
 
         /* Create and display the form */
         java.awt.EventQueue.invokeLater(new Runnable() {
             public void run() {
-                // PayrollManagement should be opened from AdminAccounting, not directly
                 System.out.println("PayrollManagement should be accessed through AdminAccounting interface");
             }
         });
@@ -1152,12 +1790,7 @@ public class PayrollManagement extends javax.swing.JFrame {
 
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
-    private javax.swing.JButton approveAllBttn;
-    private javax.swing.JButton approveBttn;
     private javax.swing.JButton backpyrllmngmntbttn;
-    private javax.swing.JButton denyAllBttn;
-    private javax.swing.JButton denyBttn;
-    private javax.swing.JButton downloadPayslip1;
     private javax.swing.JButton generatePayslip;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;

@@ -2,6 +2,7 @@ package Models;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
 /**
@@ -63,6 +64,10 @@ public class PayslipModel {
     private BigDecimal totalDeductions;  // From view: TOTAL DEDUCTIONS
     private BigDecimal netPay;  // From view: NET PAY
     
+    // Status fields
+    private PayslipStatus status = PayslipStatus.PENDING;
+    private LocalDateTime updatedAt;
+    
     // Foreign keys
     private Integer payPeriodId;
     private Integer payrollId;
@@ -89,6 +94,7 @@ public class PayslipModel {
         this.leavesTaken = BigDecimal.ZERO;
         this.overtimeHours = BigDecimal.ZERO;
         this.daysWorked = 0;
+        this.status = PayslipStatus.PENDING;
     }
     
     // Constructor with basic information
@@ -99,7 +105,7 @@ public class PayslipModel {
         this.payPeriodId = payPeriodId;
     }
     
-    // Getters and Setters for existing fields
+    // Existing getters and setters
     
     public Integer getPayslipId() {
         return payslipId;
@@ -269,7 +275,7 @@ public class PayslipModel {
         this.positionId = positionId;
     }
     
-    // NEW GETTERS AND SETTERS for view fields
+    // Existing getters and setters for view fields
     
     public String getPayslipNo() {
         return payslipNo;
@@ -375,9 +381,89 @@ public class PayslipModel {
         this.netPay = netPay != null ? netPay : BigDecimal.ZERO;
     }
     
-    // NEW METHODS for view compatibility
+    // New status-related getters and setters
     
-    // Alias methods for backward compatibility with existing table operations
+    /**
+     * Gets the current status of the payslip
+     * @return The payslip status
+     */
+    public PayslipStatus getStatus() {
+        return status;
+    }
+    
+    /**
+     * Sets the status of the payslip
+     * @param status The new status
+     */
+    public void setStatus(PayslipStatus status) {
+        this.status = status != null ? status : PayslipStatus.PENDING;
+    }
+    
+    /**
+     * Gets the last updated timestamp
+     * @return The last updated timestamp
+     */
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+    
+    /**
+     * Sets the last updated timestamp
+     * @param updatedAt The updated timestamp
+     */
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+    
+    // Status convenience methods
+    
+    /**
+     * Checks if the payslip is pending approval
+     * @return true if status is PENDING
+     */
+    public boolean isPending() {
+        return status == PayslipStatus.PENDING;
+    }
+    
+    /**
+     * Checks if the payslip is approved
+     * @return true if status is APPROVED
+     */
+    public boolean isApproved() {
+        return status == PayslipStatus.APPROVED;
+    }
+    
+    /**
+     * Checks if the payslip is rejected
+     * @return true if status is REJECTED
+     */
+    public boolean isRejected() {
+        return status == PayslipStatus.REJECTED;
+    }
+    
+    /**
+     * Approves the payslip
+     */
+    public void approve() {
+        this.status = PayslipStatus.APPROVED;
+    }
+    
+    /**
+     * Rejects the payslip
+     */
+    public void reject() {
+        this.status = PayslipStatus.REJECTED;
+    }
+    
+    /**
+     * Resets the payslip to pending status
+     */
+    public void resetToPending() {
+        this.status = PayslipStatus.PENDING;
+    }
+    
+    // Existing alias methods for backward compatibility
+    
     public void setPeriodStartDate(LocalDate periodStartDate) {
         this.periodStart = periodStartDate;
     }
@@ -394,7 +480,6 @@ public class PayslipModel {
         return this.periodEnd;
     }
     
-    // Alias methods for deduction fields (view uses different names)
     public void setSssDeduction(BigDecimal sssDeduction) {
         this.sss = sssDeduction;
     }
@@ -419,7 +504,7 @@ public class PayslipModel {
         return this.pagibig;
     }
     
-    // Utility methods (existing + enhanced)
+    // Existing utility methods
     
     /**
      * Returns formatted pay period string (e.g., "January 1, 2024 - January 31, 2024")
@@ -439,9 +524,9 @@ public class PayslipModel {
      */
     public BigDecimal calculateTotalDeductions() {
         if (totalDeductions != null && totalDeductions.compareTo(BigDecimal.ZERO) > 0) {
-            return totalDeductions; // Use view calculation if available
+            return totalDeductions;
         }
-        return sss.add(philhealth).add(pagibig).add(withholdingTax); // Fallback to manual calculation
+        return sss.add(philhealth).add(pagibig).add(withholdingTax);
     }
     
     /**
@@ -450,9 +535,9 @@ public class PayslipModel {
      */
     public BigDecimal calculateTotalBenefits() {
         if (totalBenefits != null && totalBenefits.compareTo(BigDecimal.ZERO) > 0) {
-            return totalBenefits; // Use view calculation if available
+            return totalBenefits;
         }
-        return riceSubsidy.add(phoneAllowance).add(clothingAllowance); // Fallback to manual calculation
+        return riceSubsidy.add(phoneAllowance).add(clothingAllowance);
     }
     
     /**
@@ -508,18 +593,17 @@ public class PayslipModel {
      */
     public BigDecimal calculateTakeHomePay() {
         if (netPay != null && netPay.compareTo(BigDecimal.ZERO) > 0) {
-            return netPay; // Use view calculation if available
+            return netPay;
         }
         if (takeHomePay != null && takeHomePay.compareTo(BigDecimal.ZERO) > 0) {
-            return takeHomePay; // Use existing field
+            return takeHomePay;
         }
-        // Fallback calculation
         BigDecimal totalEarnings = grossIncome.add(calculateTotalBenefits());
         return totalEarnings.subtract(calculateTotalDeductions());
     }
     
     /**
-     * Gets formatted period string (e.g., "January 1-31, 2025") for view compatibility
+     * Gets formatted period string for view compatibility
      * @return Formatted pay period string
      */
     public String getFormattedPeriod() {
@@ -543,19 +627,8 @@ public class PayslipModel {
     
     @Override
     public String toString() {
-        return "PayslipModel{" +
-                "payslipId=" + payslipId +
-                ", payslipNo='" + payslipNo + '\'' +
-                ", employeeName='" + employeeName + '\'' +
-                ", employeeId=" + employeeId +
-                ", payPeriodId=" + payPeriodId +
-                ", periodStart=" + periodStart +
-                ", periodEnd=" + periodEnd +
-                ", grossIncome=" + grossIncome +
-                ", netPay=" + netPay +
-                ", takeHomePay=" + takeHomePay +
-                ", daysWorked=" + daysWorked +
-                '}';
+        return String.format("PayslipModel{id=%d, employee='%s', period=%s-%s, gross=%s, net=%s, status=%s}",
+                payslipId, employeeName, periodStart, periodEnd, grossIncome, takeHomePay, status);
     }
     
     @Override

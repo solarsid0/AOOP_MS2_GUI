@@ -1,10 +1,12 @@
 package DAOs;
 
 import Models.PayslipModel;
+import Models.PayslipStatus;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.sql.*;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
@@ -23,10 +25,6 @@ public class PayslipDAO extends BaseDAO<PayslipModel, Integer> {
     public PayslipDAO(DatabaseConnection databaseConnection) {
         super(databaseConnection);
     }
-    
-
-    // ABSTRACT METHOD IMPLEMENTATIONS - Required by BaseDAO
-
     
     /**
      * Converts a database row into a PayslipModel object
@@ -76,6 +74,20 @@ public class PayslipDAO extends BaseDAO<PayslipModel, Integer> {
         // Handle totals
         payslip.setGrossIncome(rs.getBigDecimal("grossIncome"));
         payslip.setTakeHomePay(rs.getBigDecimal("takeHomePay"));
+        
+        // Handle status
+        String statusStr = rs.getString("status");
+        if (statusStr != null) {
+            payslip.setStatus(PayslipStatus.fromValue(statusStr));
+        } else {
+            payslip.setStatus(PayslipStatus.PENDING);
+        }
+        
+        // Handle timestamps
+        Timestamp updatedAt = rs.getTimestamp("updatedAt");
+        if (updatedAt != null) {
+            payslip.setUpdatedAt(updatedAt.toLocalDateTime());
+        }
         
         // Handle foreign keys
         payslip.setPayPeriodId(rs.getInt("payPeriodId"));
@@ -143,6 +155,10 @@ public class PayslipDAO extends BaseDAO<PayslipModel, Integer> {
         stmt.setBigDecimal(paramIndex++, payslip.getGrossIncome());
         stmt.setBigDecimal(paramIndex++, payslip.getTakeHomePay());
         
+        // Set status - default to PENDING for new payslips
+        PayslipStatus status = payslip.getStatus() != null ? payslip.getStatus() : PayslipStatus.PENDING;
+        stmt.setString(paramIndex++, status.getValue());
+        
         // Set foreign keys
         stmt.setInt(paramIndex++, payslip.getPayPeriodId());
         stmt.setInt(paramIndex++, payslip.getPayrollId());
@@ -178,6 +194,11 @@ public class PayslipDAO extends BaseDAO<PayslipModel, Integer> {
         stmt.setBigDecimal(paramIndex++, payslip.getWithholdingTax());
         stmt.setBigDecimal(paramIndex++, payslip.getGrossIncome());
         stmt.setBigDecimal(paramIndex++, payslip.getTakeHomePay());
+        
+        // Set status
+        PayslipStatus status = payslip.getStatus() != null ? payslip.getStatus() : PayslipStatus.PENDING;
+        stmt.setString(paramIndex++, status.getValue());
+        
         stmt.setInt(paramIndex++, payslip.getPayPeriodId());
         stmt.setInt(paramIndex++, payslip.getPayrollId());
         stmt.setInt(paramIndex++, payslip.getEmployeeId());
@@ -212,10 +233,6 @@ public class PayslipDAO extends BaseDAO<PayslipModel, Integer> {
         }
     }
     
-
-    // CUSTOM SQL BUILDERS
-
-    
     /**
      * Builds the complete INSERT SQL statement for payslips
      * @return The complete INSERT SQL statement
@@ -224,9 +241,9 @@ public class PayslipDAO extends BaseDAO<PayslipModel, Integer> {
         return "INSERT INTO payslip " +
                "(employeeName, periodStart, periodEnd, monthlyRate, dailyRate, daysWorked, " +
                "overtime, riceSubsidy, phoneAllowance, clothingAllowance, sss, philhealth, " +
-               "pagibig, withholdingTax, grossIncome, takeHomePay, payPeriodId, payrollId, " +
+               "pagibig, withholdingTax, grossIncome, takeHomePay, status, payPeriodId, payrollId, " +
                "employeeId, positionId) " +
-               "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+               "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
     }
     
     /**
@@ -238,13 +255,162 @@ public class PayslipDAO extends BaseDAO<PayslipModel, Integer> {
                "employeeName = ?, periodStart = ?, periodEnd = ?, monthlyRate = ?, dailyRate = ?, " +
                "daysWorked = ?, overtime = ?, riceSubsidy = ?, phoneAllowance = ?, clothingAllowance = ?, " +
                "sss = ?, philhealth = ?, pagibig = ?, withholdingTax = ?, grossIncome = ?, takeHomePay = ?, " +
-               "payPeriodId = ?, payrollId = ?, employeeId = ?, positionId = ? " +
+               "status = ?, payPeriodId = ?, payrollId = ?, employeeId = ?, positionId = ? " +
                "WHERE payslipId = ?";
     }
     
-
-    // CUSTOM PAYSLIP METHODS
-
+    /**
+     * Update the status of a specific payslip
+     * @param payslipId The payslip ID
+     * @param newStatus The new status
+     * @return true if update was successful
+     */
+    public boolean updatePayslipStatus(Integer payslipId, PayslipStatus newStatus) {
+        String sql = "UPDATE payslip SET status = ?, updatedAt = CURRENT_TIMESTAMP WHERE payslipId = ?";
+        
+        try (Connection conn = databaseConnection.createConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            stmt.setString(1, newStatus.getValue());
+            stmt.setInt(2, payslipId);
+            
+            int rowsAffected = stmt.executeUpdate();
+            return rowsAffected > 0;
+            
+        } catch (SQLException e) {
+            System.err.println("Error updating payslip status: " + e.getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Bulk update payslip status for a pay period
+     * @param payPeriodId The pay period ID
+     * @param newStatus The new status
+     * @return Number of payslips updated
+     */
+    public int bulkUpdatePayslipStatus(Integer payPeriodId, PayslipStatus newStatus) {
+        String sql = "UPDATE payslip SET status = ?, updatedAt = CURRENT_TIMESTAMP " +
+                     "WHERE payPeriodId = ? AND status = 'PENDING'";
+        
+        try (Connection conn = databaseConnection.createConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            stmt.setString(1, newStatus.getValue());
+            stmt.setInt(2, payPeriodId);
+            
+            return stmt.executeUpdate();
+            
+        } catch (SQLException e) {
+            System.err.println("Error bulk updating payslip status: " + e.getMessage());
+            return 0;
+        }
+    }
+    
+    /**
+     * Find payslips by status
+     * @param status The status to filter by
+     * @return List of payslips with the specified status
+     */
+    public List<PayslipModel> findByStatus(PayslipStatus status) {
+        String sql = "SELECT * FROM payslip WHERE status = ? ORDER BY updatedAt DESC";
+        return executeQuery(sql, status.getValue());
+    }
+    
+    /**
+     * Find payslips by pay period and status
+     * @param payPeriodId The pay period ID
+     * @param status The status to filter by
+     * @return List of payslips for the specified pay period and status
+     */
+    public List<PayslipModel> findByPayPeriodAndStatus(Integer payPeriodId, PayslipStatus status) {
+        String sql = "SELECT * FROM payslip WHERE payPeriodId = ? AND status = ? ORDER BY employeeName";
+        return executeQuery(sql, payPeriodId, status.getValue());
+    }
+    
+    /**
+     * Get payslip status statistics for a pay period
+     * @param payPeriodId The pay period ID
+     * @return PayslipStatusStats object with counts by status
+     */
+    public PayslipStatusStats getPayslipStatusStats(Integer payPeriodId) {
+        String sql = """
+            SELECT 
+                status,
+                COUNT(*) as count,
+                COALESCE(SUM(grossIncome), 0) as totalGrossIncome,
+                COALESCE(SUM(takeHomePay), 0) as totalTakeHomePay
+            FROM payslip 
+            WHERE payPeriodId = ?
+            GROUP BY status
+            """;
+        
+        PayslipStatusStats stats = new PayslipStatusStats();
+        
+        try (Connection conn = databaseConnection.createConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            stmt.setInt(1, payPeriodId);
+            
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    String status = rs.getString("status");
+                    int count = rs.getInt("count");
+                    BigDecimal totalGross = rs.getBigDecimal("totalGrossIncome");
+                    BigDecimal totalTakeHome = rs.getBigDecimal("totalTakeHomePay");
+                    
+                    switch (status) {
+                        case "PENDING" -> {
+                            stats.setPendingCount(count);
+                            stats.setPendingGrossTotal(totalGross);
+                            stats.setPendingTakeHomeTotal(totalTakeHome);
+                        }
+                        case "APPROVED" -> {
+                            stats.setApprovedCount(count);
+                            stats.setApprovedGrossTotal(totalGross);
+                            stats.setApprovedTakeHomeTotal(totalTakeHome);
+                        }
+                        case "REJECTED" -> {
+                            stats.setRejectedCount(count);
+                            stats.setRejectedGrossTotal(totalGross);
+                            stats.setRejectedTakeHomeTotal(totalTakeHome);
+                        }
+                    }
+                }
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting payslip status stats: " + e.getMessage());
+        }
+        
+        return stats;
+    }
+    
+    /**
+     * Check if all payslips in a pay period have been approved
+     * @param payPeriodId The pay period ID
+     * @return true if all payslips are approved, false otherwise
+     */
+    public boolean areAllPayslipsApproved(Integer payPeriodId) {
+        String sql = "SELECT COUNT(*) FROM payslip WHERE payPeriodId = ? AND status != 'APPROVED'";
+        
+        try (Connection conn = databaseConnection.createConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            stmt.setInt(1, payPeriodId);
+            
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1) == 0;
+                }
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error checking payslip approval status: " + e.getMessage());
+        }
+        
+        return false;
+    }
     
     /**
      * Generates a payslip for a specific employee based on their payroll record
@@ -256,7 +422,7 @@ public class PayslipDAO extends BaseDAO<PayslipModel, Integer> {
     public PayslipModel generatePayslip(Integer employeeId, Integer payPeriodId) {
         // First, check if payslip already exists
         if (payslipExists(employeeId, payPeriodId)) {
-            System.out.println("⚠️ Payslip already exists for employee " + employeeId + " in period " + payPeriodId);
+            System.out.println("Payslip already exists for employee " + employeeId + " in period " + payPeriodId);
             return findExistingPayslip(employeeId, payPeriodId);
         }
         
@@ -282,13 +448,13 @@ public class PayslipDAO extends BaseDAO<PayslipModel, Integer> {
                     
                     // Save the payslip
                     if (save(payslip)) {
-                        System.out.println("✅ Generated payslip for employee " + employeeId);
+                        System.out.println("Generated payslip for employee " + employeeId);
                         return payslip;
                     } else {
-                        System.err.println("❌ Failed to save payslip for employee " + employeeId);
+                        System.err.println("Failed to save payslip for employee " + employeeId);
                     }
                 } else {
-                    System.err.println("❌ No payroll data found for employee " + employeeId + " in period " + payPeriodId);
+                    System.err.println("No payroll data found for employee " + employeeId + " in period " + payPeriodId);
                 }
             }
         } catch (SQLException e) {
@@ -398,7 +564,7 @@ public class PayslipDAO extends BaseDAO<PayslipModel, Integer> {
             System.err.println("Error getting payroll summary: " + e.getMessage());
         }
         
-        return new PayrollSummary(); // Return empty summary if error
+        return new PayrollSummary();
     }
     
     /**
@@ -410,10 +576,6 @@ public class PayslipDAO extends BaseDAO<PayslipModel, Integer> {
         String sql = "DELETE FROM payslip WHERE payPeriodId = ?";
         return executeUpdate(sql, payPeriodId);
     }
-    
-
-    // HELPER METHODS
-
     
     /**
      * Checks if a payslip already exists for an employee in a specific pay period
@@ -470,6 +632,7 @@ public class PayslipDAO extends BaseDAO<PayslipModel, Integer> {
         payslip.setPositionId(rs.getInt("positionId"));
         payslip.setPayPeriodId(payPeriodId);
         payslip.setPayrollId(rs.getInt("payrollId"));
+        payslip.setStatus(PayslipStatus.PENDING); // New payslips default to PENDING
         
         // Period dates
         Date startDate = rs.getDate("startDate");
@@ -557,7 +720,7 @@ public class PayslipDAO extends BaseDAO<PayslipModel, Integer> {
             System.err.println("Error calculating days worked: " + e.getMessage());
         }
         
-        return 22; // Default to full month if calculation fails
+        return 22;
     }
     
     /**
@@ -585,7 +748,6 @@ public class PayslipDAO extends BaseDAO<PayslipModel, Integer> {
                 if (rs.next()) {
                     long totalMinutes = rs.getLong("totalMinutes");
                     if (totalMinutes > 0) {
-                        // Convert minutes to hours and multiply by 1.5 (time-and-a-half)
                         BigDecimal overtimeHours = new BigDecimal(totalMinutes).divide(new BigDecimal("60"), 2, RoundingMode.HALF_UP);
                         return overtimeHours.multiply(hourlyRate).multiply(new BigDecimal("1.5"));
                     }
@@ -645,16 +807,9 @@ public class PayslipDAO extends BaseDAO<PayslipModel, Integer> {
      * @return Array of deductions [sss, philhealth, pagibig, withholdingTax]
      */
     private BigDecimal[] calculateDeductions(BigDecimal basicSalary) {
-        // SSS: 4.5% of basic salary (employee share)
         BigDecimal sss = basicSalary.multiply(new BigDecimal("0.045")).setScale(2, RoundingMode.HALF_UP);
-        
-        // PhilHealth: 2.75% of basic salary (employee share)
         BigDecimal philhealth = basicSalary.multiply(new BigDecimal("0.0275")).setScale(2, RoundingMode.HALF_UP);
-        
-        // Pag-IBIG: 2% of basic salary (employee share)
         BigDecimal pagibig = basicSalary.multiply(new BigDecimal("0.02")).setScale(2, RoundingMode.HALF_UP);
-        
-        // Withholding Tax: Simplified calculation
         BigDecimal withholdingTax = calculateWithholdingTax(basicSalary);
         
         return new BigDecimal[]{sss, philhealth, pagibig, withholdingTax};
@@ -667,12 +822,10 @@ public class PayslipDAO extends BaseDAO<PayslipModel, Integer> {
      */
     private BigDecimal calculateWithholdingTax(BigDecimal grossIncome) {
         if (grossIncome.compareTo(new BigDecimal("20833")) <= 0) {
-            return BigDecimal.ZERO; // No tax for income 250,000 and below annually
+            return BigDecimal.ZERO;
         } else if (grossIncome.compareTo(new BigDecimal("33333")) <= 0) {
-            // 20% tax rate
             return grossIncome.subtract(new BigDecimal("20833")).multiply(new BigDecimal("0.20")).setScale(2, RoundingMode.HALF_UP);
         } else {
-            // Higher tax rates
             return grossIncome.multiply(new BigDecimal("0.25")).setScale(2, RoundingMode.HALF_UP);
         }
     }
@@ -686,7 +839,6 @@ public class PayslipDAO extends BaseDAO<PayslipModel, Integer> {
         StringBuilder sb = new StringBuilder();
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMM dd, yyyy");
         
-        // Header
         sb.append("═".repeat(60)).append("\n");
         sb.append("                    MOTORPH PAYSLIP                     \n");
         sb.append("═".repeat(60)).append("\n");
@@ -694,9 +846,9 @@ public class PayslipDAO extends BaseDAO<PayslipModel, Integer> {
         sb.append("Pay Period: ").append(payslip.getPeriodStart().format(formatter))
           .append(" - ").append(payslip.getPeriodEnd().format(formatter)).append("\n");
         sb.append("Payslip ID: ").append(payslip.getPayslipId()).append("\n");
+        sb.append("Status: ").append(payslip.getStatus().getValue()).append("\n");
         sb.append("─".repeat(60)).append("\n");
         
-        // Earnings Section
         sb.append("EARNINGS:\n");
         sb.append(String.format("Basic Salary (%d days @ ₱%.2f)    ₱%,9.2f\n", 
                 payslip.getDaysWorked(), payslip.getDailyRate(), 
@@ -706,7 +858,6 @@ public class PayslipDAO extends BaseDAO<PayslipModel, Integer> {
             sb.append(String.format("Overtime Pay                       ₱%,9.2f\n", payslip.getOvertime()));
         }
         
-        // Benefits
         if (payslip.getRiceSubsidy().compareTo(BigDecimal.ZERO) > 0) {
             sb.append(String.format("Rice Subsidy                       ₱%,9.2f\n", payslip.getRiceSubsidy()));
         }
@@ -721,7 +872,6 @@ public class PayslipDAO extends BaseDAO<PayslipModel, Integer> {
         sb.append(String.format("GROSS INCOME                       ₱%,9.2f\n", payslip.getGrossIncome()));
         sb.append("─".repeat(60)).append("\n");
         
-        // Deductions Section
         sb.append("DEDUCTIONS:\n");
         sb.append(String.format("SSS Contribution                   ₱%,9.2f\n", payslip.getSss()));
         sb.append(String.format("PhilHealth Contribution            ₱%,9.2f\n", payslip.getPhilhealth()));
@@ -733,11 +883,9 @@ public class PayslipDAO extends BaseDAO<PayslipModel, Integer> {
         sb.append(String.format("TOTAL DEDUCTIONS                  ₱%,9.2f\n", totalDeductions));
         sb.append("─".repeat(60)).append("\n");
         
-        // Net Pay
         sb.append(String.format("NET PAY                            ₱%,9.2f\n", payslip.getTakeHomePay()));
         sb.append("═".repeat(60)).append("\n");
         
-        // Footer
         sb.append("This is a computer-generated payslip.\n");
         sb.append("Generated on: ").append(java.time.LocalDateTime.now().format(
                 DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))).append("\n");
@@ -745,9 +893,6 @@ public class PayslipDAO extends BaseDAO<PayslipModel, Integer> {
         return sb.toString();
     }
     
-
-    // OVERRIDE METHODS
-
     /**
      * Override the save method to use custom INSERT SQL
      * @param payslip The payslip to save
@@ -801,9 +946,69 @@ public class PayslipDAO extends BaseDAO<PayslipModel, Integer> {
         }
     }
     
-
-    // INNER CLASS - For payroll summary
-
+    /**
+     * Inner class to hold payslip status statistics
+     */
+    public static class PayslipStatusStats {
+        private int pendingCount = 0;
+        private int approvedCount = 0;
+        private int rejectedCount = 0;
+        private BigDecimal pendingGrossTotal = BigDecimal.ZERO;
+        private BigDecimal approvedGrossTotal = BigDecimal.ZERO;
+        private BigDecimal rejectedGrossTotal = BigDecimal.ZERO;
+        private BigDecimal pendingTakeHomeTotal = BigDecimal.ZERO;
+        private BigDecimal approvedTakeHomeTotal = BigDecimal.ZERO;
+        private BigDecimal rejectedTakeHomeTotal = BigDecimal.ZERO;
+        
+        public int getPendingCount() { return pendingCount; }
+        public void setPendingCount(int pendingCount) { this.pendingCount = pendingCount; }
+        
+        public int getApprovedCount() { return approvedCount; }
+        public void setApprovedCount(int approvedCount) { this.approvedCount = approvedCount; }
+        
+        public int getRejectedCount() { return rejectedCount; }
+        public void setRejectedCount(int rejectedCount) { this.rejectedCount = rejectedCount; }
+        
+        public BigDecimal getPendingGrossTotal() { return pendingGrossTotal; }
+        public void setPendingGrossTotal(BigDecimal pendingGrossTotal) { 
+            this.pendingGrossTotal = pendingGrossTotal != null ? pendingGrossTotal : BigDecimal.ZERO; 
+        }
+        
+        public BigDecimal getApprovedGrossTotal() { return approvedGrossTotal; }
+        public void setApprovedGrossTotal(BigDecimal approvedGrossTotal) { 
+            this.approvedGrossTotal = approvedGrossTotal != null ? approvedGrossTotal : BigDecimal.ZERO; 
+        }
+        
+        public BigDecimal getRejectedGrossTotal() { return rejectedGrossTotal; }
+        public void setRejectedGrossTotal(BigDecimal rejectedGrossTotal) { 
+            this.rejectedGrossTotal = rejectedGrossTotal != null ? rejectedGrossTotal : BigDecimal.ZERO; 
+        }
+        
+        public BigDecimal getPendingTakeHomeTotal() { return pendingTakeHomeTotal; }
+        public void setPendingTakeHomeTotal(BigDecimal pendingTakeHomeTotal) { 
+            this.pendingTakeHomeTotal = pendingTakeHomeTotal != null ? pendingTakeHomeTotal : BigDecimal.ZERO; 
+        }
+        
+        public BigDecimal getApprovedTakeHomeTotal() { return approvedTakeHomeTotal; }
+        public void setApprovedTakeHomeTotal(BigDecimal approvedTakeHomeTotal) { 
+            this.approvedTakeHomeTotal = approvedTakeHomeTotal != null ? approvedTakeHomeTotal : BigDecimal.ZERO; 
+        }
+        
+        public BigDecimal getRejectedTakeHomeTotal() { return rejectedTakeHomeTotal; }
+        public void setRejectedTakeHomeTotal(BigDecimal rejectedTakeHomeTotal) { 
+            this.rejectedTakeHomeTotal = rejectedTakeHomeTotal != null ? rejectedTakeHomeTotal : BigDecimal.ZERO; 
+        }
+        
+        public int getTotalCount() {
+            return pendingCount + approvedCount + rejectedCount;
+        }
+        
+        @Override
+        public String toString() {
+            return String.format("PayslipStatusStats{pending=%d, approved=%d, rejected=%d, total=%d}",
+                    pendingCount, approvedCount, rejectedCount, getTotalCount());
+        }
+    }
     
     /**
      * Inner class to hold payroll summary information
@@ -814,7 +1019,6 @@ public class PayslipDAO extends BaseDAO<PayslipModel, Integer> {
         private BigDecimal totalTakeHomePay = BigDecimal.ZERO;
         private BigDecimal totalDeductions = BigDecimal.ZERO;
         
-        // Getters and setters
         public int getEmployeeCount() { return employeeCount; }
         public void setEmployeeCount(int employeeCount) { this.employeeCount = employeeCount; }
         
