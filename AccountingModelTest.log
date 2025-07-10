@@ -1,0 +1,2472 @@
+Jul 10, 2025 4:57:58 PM UnitTestAOOP.AccountingModelTest setUpClass
+INFO: === Starting AccountingModelTest Suite ===
+Jul 10, 2025 4:57:59 PM UnitTestAOOP.AccountingModelTest createTestData
+INFO: Test data created successfully
+Jul 10, 2025 4:57:59 PM UnitTestAOOP.AccountingModelTest setUpClass
+INFO: Test setup completed successfully
+Jul 10, 2025 4:57:59 PM UnitTestAOOP.AccountingModelTest testToString
+INFO: Testing toString method
+Jul 10, 2025 4:57:59 PM UnitTestAOOP.AccountingModelTest testToString
+INFO: toString output: AccountingModel{employeeId=99999, name='Test Accountant', email='test.accountant@company.com', permissions=[VERIFY_PAYROLL, VIEW_PAYROLL_DATA, GENERATE_FINANCIAL_REPORTS, AUDIT_FINANCIAL_DATA, MANAGE_TAX_CALCULATIONS, GENERATE_PAYROLL]}
+Jul 10, 2025 4:57:59 PM UnitTestAOOP.AccountingModelTest testVerifyPayrollForPeriod_InsufficientPermissions
+INFO: Testing verification without permissions
+Jul 10, 2025 4:57:59 PM UnitTestAOOP.AccountingModelTest testVerifyPayrollForPeriod_InsufficientPermissions
+INFO: Verification blocked due to insufficient permissions
+Jul 10, 2025 4:57:59 PM UnitTestAOOP.AccountingModelTest testGenerateTaxComplianceReport_FutureMonth
+INFO: Testing tax report for future month
+Jul 10, 2025 4:57:59 PM UnitTestAOOP.AccountingModelTest testGenerateTaxComplianceReport_FutureMonth
+INFO: Tax report generation handled future date
+Jul 10, 2025 4:57:59 PM UnitTestAOOP.AccountingModelTest testGeneratePayrollWithDetails_InvalidPeriod
+INFO: Testing payroll generation with invalid period ID
+Jul 10, 2025 4:57:59 PM UnitTestAOOP.AccountingModelTest testGeneratePayrollWithDetails_InvalidPeriod
+INFO: Payroll generation failed as expected for invalid period
+Jul 10, 2025 4:57:59 PM UnitTestAOOP.AccountingModelTest testGetAllActiveEmployees_InsufficientPermissions
+INFO: Testing active employees retrieval without permissions
+Jul 10, 2025 4:57:59 PM UnitTestAOOP.AccountingModelTest testGetAllActiveEmployees_InsufficientPermissions
+INFO: Access denied for non-accounting user
+Jul 10, 2025 4:57:59 PM UnitTestAOOP.AccountingModelTest testGeneratePayrollWithDetails_NoAttendanceData
+INFO: Testing payroll generation without attendance data
+Jul 10, 2025 4:58:00 PM UnitTestAOOP.AccountingModelTest testGeneratePayrollWithDetails_NoAttendanceData
+SEVERE: Error in no attendance test: Cannot delete or update a parent row: a foreign key constraint fails (`payrollsystem_db`.`payroll`, CONSTRAINT `payroll_ibfk_2` FOREIGN KEY (`employeeId`) REFERENCES `employee` (`employeeId`))
+Jul 10, 2025 4:58:00 PM UnitTestAOOP.AccountingModelTest testGeneratePayrollWithDetails_NonExistentPeriod
+INFO: Testing payroll generation with non-existent period
+Jul 10, 2025 4:58:00 PM UnitTestAOOP.AccountingModelTest testGeneratePayrollWithDetails_NonExistentPeriod
+INFO: Payroll generation failed as expected for non-existent period
+Jul 10, 2025 4:58:00 PM UnitTestAOOP.AccountingModelTest testPerformFinancialAudit_InsufficientPermissions
+INFO: Testing audit without permissions
+Jul 10, 2025 4:58:00 PM UnitTestAOOP.AccountingModelTest testPerformFinancialAudit_InsufficientPermissions
+INFO: Audit blocked due to insufficient permissions
+Jul 10, 2025 4:58:00 PM UnitTestAOOP.AccountingModelTest testGeneratePayrollWithDetails_DuplicateGeneration
+INFO: Testing duplicate payroll generation
+Jul 10, 2025 4:58:01 PM UnitTestAOOP.AccountingModelTest testGeneratePayrollWithDetails_DuplicateGeneration
+INFO: Duplicate generation handled correctly
+Jul 10, 2025 4:58:01 PM UnitTestAOOP.AccountingModelTest testGetPayrollRecords_InsufficientPermissions
+INFO: Testing payroll records without permissions
+Jul 10, 2025 4:58:01 PM UnitTestAOOP.AccountingModelTest testGetPayrollRecords_InsufficientPermissions
+INFO: Access denied for non-accounting user
+Jul 10, 2025 4:58:01 PM UnitTestAOOP.AccountingModelTest testGeneratePayrollWithDetails_ZeroSalaryEmployee
+INFO: Testing payroll generation with zero salary employee
+Jul 10, 2025 4:58:02 PM UnitTestAOOP.AccountingModelTest testGeneratePayrollWithDetails_ZeroSalaryEmployee
+SEVERE: Error in zero salary test: Cannot delete or update a parent row: a foreign key constraint fails (`payrollsystem_db`.`payroll`, CONSTRAINT `payroll_ibfk_2` FOREIGN KEY (`employeeId`) REFERENCES `employee` (`employeeId`))
+Jul 10, 2025 4:58:02 PM UnitTestAOOP.AccountingModelTest testGeneratePayrollWithDetails_VeryHighSalary
+INFO: Testing payroll generation with very high salary
+Jul 10, 2025 4:58:02 PM UnitTestAOOP.AccountingModelTest testGeneratePayrollWithDetails_VeryHighSalary
+SEVERE: Error in high salary test: Cannot delete or update a parent row: a foreign key constraint fails (`payrollsystem_db`.`payroll`, CONSTRAINT `payroll_ibfk_2` FOREIGN KEY (`employeeId`) REFERENCES `employee` (`employeeId`))
+Jul 10, 2025 4:58:02 PM UnitTestAOOP.AccountingModelTest testAccountingModelConstructorFromEmployeeModel
+INFO: Testing AccountingModel constructor from EmployeeModel
+Jul 10, 2025 4:58:02 PM UnitTestAOOP.AccountingModelTest testAccountingModelConstructorFromEmployeeModel
+INFO: AccountingModel created successfully from EmployeeModel
+Jul 10, 2025 4:58:02 PM UnitTestAOOP.AccountingModelTest testPerformFinancialAudit_Success
+INFO: Testing financial audit operation
+Jul 10, 2025 4:58:03 PM UnitTestAOOP.AccountingModelTest testPerformFinancialAudit_Success
+INFO: Financial audit completed with compliance score: 15.0
+Jul 10, 2025 4:58:03 PM UnitTestAOOP.AccountingModelTest testGetEmployeeById_Success
+INFO: Testing employee retrieval by ID
+Jul 10, 2025 4:58:03 PM UnitTestAOOP.AccountingModelTest testGetEmployeeById_Success
+INFO: Successfully retrieved employee: Test Accountant
+Jul 10, 2025 4:58:03 PM UnitTestAOOP.AccountingModelTest testAccountingResultToString
+INFO: Testing AccountingResult toString
+Jul 10, 2025 4:58:03 PM UnitTestAOOP.AccountingModelTest testAccountingResultToString
+INFO: AccountingResult toString: AccountingResult{success=true, message='Test message', totalRecords=10, verifiedRecords=9, discrepancyRecords=1, complianceScore=90.00%}
+Jul 10, 2025 4:58:03 PM UnitTestAOOP.AccountingModelTest testReportResultGettersSetters
+INFO: Testing ReportResult getters and setters
+Jul 10, 2025 4:58:03 PM UnitTestAOOP.AccountingModelTest testReportResultGettersSetters
+INFO: ReportResult getters/setters verified
+Jul 10, 2025 4:58:03 PM UnitTestAOOP.AccountingModelTest testPayrollGenerationResultGetters
+INFO: Testing PayrollGenerationResult getters
+Jul 10, 2025 4:58:03 PM UnitTestAOOP.AccountingModelTest testPayrollGenerationResultGetters
+INFO: PayrollGenerationResult getters verified
+Jul 10, 2025 4:58:03 PM UnitTestAOOP.AccountingModelTest testGetPayrollRecords_Success
+INFO: Testing payroll records retrieval
+Jul 10, 2025 4:58:03 PM UnitTestAOOP.AccountingModelTest testGetPayrollRecords_Success
+INFO: Retrieved 40 payroll records
+Jul 10, 2025 4:58:03 PM UnitTestAOOP.AccountingModelTest testGenerateReportsWithNullService
+INFO: Testing report generation with potential null service
+Jul 10, 2025 4:58:03 PM UnitTestAOOP.AccountingModelTest testGetEmployeeById_NonExistent
+INFO: Testing retrieval of non-existent employee
+Jul 10, 2025 4:58:03 PM UnitTestAOOP.AccountingModelTest testGetEmployeeById_NonExistent
+INFO: Correctly returned null for non-existent employee
+Jul 10, 2025 4:58:03 PM UnitTestAOOP.AccountingModelTest testGetEmployeeById_InvalidId
+INFO: Testing employee retrieval with invalid ID
+Jul 10, 2025 4:58:03 PM UnitTestAOOP.AccountingModelTest testGetEmployeeById_InvalidId
+INFO: Correctly handled invalid employee ID
+Jul 10, 2025 4:58:03 PM UnitTestAOOP.AccountingModelTest testGetAllActiveEmployees_Success
+INFO: Testing retrieval of all active employees
+Jul 10, 2025 4:58:03 PM UnitTestAOOP.AccountingModelTest testGetAllActiveEmployees_Success
+INFO: Retrieved 40 active employees
+Jul 10, 2025 4:58:03 PM UnitTestAOOP.AccountingModelTest testGetPayrollRecords_EmptyPeriod
+INFO: Testing payroll records for empty period
+Jul 10, 2025 4:58:03 PM UnitTestAOOP.AccountingModelTest testGetPayrollRecords_EmptyPeriod
+INFO: Correctly returned empty list for non-existent period
+Jul 10, 2025 4:58:04 PM UnitTestAOOP.AccountingModelTest testConcurrentPayrollGeneration
+INFO: Testing concurrent payroll generation attempts
+Jul 10, 2025 4:58:04 PM UnitTestAOOP.AccountingModelTest testConcurrentPayrollGeneration
+INFO: Concurrent generation handled correctly
+Jul 10, 2025 4:58:04 PM UnitTestAOOP.AccountingModelTest testVerifyPayrollForPeriod_Success
+INFO: Testing successful payroll verification
+Jul 10, 2025 4:58:05 PM UnitTestAOOP.AccountingModelTest testGetAccountingPermissions
+INFO: Testing accounting permissions retrieval
+Jul 10, 2025 4:58:05 PM UnitTestAOOP.AccountingModelTest testGetAccountingPermissions
+INFO: Accounting permissions verified: 6 permissions
+Jul 10, 2025 4:58:05 PM UnitTestAOOP.AccountingModelTest testGenerateFinancialReport_InsufficientPermissions
+INFO: Testing financial report without permissions
+Jul 10, 2025 4:58:05 PM UnitTestAOOP.AccountingModelTest testGenerateFinancialReport_InsufficientPermissions
+INFO: Report generation blocked due to insufficient permissions
+Jul 10, 2025 4:58:05 PM UnitTestAOOP.AccountingModelTest testGenerateSalaryComparisonReport_InvalidDateRange
+INFO: Testing salary report with invalid date range
+Jul 10, 2025 4:58:05 PM UnitTestAOOP.AccountingModelTest testGenerateSalaryComparisonReport_InvalidDateRange
+INFO: Salary report handled invalid date range
+Jul 10, 2025 4:58:05 PM UnitTestAOOP.AccountingModelTest testGeneratePayrollWithDetails_InsufficientPermissions
+INFO: Testing payroll generation without accounting permissions
+Jul 10, 2025 4:58:05 PM UnitTestAOOP.AccountingModelTest testGeneratePayrollWithDetails_InsufficientPermissions
+INFO: Payroll generation blocked due to insufficient permissions
+Jul 10, 2025 4:58:05 PM UnitTestAOOP.AccountingModelTest testGeneratePayrollWithDetails_Success
+INFO: Testing successful payroll generation
+Jul 10, 2025 4:58:06 PM UnitTestAOOP.AccountingModelTest testVerifyPayrollForPeriod_NoPayrollData
+INFO: Testing verification with no payroll data
+Jul 10, 2025 4:58:06 PM UnitTestAOOP.AccountingModelTest testVerifyPayrollForPeriod_NoPayrollData
+INFO: Verification failed as expected for missing payroll data
+Jul 10, 2025 4:58:06 PM UnitTestAOOP.AccountingModelTest testVerifyPayrollForPeriod_InvalidPeriod
+INFO: Testing verification with invalid period
+Jul 10, 2025 4:58:06 PM UnitTestAOOP.AccountingModelTest testVerifyPayrollForPeriod_InvalidPeriod
+INFO: Verification failed as expected for invalid period
+Jul 10, 2025 4:58:06 PM UnitTestAOOP.AccountingModelTest testGenerateFinancialReport_Success
+INFO: Testing financial report generation
+Jul 10, 2025 4:58:06 PM UnitTestAOOP.AccountingModelTest testGenerateFinancialReport_Success
+INFO: Financial report generated successfully
+Jul 10, 2025 4:58:06 PM UnitTestAOOP.AccountingModelTest testGenerateFinancialReport_InvalidPeriod
+INFO: Testing financial report with invalid period
+Jul 10, 2025 4:58:06 PM UnitTestAOOP.AccountingModelTest testGenerateFinancialReport_InvalidPeriod
+INFO: Financial report generation completed
+Jul 10, 2025 4:58:06 PM UnitTestAOOP.AccountingModelTest testVerifyPayrollForPeriod_DataDiscrepancy
+INFO: Testing verification with data discrepancy
+Jul 10, 2025 4:58:06 PM UnitTestAOOP.AccountingModelTest testVerifyPayrollForPeriod_DataDiscrepancy
+INFO: Data discrepancy detected correctly
+Jul 10, 2025 4:58:06 PM UnitTestAOOP.AccountingModelTest testGenerateTaxComplianceReport_NullMonth
+INFO: Testing tax report with null month
+Jul 10, 2025 4:58:06 PM UnitTestAOOP.AccountingModelTest testGenerateTaxComplianceReport_Success
+INFO: Testing tax compliance report generation
+Jul 10, 2025 4:58:07 PM UnitTestAOOP.AccountingModelTest testGenerateTaxComplianceReport_Success
+INFO: Tax compliance report generated successfully
+Jul 10, 2025 4:58:07 PM UnitTestAOOP.AccountingModelTest testPerformFinancialAudit_NoPayrollData
+INFO: Testing audit with no payroll data
+Jul 10, 2025 4:58:07 PM UnitTestAOOP.AccountingModelTest testPerformFinancialAudit_NoPayrollData
+INFO: Audit failed as expected for missing payroll data
+Jul 10, 2025 4:58:07 PM UnitTestAOOP.AccountingModelTest testGenerateSalaryComparisonReport_Success
+INFO: Testing salary comparison report generation
+Jul 10, 2025 4:58:07 PM UnitTestAOOP.AccountingModelTest testGenerateSalaryComparisonReport_Success
+INFO: Salary comparison report generated successfully
+Jul 10, 2025 4:58:07 PM UnitTestAOOP.AccountingModelTest testVerifyPayrollForPeriod_NullPeriod
+INFO: Testing verification with null period
+Jul 10, 2025 4:58:07 PM UnitTestAOOP.AccountingModelTest testVerifyPayrollForPeriod_NullPeriod
+INFO: Verification failed as expected for null period
+Jul 10, 2025 4:58:07 PM UnitTestAOOP.AccountingModelTest tearDownClass
+INFO: === Cleaning up test data ===
+Jul 10, 2025 4:58:07 PM UnitTestAOOP.AccountingModelTest cleanupTestData
+SEVERE: Error cleaning up test data: Cannot delete or update a parent row: a foreign key constraint fails (`payrollsystem_db`.`employee`, CONSTRAINT `employee_ibfk_2` FOREIGN KEY (`supervisorId`) REFERENCES `employee` (`employeeId`))
+Jul 10, 2025 5:00:36 PM UnitTestAOOP.AccountingModelTest setUpClass
+INFO: === Starting AccountingModelTest Suite ===
+Jul 10, 2025 5:00:36 PM UnitTestAOOP.AccountingModelTest createTestData
+SEVERE: Error creating test data: Duplicate entry '999' for key 'position.PRIMARY'
+Jul 10, 2025 5:00:36 PM UnitTestAOOP.AccountingModelTest tearDownClass
+INFO: === Cleaning up test data ===
+Jul 10, 2025 5:00:36 PM UnitTestAOOP.AccountingModelTest cleanupTestData
+SEVERE: Error cleaning up test data: Cannot delete or update a parent row: a foreign key constraint fails (`payrollsystem_db`.`employee`, CONSTRAINT `employee_ibfk_2` FOREIGN KEY (`supervisorId`) REFERENCES `employee` (`employeeId`))
+Jul 10, 2025 5:01:09 PM UnitTestAOOP.AccountingModelTest setUpClass
+INFO: === Starting AccountingModelTest Suite ===
+Jul 10, 2025 5:01:10 PM UnitTestAOOP.AccountingModelTest createTestData
+SEVERE: Error creating test data: Duplicate entry '999' for key 'position.PRIMARY'
+Jul 10, 2025 5:01:10 PM UnitTestAOOP.AccountingModelTest tearDownClass
+INFO: === Cleaning up test data ===
+Jul 10, 2025 5:01:10 PM UnitTestAOOP.AccountingModelTest cleanupTestData
+SEVERE: Error cleaning up test data: Cannot delete or update a parent row: a foreign key constraint fails (`payrollsystem_db`.`employee`, CONSTRAINT `employee_ibfk_2` FOREIGN KEY (`supervisorId`) REFERENCES `employee` (`employeeId`))
+Jul 10, 2025 5:02:38 PM UnitTestAOOP.AccountingModelTest setUpClass
+INFO: === Starting AccountingModelTest Suite ===
+Jul 10, 2025 5:02:39 PM UnitTestAOOP.AccountingModelTest createTestData
+SEVERE: Error creating test data: Duplicate entry '999' for key 'position.PRIMARY'
+Jul 10, 2025 5:02:39 PM UnitTestAOOP.AccountingModelTest tearDownClass
+INFO: === Cleaning up test data ===
+Jul 10, 2025 5:02:39 PM UnitTestAOOP.AccountingModelTest cleanupTestData
+SEVERE: Error cleaning up test data: Cannot delete or update a parent row: a foreign key constraint fails (`payrollsystem_db`.`employee`, CONSTRAINT `employee_ibfk_2` FOREIGN KEY (`supervisorId`) REFERENCES `employee` (`employeeId`))
+Jul 10, 2025 5:06:09 PM UnitTestAOOP.AccountingModelTest setUpClass
+INFO: === Starting AccountingModelTest Suite ===
+Jul 10, 2025 5:06:10 PM UnitTestAOOP.AccountingModelTest createTestData
+SEVERE: Error creating test data: Duplicate entry '999' for key 'position.PRIMARY'
+Jul 10, 2025 5:06:10 PM UnitTestAOOP.AccountingModelTest tearDownClass
+INFO: === Cleaning up test data ===
+Jul 10, 2025 5:06:10 PM UnitTestAOOP.AccountingModelTest cleanupTestData
+SEVERE: Error cleaning up test data: Cannot delete or update a parent row: a foreign key constraint fails (`payrollsystem_db`.`employee`, CONSTRAINT `employee_ibfk_2` FOREIGN KEY (`supervisorId`) REFERENCES `employee` (`employeeId`))
+Jul 10, 2025 5:17:01 PM UnitTestAOOP.AccountingModelTest setUpClass
+INFO: === Starting AccountingModelTest Suite ===
+Jul 10, 2025 5:17:01 PM UnitTestAOOP.AccountingModelTest createTestData
+INFO: Test data created successfully
+Jul 10, 2025 5:17:01 PM UnitTestAOOP.AccountingModelTest setUpClass
+INFO: Test setup completed successfully
+Jul 10, 2025 5:17:01 PM UnitTestAOOP.AccountingModelTest testAccountingModelConstructorFromEmployeeModel
+INFO: Testing AccountingModel constructor from EmployeeModel
+Jul 10, 2025 5:17:01 PM UnitTestAOOP.AccountingModelTest testAccountingModelConstructorFromEmployeeModel
+INFO: AccountingModel created successfully from EmployeeModel
+Jul 10, 2025 5:17:01 PM UnitTestAOOP.AccountingModelTest testGeneratePayrollWithDetails_DuplicateGeneration
+INFO: Testing duplicate payroll generation
+Jul 10, 2025 5:17:02 PM UnitTestAOOP.AccountingModelTest testGeneratePayrollWithDetails_DuplicateGeneration
+INFO: Duplicate generation handled correctly
+Jul 10, 2025 5:17:02 PM UnitTestAOOP.AccountingModelTest testPerformFinancialAudit_InsufficientPermissions
+INFO: Testing audit without permissions
+Jul 10, 2025 5:17:02 PM UnitTestAOOP.AccountingModelTest testPerformFinancialAudit_InsufficientPermissions
+INFO: Audit blocked due to insufficient permissions
+Jul 10, 2025 5:17:02 PM UnitTestAOOP.AccountingModelTest testGeneratePayrollWithDetails_InvalidPeriod
+INFO: Testing payroll generation with invalid period ID
+Jul 10, 2025 5:17:02 PM UnitTestAOOP.AccountingModelTest testGeneratePayrollWithDetails_InvalidPeriod
+INFO: Payroll generation failed as expected for invalid period
+Jul 10, 2025 5:17:02 PM UnitTestAOOP.AccountingModelTest testVerifyPayrollForPeriod_InsufficientPermissions
+INFO: Testing verification without permissions
+Jul 10, 2025 5:17:02 PM UnitTestAOOP.AccountingModelTest testVerifyPayrollForPeriod_InsufficientPermissions
+INFO: Verification blocked due to insufficient permissions
+Jul 10, 2025 5:17:02 PM UnitTestAOOP.AccountingModelTest testGetAllActiveEmployees_InsufficientPermissions
+INFO: Testing active employees retrieval without permissions
+Jul 10, 2025 5:17:02 PM UnitTestAOOP.AccountingModelTest testGetAllActiveEmployees_InsufficientPermissions
+INFO: Access denied for non-accounting user
+Jul 10, 2025 5:17:02 PM UnitTestAOOP.AccountingModelTest testGenerateTaxComplianceReport_FutureMonth
+INFO: Testing tax report for future month
+Jul 10, 2025 5:17:03 PM UnitTestAOOP.AccountingModelTest testGenerateTaxComplianceReport_FutureMonth
+INFO: Tax report generation handled future date
+Jul 10, 2025 5:17:03 PM UnitTestAOOP.AccountingModelTest testGetPayrollRecords_InsufficientPermissions
+INFO: Testing payroll records without permissions
+Jul 10, 2025 5:17:03 PM UnitTestAOOP.AccountingModelTest testGetPayrollRecords_InsufficientPermissions
+INFO: Access denied for non-accounting user
+Jul 10, 2025 5:17:03 PM UnitTestAOOP.AccountingModelTest testGeneratePayrollWithDetails_NonExistentPeriod
+INFO: Testing payroll generation with non-existent period
+Jul 10, 2025 5:17:03 PM UnitTestAOOP.AccountingModelTest testGeneratePayrollWithDetails_NonExistentPeriod
+INFO: Payroll generation failed as expected for non-existent period
+Jul 10, 2025 5:17:03 PM UnitTestAOOP.AccountingModelTest testGenerateSalaryComparisonReport_InvalidDateRange
+INFO: Testing salary report with invalid date range
+Jul 10, 2025 5:17:03 PM UnitTestAOOP.AccountingModelTest testGenerateSalaryComparisonReport_InvalidDateRange
+INFO: Salary report handled invalid date range
+Jul 10, 2025 5:17:03 PM UnitTestAOOP.AccountingModelTest testGeneratePayrollWithDetails_InsufficientPermissions
+INFO: Testing payroll generation without accounting permissions
+Jul 10, 2025 5:17:03 PM UnitTestAOOP.AccountingModelTest testGeneratePayrollWithDetails_InsufficientPermissions
+INFO: Payroll generation blocked due to insufficient permissions
+Jul 10, 2025 5:17:03 PM UnitTestAOOP.AccountingModelTest testGenerateFinancialReport_InsufficientPermissions
+INFO: Testing financial report without permissions
+Jul 10, 2025 5:17:03 PM UnitTestAOOP.AccountingModelTest testGenerateFinancialReport_InsufficientPermissions
+INFO: Report generation blocked due to insufficient permissions
+Jul 10, 2025 5:17:03 PM UnitTestAOOP.AccountingModelTest testToString
+INFO: Testing toString method
+Jul 10, 2025 5:17:03 PM UnitTestAOOP.AccountingModelTest testToString
+INFO: toString output: AccountingModel{employeeId=99999, name='Test Accountant', email='test.accountant@company.com', permissions=[VERIFY_PAYROLL, VIEW_PAYROLL_DATA, GENERATE_FINANCIAL_REPORTS, AUDIT_FINANCIAL_DATA, MANAGE_TAX_CALCULATIONS, GENERATE_PAYROLL]}
+Jul 10, 2025 5:17:03 PM UnitTestAOOP.AccountingModelTest testVerifyPayrollForPeriod_DataDiscrepancy
+INFO: Testing verification with data discrepancy
+Jul 10, 2025 5:17:03 PM UnitTestAOOP.AccountingModelTest testVerifyPayrollForPeriod_DataDiscrepancy
+INFO: Data discrepancy detected correctly
+Jul 10, 2025 5:17:03 PM UnitTestAOOP.AccountingModelTest testGenerateFinancialReport_InvalidPeriod
+INFO: Testing financial report with invalid period
+Jul 10, 2025 5:17:04 PM UnitTestAOOP.AccountingModelTest testGenerateFinancialReport_InvalidPeriod
+INFO: Financial report generation completed
+Jul 10, 2025 5:17:04 PM UnitTestAOOP.AccountingModelTest testGeneratePayrollWithDetails_Success
+INFO: Testing successful payroll generation
+Jul 10, 2025 5:17:04 PM UnitTestAOOP.AccountingModelTest testVerifyPayrollForPeriod_NoPayrollData
+INFO: Testing verification with no payroll data
+Jul 10, 2025 5:17:04 PM UnitTestAOOP.AccountingModelTest testVerifyPayrollForPeriod_NoPayrollData
+INFO: Verification failed as expected for missing payroll data
+Jul 10, 2025 5:17:04 PM UnitTestAOOP.AccountingModelTest testGenerateTaxComplianceReport_NullMonth
+INFO: Testing tax report with null month
+Jul 10, 2025 5:17:04 PM UnitTestAOOP.AccountingModelTest testVerifyPayrollForPeriod_InvalidPeriod
+INFO: Testing verification with invalid period
+Jul 10, 2025 5:17:04 PM UnitTestAOOP.AccountingModelTest testVerifyPayrollForPeriod_InvalidPeriod
+INFO: Verification failed as expected for invalid period
+Jul 10, 2025 5:17:04 PM UnitTestAOOP.AccountingModelTest testVerifyPayrollForPeriod_NullPeriod
+INFO: Testing verification with null period
+Jul 10, 2025 5:17:04 PM UnitTestAOOP.AccountingModelTest testVerifyPayrollForPeriod_NullPeriod
+INFO: Verification failed as expected for null period
+Jul 10, 2025 5:17:04 PM UnitTestAOOP.AccountingModelTest testGenerateFinancialReport_Success
+INFO: Testing financial report generation
+Jul 10, 2025 5:17:04 PM UnitTestAOOP.AccountingModelTest testGenerateFinancialReport_Success
+INFO: Financial report generated successfully
+Jul 10, 2025 5:17:04 PM UnitTestAOOP.AccountingModelTest testGenerateTaxComplianceReport_Success
+INFO: Testing tax compliance report generation
+Jul 10, 2025 5:17:04 PM UnitTestAOOP.AccountingModelTest testGenerateTaxComplianceReport_Success
+INFO: Tax compliance report generated successfully
+Jul 10, 2025 5:17:04 PM UnitTestAOOP.AccountingModelTest testGenerateSalaryComparisonReport_Success
+INFO: Testing salary comparison report generation
+Jul 10, 2025 5:17:04 PM UnitTestAOOP.AccountingModelTest testGenerateSalaryComparisonReport_Success
+INFO: Salary comparison report generated successfully
+Jul 10, 2025 5:17:04 PM UnitTestAOOP.AccountingModelTest testPerformFinancialAudit_NoPayrollData
+INFO: Testing audit with no payroll data
+Jul 10, 2025 5:17:04 PM UnitTestAOOP.AccountingModelTest testPerformFinancialAudit_NoPayrollData
+INFO: Audit failed as expected for missing payroll data
+Jul 10, 2025 5:17:04 PM UnitTestAOOP.AccountingModelTest testReportResultGettersSetters
+INFO: Testing ReportResult getters and setters
+Jul 10, 2025 5:17:04 PM UnitTestAOOP.AccountingModelTest testReportResultGettersSetters
+INFO: ReportResult getters/setters verified
+Jul 10, 2025 5:17:04 PM UnitTestAOOP.AccountingModelTest testGenerateReportsWithNullService
+INFO: Testing report generation with potential null service
+Jul 10, 2025 5:17:05 PM UnitTestAOOP.AccountingModelTest testPayrollGenerationResultGetters
+INFO: Testing PayrollGenerationResult getters
+Jul 10, 2025 5:17:05 PM UnitTestAOOP.AccountingModelTest testPayrollGenerationResultGetters
+INFO: PayrollGenerationResult getters verified
+Jul 10, 2025 5:17:05 PM UnitTestAOOP.AccountingModelTest testGetPayrollRecords_EmptyPeriod
+INFO: Testing payroll records for empty period
+Jul 10, 2025 5:17:05 PM UnitTestAOOP.AccountingModelTest testGetPayrollRecords_EmptyPeriod
+INFO: Correctly returned empty list for non-existent period
+Jul 10, 2025 5:17:05 PM UnitTestAOOP.AccountingModelTest testGetEmployeeById_Success
+INFO: Testing employee retrieval by ID
+Jul 10, 2025 5:17:05 PM UnitTestAOOP.AccountingModelTest testGetEmployeeById_Success
+INFO: Successfully retrieved employee: Test Accountant
+Jul 10, 2025 5:17:05 PM UnitTestAOOP.AccountingModelTest testGetEmployeeById_NonExistent
+INFO: Testing retrieval of non-existent employee
+Jul 10, 2025 5:17:05 PM UnitTestAOOP.AccountingModelTest testGetEmployeeById_NonExistent
+INFO: Correctly returned null for non-existent employee
+Jul 10, 2025 5:17:05 PM UnitTestAOOP.AccountingModelTest testVerifyPayrollForPeriod_Success
+INFO: Testing successful payroll verification
+Jul 10, 2025 5:17:05 PM UnitTestAOOP.AccountingModelTest testGetEmployeeById_InvalidId
+INFO: Testing employee retrieval with invalid ID
+Jul 10, 2025 5:17:05 PM UnitTestAOOP.AccountingModelTest testGetEmployeeById_InvalidId
+INFO: Correctly handled invalid employee ID
+Jul 10, 2025 5:17:05 PM UnitTestAOOP.AccountingModelTest testGetPayrollRecords_Success
+INFO: Testing payroll records retrieval
+Jul 10, 2025 5:17:06 PM UnitTestAOOP.AccountingModelTest testGetPayrollRecords_Success
+INFO: Retrieved 37 payroll records
+Jul 10, 2025 5:17:06 PM UnitTestAOOP.AccountingModelTest testGetAccountingPermissions
+INFO: Testing accounting permissions retrieval
+Jul 10, 2025 5:17:06 PM UnitTestAOOP.AccountingModelTest testGetAccountingPermissions
+INFO: Accounting permissions verified: 6 permissions
+Jul 10, 2025 5:17:06 PM UnitTestAOOP.AccountingModelTest testAccountingResultToString
+INFO: Testing AccountingResult toString
+Jul 10, 2025 5:17:06 PM UnitTestAOOP.AccountingModelTest testAccountingResultToString
+INFO: AccountingResult toString: AccountingResult{success=true, message='Test message', totalRecords=10, verifiedRecords=9, discrepancyRecords=1, complianceScore=90.00%}
+Jul 10, 2025 5:17:06 PM UnitTestAOOP.AccountingModelTest testGetAllActiveEmployees_Success
+INFO: Testing retrieval of all active employees
+Jul 10, 2025 5:17:06 PM UnitTestAOOP.AccountingModelTest testGetAllActiveEmployees_Success
+INFO: Retrieved 37 active employees
+Jul 10, 2025 5:17:06 PM UnitTestAOOP.AccountingModelTest testPerformFinancialAudit_Success
+INFO: Testing financial audit operation
+Jul 10, 2025 5:17:06 PM UnitTestAOOP.AccountingModelTest testPerformFinancialAudit_Success
+INFO: Financial audit completed with compliance score: 8.108108108108109
+Jul 10, 2025 5:17:06 PM UnitTestAOOP.AccountingModelTest testConcurrentPayrollGeneration
+INFO: Testing concurrent payroll generation attempts
+Jul 10, 2025 5:17:07 PM UnitTestAOOP.AccountingModelTest testConcurrentPayrollGeneration
+INFO: Concurrent generation handled correctly
+Jul 10, 2025 5:17:07 PM UnitTestAOOP.AccountingModelTest tearDownClass
+INFO: === Cleaning up test data ===
+Jul 10, 2025 5:17:07 PM UnitTestAOOP.AccountingModelTest cleanupTestData
+SEVERE: Error cleaning up test data: Cannot delete or update a parent row: a foreign key constraint fails (`payrollsystem_db`.`employee`, CONSTRAINT `employee_ibfk_2` FOREIGN KEY (`supervisorId`) REFERENCES `employee` (`employeeId`))
+Jul 10, 2025 5:17:53 PM UnitTestAOOP.AccountingModelTest setUpClass
+INFO: === Starting AccountingModelTest Suite ===
+Jul 10, 2025 5:17:54 PM UnitTestAOOP.AccountingModelTest createTestData
+SEVERE: Error creating test data: Duplicate entry '999' for key 'position.PRIMARY'
+Jul 10, 2025 5:17:54 PM UnitTestAOOP.AccountingModelTest tearDownClass
+INFO: === Cleaning up test data ===
+Jul 10, 2025 5:17:54 PM UnitTestAOOP.AccountingModelTest cleanupTestData
+SEVERE: Error cleaning up test data: Cannot delete or update a parent row: a foreign key constraint fails (`payrollsystem_db`.`employee`, CONSTRAINT `employee_ibfk_2` FOREIGN KEY (`supervisorId`) REFERENCES `employee` (`employeeId`))
+Jul 10, 2025 5:33:03 PM UnitTestAOOP.AccountingModelTest setUpClass
+INFO: === Starting AccountingModelTest Suite ===
+Jul 10, 2025 5:33:03 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:03 PM UnitTestAOOP.AccountingModelTest createTestData
+INFO: Test data created successfully
+Jul 10, 2025 5:33:03 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:03 PM UnitTestAOOP.AccountingModelTest setUpClass
+INFO: Test setup completed successfully
+Jul 10, 2025 5:33:03 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:03 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:03 PM UnitTestAOOP.AccountingModelTest testToString
+INFO: Testing toString method
+Jul 10, 2025 5:33:03 PM UnitTestAOOP.AccountingModelTest testToString
+INFO: toString output: AccountingModel{employeeId=99999, name='Test Accountant', email='test.accountant@company.com', permissions=[VERIFY_PAYROLL, VIEW_PAYROLL_DATA, GENERATE_FINANCIAL_REPORTS, AUDIT_FINANCIAL_DATA, MANAGE_TAX_CALCULATIONS, GENERATE_PAYROLL]}
+Jul 10, 2025 5:33:03 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:03 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:03 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:03 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:03 PM UnitTestAOOP.AccountingModelTest testGenerateSalaryComparisonReport_InvalidDateRange
+INFO: Testing salary report with invalid date range
+Jul 10, 2025 5:33:03 PM UnitTestAOOP.AccountingModelTest testGenerateSalaryComparisonReport_InvalidDateRange
+INFO: Salary report handled invalid date range
+Jul 10, 2025 5:33:03 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:03 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:03 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:03 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:03 PM UnitTestAOOP.AccountingModelTest testGenerateFinancialReport_InsufficientPermissions
+INFO: Testing financial report without permissions
+Jul 10, 2025 5:33:03 PM UnitTestAOOP.AccountingModelTest testGenerateFinancialReport_InsufficientPermissions
+INFO: Report generation blocked due to insufficient permissions
+Jul 10, 2025 5:33:03 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:03 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:03 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:03 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:03 PM UnitTestAOOP.AccountingModelTest testGeneratePayrollWithDetails_InsufficientPermissions
+INFO: Testing payroll generation without accounting permissions
+Jul 10, 2025 5:33:03 PM UnitTestAOOP.AccountingModelTest testGeneratePayrollWithDetails_InsufficientPermissions
+INFO: Payroll generation blocked due to insufficient permissions
+Jul 10, 2025 5:33:03 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:03 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:03 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:03 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:03 PM UnitTestAOOP.AccountingModelTest testGenerateTaxComplianceReport_Success
+INFO: Testing tax compliance report generation
+Jul 10, 2025 5:33:03 PM UnitTestAOOP.AccountingModelTest testGenerateTaxComplianceReport_Success
+INFO: Tax compliance report generated successfully
+Jul 10, 2025 5:33:03 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:03 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:03 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:03 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:03 PM UnitTestAOOP.AccountingModelTest testVerifyPayrollForPeriod_NullPeriod
+INFO: Testing verification with null period
+Jul 10, 2025 5:33:03 PM UnitTestAOOP.AccountingModelTest testVerifyPayrollForPeriod_NullPeriod
+INFO: Verification failed as expected for null period
+Jul 10, 2025 5:33:03 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:03 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:04 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:04 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:04 PM UnitTestAOOP.AccountingModelTest testGenerateFinancialReport_InvalidPeriod
+INFO: Testing financial report with invalid period
+Jul 10, 2025 5:33:04 PM UnitTestAOOP.AccountingModelTest testGenerateFinancialReport_InvalidPeriod
+INFO: Financial report generation completed
+Jul 10, 2025 5:33:04 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:04 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:04 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:04 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:04 PM UnitTestAOOP.AccountingModelTest testVerifyPayrollForPeriod_NoPayrollData
+INFO: Testing verification with no payroll data
+Jul 10, 2025 5:33:04 PM UnitTestAOOP.AccountingModelTest testVerifyPayrollForPeriod_NoPayrollData
+INFO: Verification failed as expected for missing payroll data
+Jul 10, 2025 5:33:04 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:04 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:04 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:04 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:04 PM UnitTestAOOP.AccountingModelTest testGeneratePayrollWithDetails_Success
+INFO: Testing successful payroll generation
+Jul 10, 2025 5:33:04 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:04 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:04 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:04 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:04 PM UnitTestAOOP.AccountingModelTest testGenerateFinancialReport_Success
+INFO: Testing financial report generation
+Jul 10, 2025 5:33:04 PM UnitTestAOOP.AccountingModelTest testGenerateFinancialReport_Success
+INFO: Financial report generated successfully
+Jul 10, 2025 5:33:04 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:04 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:04 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:04 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:04 PM UnitTestAOOP.AccountingModelTest testGenerateTaxComplianceReport_NullMonth
+INFO: Testing tax report with null month
+Jul 10, 2025 5:33:04 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:04 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:04 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:04 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:04 PM UnitTestAOOP.AccountingModelTest testGenerateSalaryComparisonReport_Success
+INFO: Testing salary comparison report generation
+Jul 10, 2025 5:33:05 PM UnitTestAOOP.AccountingModelTest testGenerateSalaryComparisonReport_Success
+INFO: Salary comparison report generated successfully
+Jul 10, 2025 5:33:05 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:05 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:05 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:05 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:05 PM UnitTestAOOP.AccountingModelTest testPerformFinancialAudit_NoPayrollData
+INFO: Testing audit with no payroll data
+Jul 10, 2025 5:33:05 PM UnitTestAOOP.AccountingModelTest testPerformFinancialAudit_NoPayrollData
+INFO: Audit failed as expected for missing payroll data
+Jul 10, 2025 5:33:05 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:05 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:05 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:05 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:05 PM UnitTestAOOP.AccountingModelTest testVerifyPayrollForPeriod_DataDiscrepancy
+INFO: Testing verification with data discrepancy
+Jul 10, 2025 5:33:05 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:05 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:05 PM UnitTestAOOP.AccountingModelTest testVerifyPayrollForPeriod_DataDiscrepancy
+INFO: Data discrepancy detected correctly
+Jul 10, 2025 5:33:05 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:05 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:05 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:05 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:05 PM UnitTestAOOP.AccountingModelTest testVerifyPayrollForPeriod_InvalidPeriod
+INFO: Testing verification with invalid period
+Jul 10, 2025 5:33:05 PM UnitTestAOOP.AccountingModelTest testVerifyPayrollForPeriod_InvalidPeriod
+INFO: Verification failed as expected for invalid period
+Jul 10, 2025 5:33:05 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:05 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:05 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:05 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:05 PM UnitTestAOOP.AccountingModelTest testGenerateTaxComplianceReport_FutureMonth
+INFO: Testing tax report for future month
+Jul 10, 2025 5:33:05 PM UnitTestAOOP.AccountingModelTest testGenerateTaxComplianceReport_FutureMonth
+INFO: Tax report generation handled future date
+Jul 10, 2025 5:33:05 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:05 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:05 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:05 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:05 PM UnitTestAOOP.AccountingModelTest testVerifyPayrollForPeriod_InsufficientPermissions
+INFO: Testing verification without permissions
+Jul 10, 2025 5:33:05 PM UnitTestAOOP.AccountingModelTest testVerifyPayrollForPeriod_InsufficientPermissions
+INFO: Verification blocked due to insufficient permissions
+Jul 10, 2025 5:33:05 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:05 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:05 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:05 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:05 PM UnitTestAOOP.AccountingModelTest testAccountingModelConstructorFromEmployeeModel
+INFO: Testing AccountingModel constructor from EmployeeModel
+Jul 10, 2025 5:33:05 PM UnitTestAOOP.AccountingModelTest testAccountingModelConstructorFromEmployeeModel
+INFO: AccountingModel created successfully from EmployeeModel
+Jul 10, 2025 5:33:05 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:05 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:05 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:05 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:05 PM UnitTestAOOP.AccountingModelTest testPerformFinancialAudit_InsufficientPermissions
+INFO: Testing audit without permissions
+Jul 10, 2025 5:33:05 PM UnitTestAOOP.AccountingModelTest testPerformFinancialAudit_InsufficientPermissions
+INFO: Audit blocked due to insufficient permissions
+Jul 10, 2025 5:33:05 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:05 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:05 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:05 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:05 PM UnitTestAOOP.AccountingModelTest testGetAllActiveEmployees_InsufficientPermissions
+INFO: Testing active employees retrieval without permissions
+Jul 10, 2025 5:33:05 PM UnitTestAOOP.AccountingModelTest testGetAllActiveEmployees_InsufficientPermissions
+INFO: Access denied for non-accounting user
+Jul 10, 2025 5:33:05 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:05 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:05 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:05 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:05 PM UnitTestAOOP.AccountingModelTest testGeneratePayrollWithDetails_InvalidPeriod
+INFO: Testing payroll generation with invalid period ID
+Jul 10, 2025 5:33:05 PM UnitTestAOOP.AccountingModelTest testGeneratePayrollWithDetails_InvalidPeriod
+INFO: Payroll generation failed as expected for invalid period
+Jul 10, 2025 5:33:05 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:05 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:05 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:05 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:05 PM UnitTestAOOP.AccountingModelTest testGeneratePayrollWithDetails_NonExistentPeriod
+INFO: Testing payroll generation with non-existent period
+Jul 10, 2025 5:33:05 PM UnitTestAOOP.AccountingModelTest testGeneratePayrollWithDetails_NonExistentPeriod
+INFO: Payroll generation failed as expected for non-existent period
+Jul 10, 2025 5:33:05 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:05 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:05 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:05 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:05 PM UnitTestAOOP.AccountingModelTest testGeneratePayrollWithDetails_DuplicateGeneration
+INFO: Testing duplicate payroll generation
+Jul 10, 2025 5:33:06 PM UnitTestAOOP.AccountingModelTest testGeneratePayrollWithDetails_DuplicateGeneration
+INFO: Duplicate generation handled correctly
+Jul 10, 2025 5:33:06 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:06 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:06 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:06 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:06 PM UnitTestAOOP.AccountingModelTest testGetPayrollRecords_InsufficientPermissions
+INFO: Testing payroll records without permissions
+Jul 10, 2025 5:33:06 PM UnitTestAOOP.AccountingModelTest testGetPayrollRecords_InsufficientPermissions
+INFO: Access denied for non-accounting user
+Jul 10, 2025 5:33:06 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:06 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:06 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:06 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:06 PM UnitTestAOOP.AccountingModelTest testConcurrentPayrollGeneration
+INFO: Testing concurrent payroll generation attempts
+Jul 10, 2025 5:33:07 PM UnitTestAOOP.AccountingModelTest testConcurrentPayrollGeneration
+INFO: Concurrent generation handled correctly
+Jul 10, 2025 5:33:07 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:07 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:07 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:07 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:07 PM UnitTestAOOP.AccountingModelTest testGenerateReportsWithNullService
+INFO: Testing report generation with potential null service
+Jul 10, 2025 5:33:07 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:07 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:07 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:07 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:07 PM UnitTestAOOP.AccountingModelTest testGetPayrollRecords_Success
+INFO: Testing payroll records retrieval
+Jul 10, 2025 5:33:08 PM UnitTestAOOP.AccountingModelTest testGetPayrollRecords_Success
+INFO: Retrieved 37 payroll records
+Jul 10, 2025 5:33:08 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:08 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:08 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:08 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:08 PM UnitTestAOOP.AccountingModelTest testGetEmployeeById_InvalidId
+INFO: Testing employee retrieval with invalid ID
+Jul 10, 2025 5:33:08 PM UnitTestAOOP.AccountingModelTest testGetEmployeeById_InvalidId
+INFO: Correctly handled invalid employee ID
+Jul 10, 2025 5:33:08 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:08 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:08 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:08 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:08 PM UnitTestAOOP.AccountingModelTest testGetAccountingPermissions
+INFO: Testing accounting permissions retrieval
+Jul 10, 2025 5:33:08 PM UnitTestAOOP.AccountingModelTest testGetAccountingPermissions
+INFO: Accounting permissions verified: 6 permissions
+Jul 10, 2025 5:33:08 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:08 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:08 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:08 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:08 PM UnitTestAOOP.AccountingModelTest testAccountingResultToString
+INFO: Testing AccountingResult toString
+Jul 10, 2025 5:33:08 PM UnitTestAOOP.AccountingModelTest testAccountingResultToString
+INFO: AccountingResult toString: AccountingResult{success=true, message='Test message', totalRecords=10, verifiedRecords=9, discrepancyRecords=1, complianceScore=90.00%}
+Jul 10, 2025 5:33:08 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:08 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:08 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:08 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:08 PM UnitTestAOOP.AccountingModelTest testGetPayrollRecords_EmptyPeriod
+INFO: Testing payroll records for empty period
+Jul 10, 2025 5:33:08 PM UnitTestAOOP.AccountingModelTest testGetPayrollRecords_EmptyPeriod
+INFO: Correctly returned empty list for non-existent period
+Jul 10, 2025 5:33:08 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:08 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:08 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:08 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:08 PM UnitTestAOOP.AccountingModelTest testGetEmployeeById_NonExistent
+INFO: Testing retrieval of non-existent employee
+Jul 10, 2025 5:33:08 PM UnitTestAOOP.AccountingModelTest testGetEmployeeById_NonExistent
+INFO: Correctly returned null for non-existent employee
+Jul 10, 2025 5:33:08 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:08 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:08 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:08 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:08 PM UnitTestAOOP.AccountingModelTest testVerifyPayrollForPeriod_Success
+INFO: Testing successful payroll verification
+Jul 10, 2025 5:33:08 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:08 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:08 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:08 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:08 PM UnitTestAOOP.AccountingModelTest testPerformFinancialAudit_Success
+INFO: Testing financial audit operation
+Jul 10, 2025 5:33:09 PM UnitTestAOOP.AccountingModelTest testPerformFinancialAudit_Success
+INFO: Financial audit completed with compliance score: 8.108108108108109
+Jul 10, 2025 5:33:09 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:09 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:09 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:09 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:09 PM UnitTestAOOP.AccountingModelTest testGetEmployeeById_Success
+INFO: Testing employee retrieval by ID
+Jul 10, 2025 5:33:09 PM UnitTestAOOP.AccountingModelTest testGetEmployeeById_Success
+INFO: Successfully retrieved employee: Test Accountant
+Jul 10, 2025 5:33:09 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:09 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:09 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:09 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:09 PM UnitTestAOOP.AccountingModelTest testPayrollGenerationResultGetters
+INFO: Testing PayrollGenerationResult getters
+Jul 10, 2025 5:33:09 PM UnitTestAOOP.AccountingModelTest testPayrollGenerationResultGetters
+INFO: PayrollGenerationResult getters verified
+Jul 10, 2025 5:33:09 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:09 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:09 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:09 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:09 PM UnitTestAOOP.AccountingModelTest testReportResultGettersSetters
+INFO: Testing ReportResult getters and setters
+Jul 10, 2025 5:33:09 PM UnitTestAOOP.AccountingModelTest testReportResultGettersSetters
+INFO: ReportResult getters/setters verified
+Jul 10, 2025 5:33:09 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:09 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:09 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:09 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:09 PM UnitTestAOOP.AccountingModelTest testGetAllActiveEmployees_Success
+INFO: Testing retrieval of all active employees
+Jul 10, 2025 5:33:09 PM UnitTestAOOP.AccountingModelTest testGetAllActiveEmployees_Success
+INFO: Retrieved 37 active employees
+Jul 10, 2025 5:33:09 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:09 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:09 PM UnitTestAOOP.AccountingModelTest tearDownClass
+INFO: === Cleaning up test data ===
+Jul 10, 2025 5:33:09 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:09 PM UnitTestAOOP.AccountingModelTest cleanupTestData
+INFO: Test data cleaned up successfully
+Jul 10, 2025 5:33:09 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:59 PM UnitTestAOOP.AccountingModelTest setUpClass
+INFO: === Starting AccountingModelTest Suite ===
+Jul 10, 2025 5:33:59 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:59 PM UnitTestAOOP.AccountingModelTest createTestData
+INFO: Test data created successfully
+Jul 10, 2025 5:33:59 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:59 PM UnitTestAOOP.AccountingModelTest setUpClass
+INFO: Test setup completed successfully
+Jul 10, 2025 5:33:59 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:59 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:59 PM UnitTestAOOP.AccountingModelTest testGenerateSalaryComparisonReport_Success
+INFO: Testing salary comparison report generation
+Jul 10, 2025 5:33:59 PM UnitTestAOOP.AccountingModelTest testGenerateSalaryComparisonReport_Success
+INFO: Salary comparison report generated successfully
+Jul 10, 2025 5:33:59 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:59 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:59 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:59 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:59 PM UnitTestAOOP.AccountingModelTest testVerifyPayrollForPeriod_NullPeriod
+INFO: Testing verification with null period
+Jul 10, 2025 5:33:59 PM UnitTestAOOP.AccountingModelTest testVerifyPayrollForPeriod_NullPeriod
+INFO: Verification failed as expected for null period
+Jul 10, 2025 5:33:59 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:59 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:59 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:59 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:59 PM UnitTestAOOP.AccountingModelTest testVerifyPayrollForPeriod_NoPayrollData
+INFO: Testing verification with no payroll data
+Jul 10, 2025 5:33:59 PM UnitTestAOOP.AccountingModelTest testVerifyPayrollForPeriod_NoPayrollData
+INFO: Verification failed as expected for missing payroll data
+Jul 10, 2025 5:33:59 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:59 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:59 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:33:59 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:33:59 PM UnitTestAOOP.AccountingModelTest testGenerateFinancialReport_InvalidPeriod
+INFO: Testing financial report with invalid period
+Jul 10, 2025 5:34:00 PM UnitTestAOOP.AccountingModelTest testGenerateFinancialReport_InvalidPeriod
+INFO: Financial report generation completed
+Jul 10, 2025 5:34:00 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:34:00 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:34:00 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:34:00 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:34:00 PM UnitTestAOOP.AccountingModelTest testVerifyPayrollForPeriod_DataDiscrepancy
+INFO: Testing verification with data discrepancy
+Jul 10, 2025 5:34:00 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:34:00 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:34:00 PM UnitTestAOOP.AccountingModelTest testVerifyPayrollForPeriod_DataDiscrepancy
+INFO: Data discrepancy detected correctly
+Jul 10, 2025 5:34:00 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:34:00 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:34:00 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:34:00 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:34:00 PM UnitTestAOOP.AccountingModelTest testPerformFinancialAudit_NoPayrollData
+INFO: Testing audit with no payroll data
+Jul 10, 2025 5:34:00 PM UnitTestAOOP.AccountingModelTest testPerformFinancialAudit_NoPayrollData
+INFO: Audit failed as expected for missing payroll data
+Jul 10, 2025 5:34:00 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:34:00 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:34:00 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:34:00 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:34:00 PM UnitTestAOOP.AccountingModelTest testVerifyPayrollForPeriod_InvalidPeriod
+INFO: Testing verification with invalid period
+Jul 10, 2025 5:34:00 PM UnitTestAOOP.AccountingModelTest testVerifyPayrollForPeriod_InvalidPeriod
+INFO: Verification failed as expected for invalid period
+Jul 10, 2025 5:34:00 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:34:00 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:34:00 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:34:00 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:34:00 PM UnitTestAOOP.AccountingModelTest testGenerateTaxComplianceReport_NullMonth
+INFO: Testing tax report with null month
+Jul 10, 2025 5:34:00 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:34:00 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:34:00 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:34:00 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:34:00 PM UnitTestAOOP.AccountingModelTest testGenerateTaxComplianceReport_Success
+INFO: Testing tax compliance report generation
+Jul 10, 2025 5:34:00 PM UnitTestAOOP.AccountingModelTest testGenerateTaxComplianceReport_Success
+INFO: Tax compliance report generated successfully
+Jul 10, 2025 5:34:00 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:34:00 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:34:00 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:34:00 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:34:00 PM UnitTestAOOP.AccountingModelTest testGenerateFinancialReport_Success
+INFO: Testing financial report generation
+Jul 10, 2025 5:34:01 PM UnitTestAOOP.AccountingModelTest testGenerateFinancialReport_Success
+INFO: Financial report generated successfully
+Jul 10, 2025 5:34:01 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:34:01 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:34:01 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:34:01 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:34:01 PM UnitTestAOOP.AccountingModelTest testToString
+INFO: Testing toString method
+Jul 10, 2025 5:34:01 PM UnitTestAOOP.AccountingModelTest testToString
+INFO: toString output: AccountingModel{employeeId=99999, name='Test Accountant', email='test.accountant@company.com', permissions=[VERIFY_PAYROLL, VIEW_PAYROLL_DATA, GENERATE_FINANCIAL_REPORTS, AUDIT_FINANCIAL_DATA, MANAGE_TAX_CALCULATIONS, GENERATE_PAYROLL]}
+Jul 10, 2025 5:34:01 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:34:01 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:34:01 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:34:01 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:34:01 PM UnitTestAOOP.AccountingModelTest testGetPayrollRecords_InsufficientPermissions
+INFO: Testing payroll records without permissions
+Jul 10, 2025 5:34:01 PM UnitTestAOOP.AccountingModelTest testGetPayrollRecords_InsufficientPermissions
+INFO: Access denied for non-accounting user
+Jul 10, 2025 5:34:01 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:34:01 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:34:01 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:34:01 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:34:01 PM UnitTestAOOP.AccountingModelTest testGetAllActiveEmployees_InsufficientPermissions
+INFO: Testing active employees retrieval without permissions
+Jul 10, 2025 5:34:01 PM UnitTestAOOP.AccountingModelTest testGetAllActiveEmployees_InsufficientPermissions
+INFO: Access denied for non-accounting user
+Jul 10, 2025 5:34:01 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:34:01 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:34:01 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:34:01 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:34:01 PM UnitTestAOOP.AccountingModelTest testGeneratePayrollWithDetails_DuplicateGeneration
+INFO: Testing duplicate payroll generation
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest testGeneratePayrollWithDetails_DuplicateGeneration
+INFO: Duplicate generation handled correctly
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest testVerifyPayrollForPeriod_InsufficientPermissions
+INFO: Testing verification without permissions
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest testVerifyPayrollForPeriod_InsufficientPermissions
+INFO: Verification blocked due to insufficient permissions
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest testGeneratePayrollWithDetails_NonExistentPeriod
+INFO: Testing payroll generation with non-existent period
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest testGeneratePayrollWithDetails_NonExistentPeriod
+INFO: Payroll generation failed as expected for non-existent period
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest testAccountingModelConstructorFromEmployeeModel
+INFO: Testing AccountingModel constructor from EmployeeModel
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest testAccountingModelConstructorFromEmployeeModel
+INFO: AccountingModel created successfully from EmployeeModel
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest testGeneratePayrollWithDetails_InvalidPeriod
+INFO: Testing payroll generation with invalid period ID
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest testGeneratePayrollWithDetails_InvalidPeriod
+INFO: Payroll generation failed as expected for invalid period
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest testGenerateTaxComplianceReport_FutureMonth
+INFO: Testing tax report for future month
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest testGenerateTaxComplianceReport_FutureMonth
+INFO: Tax report generation handled future date
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest testPerformFinancialAudit_InsufficientPermissions
+INFO: Testing audit without permissions
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest testPerformFinancialAudit_InsufficientPermissions
+INFO: Audit blocked due to insufficient permissions
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest testGenerateFinancialReport_InsufficientPermissions
+INFO: Testing financial report without permissions
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest testGenerateFinancialReport_InsufficientPermissions
+INFO: Report generation blocked due to insufficient permissions
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest testGeneratePayrollWithDetails_InsufficientPermissions
+INFO: Testing payroll generation without accounting permissions
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest testGeneratePayrollWithDetails_InsufficientPermissions
+INFO: Payroll generation blocked due to insufficient permissions
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest testGenerateSalaryComparisonReport_InvalidDateRange
+INFO: Testing salary report with invalid date range
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest testGenerateSalaryComparisonReport_InvalidDateRange
+INFO: Salary report handled invalid date range
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest testGetEmployeeById_InvalidId
+INFO: Testing employee retrieval with invalid ID
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest testGetEmployeeById_InvalidId
+INFO: Correctly handled invalid employee ID
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest testGenerateReportsWithNullService
+INFO: Testing report generation with potential null service
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest testGetAccountingPermissions
+INFO: Testing accounting permissions retrieval
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest testGetAccountingPermissions
+INFO: Accounting permissions verified: 6 permissions
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest testGetPayrollRecords_EmptyPeriod
+INFO: Testing payroll records for empty period
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest testGetPayrollRecords_EmptyPeriod
+INFO: Correctly returned empty list for non-existent period
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:34:02 PM UnitTestAOOP.AccountingModelTest testPerformFinancialAudit_Success
+INFO: Testing financial audit operation
+Jul 10, 2025 5:34:03 PM UnitTestAOOP.AccountingModelTest testPerformFinancialAudit_Success
+INFO: Financial audit completed with compliance score: 8.108108108108109
+Jul 10, 2025 5:34:03 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:34:03 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:34:03 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:34:03 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:34:03 PM UnitTestAOOP.AccountingModelTest testPayrollGenerationResultGetters
+INFO: Testing PayrollGenerationResult getters
+Jul 10, 2025 5:34:03 PM UnitTestAOOP.AccountingModelTest testPayrollGenerationResultGetters
+INFO: PayrollGenerationResult getters verified
+Jul 10, 2025 5:34:03 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:34:03 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:34:03 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:34:03 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:34:03 PM UnitTestAOOP.AccountingModelTest testGetPayrollRecords_Success
+INFO: Testing payroll records retrieval
+Jul 10, 2025 5:34:03 PM UnitTestAOOP.AccountingModelTest testGetPayrollRecords_Success
+INFO: Retrieved 37 payroll records
+Jul 10, 2025 5:34:03 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:34:03 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:34:03 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:34:03 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:34:03 PM UnitTestAOOP.AccountingModelTest testReportResultGettersSetters
+INFO: Testing ReportResult getters and setters
+Jul 10, 2025 5:34:03 PM UnitTestAOOP.AccountingModelTest testReportResultGettersSetters
+INFO: ReportResult getters/setters verified
+Jul 10, 2025 5:34:03 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:34:03 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:34:03 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:34:03 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:34:03 PM UnitTestAOOP.AccountingModelTest testAccountingResultToString
+INFO: Testing AccountingResult toString
+Jul 10, 2025 5:34:03 PM UnitTestAOOP.AccountingModelTest testAccountingResultToString
+INFO: AccountingResult toString: AccountingResult{success=true, message='Test message', totalRecords=10, verifiedRecords=9, discrepancyRecords=1, complianceScore=90.00%}
+Jul 10, 2025 5:34:03 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:34:03 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:34:03 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:34:03 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:34:03 PM UnitTestAOOP.AccountingModelTest testGetEmployeeById_NonExistent
+INFO: Testing retrieval of non-existent employee
+Jul 10, 2025 5:34:03 PM UnitTestAOOP.AccountingModelTest testGetEmployeeById_NonExistent
+INFO: Correctly returned null for non-existent employee
+Jul 10, 2025 5:34:03 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:34:03 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:34:03 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:34:03 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:34:03 PM UnitTestAOOP.AccountingModelTest testGetEmployeeById_Success
+INFO: Testing employee retrieval by ID
+Jul 10, 2025 5:34:03 PM UnitTestAOOP.AccountingModelTest testGetEmployeeById_Success
+INFO: Successfully retrieved employee: Test Accountant
+Jul 10, 2025 5:34:03 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:34:03 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:34:03 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:34:03 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:34:03 PM UnitTestAOOP.AccountingModelTest testGetAllActiveEmployees_Success
+INFO: Testing retrieval of all active employees
+Jul 10, 2025 5:34:03 PM UnitTestAOOP.AccountingModelTest testGetAllActiveEmployees_Success
+INFO: Retrieved 37 active employees
+Jul 10, 2025 5:34:03 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:34:03 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:34:03 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:34:03 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:34:03 PM UnitTestAOOP.AccountingModelTest testConcurrentPayrollGeneration
+INFO: Testing concurrent payroll generation attempts
+Jul 10, 2025 5:34:04 PM UnitTestAOOP.AccountingModelTest testConcurrentPayrollGeneration
+INFO: Concurrent generation handled correctly
+Jul 10, 2025 5:34:04 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:34:04 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 10, 2025 5:34:04 PM UnitTestAOOP.AccountingModelTest tearDownClass
+INFO: === Cleaning up test data ===
+Jul 10, 2025 5:34:04 PM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 10, 2025 5:34:04 PM UnitTestAOOP.AccountingModelTest cleanupTestData
+INFO: Test data cleaned up successfully
+Jul 10, 2025 5:34:04 PM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:45:27 AM UnitTestAOOP.AccountingModelTest setUpClass
+INFO: === Starting AccountingModelTest Suite ===
+Jul 11, 2025 12:45:31 AM UnitTestAOOP.AccountingModelTest tearDownClass
+INFO: === Cleaning up test data ===
+Jul 11, 2025 12:48:29 AM UnitTestAOOP.AccountingModelTest setUpClass
+INFO: === Starting AccountingModelTest Suite ===
+Jul 11, 2025 12:48:30 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:30 AM UnitTestAOOP.AccountingModelTest createTestData
+INFO: Test data created successfully
+Jul 11, 2025 12:48:30 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:48:30 AM UnitTestAOOP.AccountingModelTest setUpClass
+INFO: Test setup completed successfully
+Jul 11, 2025 12:48:30 AM UnitTestAOOP.AccountingModelTest$1 starting
+INFO: Starting test: testGeneratePayrollWithDetails_DuplicateGeneration
+Jul 11, 2025 12:48:30 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:30 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:48:30 AM UnitTestAOOP.AccountingModelTest testGeneratePayrollWithDetails_DuplicateGeneration
+INFO: Testing duplicate payroll generation
+Jul 11, 2025 12:48:34 AM UnitTestAOOP.AccountingModelTest testGeneratePayrollWithDetails_DuplicateGeneration
+INFO: Duplicate generation handled correctly
+Jul 11, 2025 12:48:34 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:34 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:48:34 AM UnitTestAOOP.AccountingModelTest$1 finished
+INFO: Finished test: testGeneratePayrollWithDetails_DuplicateGeneration
+Jul 11, 2025 12:48:34 AM UnitTestAOOP.AccountingModelTest$1 starting
+INFO: Starting test: testGetAccountingPermissions
+Jul 11, 2025 12:48:34 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:34 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:48:34 AM UnitTestAOOP.AccountingModelTest testGetAccountingPermissions
+INFO: Testing accounting permissions retrieval
+Jul 11, 2025 12:48:34 AM UnitTestAOOP.AccountingModelTest testGetAccountingPermissions
+INFO: Accounting permissions verified: 6 permissions
+Jul 11, 2025 12:48:34 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:34 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:48:34 AM UnitTestAOOP.AccountingModelTest$1 finished
+INFO: Finished test: testGetAccountingPermissions
+Jul 11, 2025 12:48:34 AM UnitTestAOOP.AccountingModelTest$1 starting
+INFO: Starting test: testReportResultGettersSetters
+Jul 11, 2025 12:48:34 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:34 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:48:34 AM UnitTestAOOP.AccountingModelTest testReportResultGettersSetters
+INFO: Testing ReportResult getters and setters
+Jul 11, 2025 12:48:34 AM UnitTestAOOP.AccountingModelTest testReportResultGettersSetters
+INFO: ReportResult getters/setters verified
+Jul 11, 2025 12:48:34 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:34 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:48:34 AM UnitTestAOOP.AccountingModelTest$1 finished
+INFO: Finished test: testReportResultGettersSetters
+Jul 11, 2025 12:48:34 AM UnitTestAOOP.AccountingModelTest$1 starting
+INFO: Starting test: testGeneratePayrollWithDetails_InsufficientPermissions
+Jul 11, 2025 12:48:34 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:34 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:48:34 AM UnitTestAOOP.AccountingModelTest testGeneratePayrollWithDetails_InsufficientPermissions
+INFO: Testing payroll generation without accounting permissions
+Jul 11, 2025 12:48:34 AM UnitTestAOOP.AccountingModelTest testGeneratePayrollWithDetails_InsufficientPermissions
+INFO: Payroll generation blocked due to insufficient permissions
+Jul 11, 2025 12:48:34 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:34 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:48:34 AM UnitTestAOOP.AccountingModelTest$1 finished
+INFO: Finished test: testGeneratePayrollWithDetails_InsufficientPermissions
+Jul 11, 2025 12:48:34 AM UnitTestAOOP.AccountingModelTest$1 starting
+INFO: Starting test: testGenerateReportsWithNullService
+Jul 11, 2025 12:48:34 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:34 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:48:34 AM UnitTestAOOP.AccountingModelTest testGenerateReportsWithNullService
+INFO: Testing report generation with potential null service
+Jul 11, 2025 12:48:35 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:35 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:48:35 AM UnitTestAOOP.AccountingModelTest$1 finished
+INFO: Finished test: testGenerateReportsWithNullService
+Jul 11, 2025 12:48:35 AM UnitTestAOOP.AccountingModelTest$1 starting
+INFO: Starting test: testVerifyPayrollForPeriod_NullPeriod
+Jul 11, 2025 12:48:35 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:35 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:48:35 AM UnitTestAOOP.AccountingModelTest testVerifyPayrollForPeriod_NullPeriod
+INFO: Testing verification with null period
+Jul 11, 2025 12:48:35 AM UnitTestAOOP.AccountingModelTest testVerifyPayrollForPeriod_NullPeriod
+INFO: Verification failed as expected for null period
+Jul 11, 2025 12:48:35 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:35 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:48:35 AM UnitTestAOOP.AccountingModelTest$1 finished
+INFO: Finished test: testVerifyPayrollForPeriod_NullPeriod
+Jul 11, 2025 12:48:35 AM UnitTestAOOP.AccountingModelTest$1 starting
+INFO: Starting test: testGetPayrollRecords_InsufficientPermissions
+Jul 11, 2025 12:48:35 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:35 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:48:35 AM UnitTestAOOP.AccountingModelTest testGetPayrollRecords_InsufficientPermissions
+INFO: Testing payroll records without permissions
+Jul 11, 2025 12:48:35 AM UnitTestAOOP.AccountingModelTest testGetPayrollRecords_InsufficientPermissions
+INFO: Access denied for non-accounting user
+Jul 11, 2025 12:48:35 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:35 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:48:35 AM UnitTestAOOP.AccountingModelTest$1 finished
+INFO: Finished test: testGetPayrollRecords_InsufficientPermissions
+Jul 11, 2025 12:48:35 AM UnitTestAOOP.AccountingModelTest$1 starting
+INFO: Starting test: testGetEmployeeById_Success
+Jul 11, 2025 12:48:35 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:35 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:48:35 AM UnitTestAOOP.AccountingModelTest testGetEmployeeById_Success
+INFO: Testing employee retrieval by ID
+Jul 11, 2025 12:48:35 AM UnitTestAOOP.AccountingModelTest testGetEmployeeById_Success
+INFO: Successfully retrieved employee: Test Accountant
+Jul 11, 2025 12:48:35 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:35 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:48:35 AM UnitTestAOOP.AccountingModelTest$1 finished
+INFO: Finished test: testGetEmployeeById_Success
+Jul 11, 2025 12:48:35 AM UnitTestAOOP.AccountingModelTest$1 starting
+INFO: Starting test: testGetPayrollRecords_Success
+Jul 11, 2025 12:48:35 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:35 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:48:35 AM UnitTestAOOP.AccountingModelTest testGetPayrollRecords_Success
+INFO: Testing payroll records retrieval
+Jul 11, 2025 12:48:36 AM UnitTestAOOP.AccountingModelTest testGetPayrollRecords_Success
+INFO: Retrieved 40 payroll records
+Jul 11, 2025 12:48:36 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:36 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:48:36 AM UnitTestAOOP.AccountingModelTest$1 finished
+INFO: Finished test: testGetPayrollRecords_Success
+Jul 11, 2025 12:48:36 AM UnitTestAOOP.AccountingModelTest$1 starting
+INFO: Starting test: testPayrollGenerationResultGetters
+Jul 11, 2025 12:48:36 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:36 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:48:36 AM UnitTestAOOP.AccountingModelTest testPayrollGenerationResultGetters
+INFO: Testing PayrollGenerationResult getters
+Jul 11, 2025 12:48:36 AM UnitTestAOOP.AccountingModelTest testPayrollGenerationResultGetters
+INFO: PayrollGenerationResult getters verified
+Jul 11, 2025 12:48:36 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:36 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:48:36 AM UnitTestAOOP.AccountingModelTest$1 finished
+INFO: Finished test: testPayrollGenerationResultGetters
+Jul 11, 2025 12:48:36 AM UnitTestAOOP.AccountingModelTest$1 starting
+INFO: Starting test: testGenerateTaxComplianceReport_FutureMonth
+Jul 11, 2025 12:48:36 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:37 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:48:37 AM UnitTestAOOP.AccountingModelTest testGenerateTaxComplianceReport_FutureMonth
+INFO: Testing tax report for future month
+Jul 11, 2025 12:48:37 AM UnitTestAOOP.AccountingModelTest testGenerateTaxComplianceReport_FutureMonth
+INFO: Tax report generation handled future date
+Jul 11, 2025 12:48:37 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:37 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:48:37 AM UnitTestAOOP.AccountingModelTest$1 finished
+INFO: Finished test: testGenerateTaxComplianceReport_FutureMonth
+Jul 11, 2025 12:48:37 AM UnitTestAOOP.AccountingModelTest$1 starting
+INFO: Starting test: testGenerateFinancialReport_Success
+Jul 11, 2025 12:48:37 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:37 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:48:37 AM UnitTestAOOP.AccountingModelTest testGenerateFinancialReport_Success
+INFO: Testing financial report generation
+Jul 11, 2025 12:48:38 AM UnitTestAOOP.AccountingModelTest testGenerateFinancialReport_Success
+INFO: Financial report generated successfully
+Jul 11, 2025 12:48:38 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:38 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:48:38 AM UnitTestAOOP.AccountingModelTest$1 finished
+INFO: Finished test: testGenerateFinancialReport_Success
+Jul 11, 2025 12:48:38 AM UnitTestAOOP.AccountingModelTest$1 starting
+INFO: Starting test: testToString
+Jul 11, 2025 12:48:38 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:38 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:48:38 AM UnitTestAOOP.AccountingModelTest testToString
+INFO: Testing toString method
+Jul 11, 2025 12:48:38 AM UnitTestAOOP.AccountingModelTest testToString
+INFO: toString output: AccountingModel{employeeId=99999, name='Test Accountant', email='test.accountant@company.com', permissions=[VERIFY_PAYROLL, VIEW_PAYROLL_DATA, GENERATE_FINANCIAL_REPORTS, AUDIT_FINANCIAL_DATA, MANAGE_TAX_CALCULATIONS, GENERATE_PAYROLL]}
+Jul 11, 2025 12:48:38 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:38 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:48:38 AM UnitTestAOOP.AccountingModelTest$1 finished
+INFO: Finished test: testToString
+Jul 11, 2025 12:48:38 AM UnitTestAOOP.AccountingModelTest$1 starting
+INFO: Starting test: testGetAllActiveEmployees_InsufficientPermissions
+Jul 11, 2025 12:48:38 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:38 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:48:38 AM UnitTestAOOP.AccountingModelTest testGetAllActiveEmployees_InsufficientPermissions
+INFO: Testing active employees retrieval without permissions
+Jul 11, 2025 12:48:38 AM UnitTestAOOP.AccountingModelTest testGetAllActiveEmployees_InsufficientPermissions
+INFO: Access denied for non-accounting user
+Jul 11, 2025 12:48:38 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:38 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:48:38 AM UnitTestAOOP.AccountingModelTest$1 finished
+INFO: Finished test: testGetAllActiveEmployees_InsufficientPermissions
+Jul 11, 2025 12:48:38 AM UnitTestAOOP.AccountingModelTest$1 starting
+INFO: Starting test: testGeneratePayrollWithDetails_InvalidPeriod
+Jul 11, 2025 12:48:38 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:38 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:48:38 AM UnitTestAOOP.AccountingModelTest testGeneratePayrollWithDetails_InvalidPeriod
+INFO: Testing payroll generation with invalid period ID
+Jul 11, 2025 12:48:38 AM UnitTestAOOP.AccountingModelTest testGeneratePayrollWithDetails_InvalidPeriod
+INFO: Payroll generation failed as expected for invalid period
+Jul 11, 2025 12:48:38 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:38 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:48:38 AM UnitTestAOOP.AccountingModelTest$1 finished
+INFO: Finished test: testGeneratePayrollWithDetails_InvalidPeriod
+Jul 11, 2025 12:48:38 AM UnitTestAOOP.AccountingModelTest$1 starting
+INFO: Starting test: testPerformFinancialAudit_Success
+Jul 11, 2025 12:48:38 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:38 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:48:38 AM UnitTestAOOP.AccountingModelTest testPerformFinancialAudit_Success
+INFO: Testing financial audit operation
+Jul 11, 2025 12:48:39 AM UnitTestAOOP.AccountingModelTest testPerformFinancialAudit_Success
+INFO: Financial audit completed with compliance score: 7.5
+Jul 11, 2025 12:48:39 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:39 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:48:39 AM UnitTestAOOP.AccountingModelTest$1 finished
+INFO: Finished test: testPerformFinancialAudit_Success
+Jul 11, 2025 12:48:39 AM UnitTestAOOP.AccountingModelTest$1 starting
+INFO: Starting test: testGenerateTaxComplianceReport_NullMonth
+Jul 11, 2025 12:48:39 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:39 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:48:39 AM UnitTestAOOP.AccountingModelTest testGenerateTaxComplianceReport_NullMonth
+INFO: Testing tax report with null month
+Jul 11, 2025 12:48:39 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:39 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:48:39 AM UnitTestAOOP.AccountingModelTest$1 finished
+INFO: Finished test: testGenerateTaxComplianceReport_NullMonth
+Jul 11, 2025 12:48:39 AM UnitTestAOOP.AccountingModelTest$1 starting
+INFO: Starting test: testGenerateTaxComplianceReport_Success
+Jul 11, 2025 12:48:39 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:39 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:48:39 AM UnitTestAOOP.AccountingModelTest testGenerateTaxComplianceReport_Success
+INFO: Testing tax compliance report generation
+Jul 11, 2025 12:48:40 AM UnitTestAOOP.AccountingModelTest testGenerateTaxComplianceReport_Success
+INFO: Tax compliance report generated successfully
+Jul 11, 2025 12:48:40 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:40 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:48:40 AM UnitTestAOOP.AccountingModelTest$1 finished
+INFO: Finished test: testGenerateTaxComplianceReport_Success
+Jul 11, 2025 12:48:40 AM UnitTestAOOP.AccountingModelTest$1 starting
+INFO: Starting test: testGenerateFinancialReport_InsufficientPermissions
+Jul 11, 2025 12:48:40 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:40 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:48:40 AM UnitTestAOOP.AccountingModelTest testGenerateFinancialReport_InsufficientPermissions
+INFO: Testing financial report without permissions
+Jul 11, 2025 12:48:40 AM UnitTestAOOP.AccountingModelTest testGenerateFinancialReport_InsufficientPermissions
+INFO: Report generation blocked due to insufficient permissions
+Jul 11, 2025 12:48:40 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:40 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:48:40 AM UnitTestAOOP.AccountingModelTest$1 finished
+INFO: Finished test: testGenerateFinancialReport_InsufficientPermissions
+Jul 11, 2025 12:48:40 AM UnitTestAOOP.AccountingModelTest$1 starting
+INFO: Starting test: testAccountingModelConstructorFromEmployeeModel
+Jul 11, 2025 12:48:40 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:40 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:48:40 AM UnitTestAOOP.AccountingModelTest testAccountingModelConstructorFromEmployeeModel
+INFO: Testing AccountingModel constructor from EmployeeModel
+Jul 11, 2025 12:48:40 AM UnitTestAOOP.AccountingModelTest testAccountingModelConstructorFromEmployeeModel
+INFO: AccountingModel created successfully from EmployeeModel
+Jul 11, 2025 12:48:40 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:40 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:48:40 AM UnitTestAOOP.AccountingModelTest$1 finished
+INFO: Finished test: testAccountingModelConstructorFromEmployeeModel
+Jul 11, 2025 12:48:40 AM UnitTestAOOP.AccountingModelTest$1 starting
+INFO: Starting test: testAccountingResultToString
+Jul 11, 2025 12:48:40 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:40 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:48:40 AM UnitTestAOOP.AccountingModelTest testAccountingResultToString
+INFO: Testing AccountingResult toString
+Jul 11, 2025 12:48:40 AM UnitTestAOOP.AccountingModelTest testAccountingResultToString
+INFO: AccountingResult toString: AccountingResult{success=true, message='Test message', totalRecords=10, verifiedRecords=9, discrepancyRecords=1, complianceScore=90.00%}
+Jul 11, 2025 12:48:40 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:40 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:48:40 AM UnitTestAOOP.AccountingModelTest$1 finished
+INFO: Finished test: testAccountingResultToString
+Jul 11, 2025 12:48:40 AM UnitTestAOOP.AccountingModelTest$1 starting
+INFO: Starting test: testGetAllActiveEmployees_Success
+Jul 11, 2025 12:48:40 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:40 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:48:40 AM UnitTestAOOP.AccountingModelTest testGetAllActiveEmployees_Success
+INFO: Testing retrieval of all active employees
+Jul 11, 2025 12:48:40 AM UnitTestAOOP.AccountingModelTest testGetAllActiveEmployees_Success
+INFO: Retrieved 40 active employees
+Jul 11, 2025 12:48:40 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:40 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:48:40 AM UnitTestAOOP.AccountingModelTest$1 finished
+INFO: Finished test: testGetAllActiveEmployees_Success
+Jul 11, 2025 12:48:40 AM UnitTestAOOP.AccountingModelTest$1 starting
+INFO: Starting test: testGenerateSalaryComparisonReport_InvalidDateRange
+Jul 11, 2025 12:48:40 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:40 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:48:40 AM UnitTestAOOP.AccountingModelTest testGenerateSalaryComparisonReport_InvalidDateRange
+INFO: Testing salary report with invalid date range
+Jul 11, 2025 12:48:41 AM UnitTestAOOP.AccountingModelTest testGenerateSalaryComparisonReport_InvalidDateRange
+INFO: Salary report handled invalid date range
+Jul 11, 2025 12:48:41 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:41 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:48:41 AM UnitTestAOOP.AccountingModelTest$1 finished
+INFO: Finished test: testGenerateSalaryComparisonReport_InvalidDateRange
+Jul 11, 2025 12:48:41 AM UnitTestAOOP.AccountingModelTest$1 starting
+INFO: Starting test: testGenerateFinancialReport_InvalidPeriod
+Jul 11, 2025 12:48:41 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:41 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:48:41 AM UnitTestAOOP.AccountingModelTest testGenerateFinancialReport_InvalidPeriod
+INFO: Testing financial report with invalid period
+Jul 11, 2025 12:48:41 AM UnitTestAOOP.AccountingModelTest testGenerateFinancialReport_InvalidPeriod
+INFO: Financial report generation completed
+Jul 11, 2025 12:48:41 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:41 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:48:41 AM UnitTestAOOP.AccountingModelTest$1 finished
+INFO: Finished test: testGenerateFinancialReport_InvalidPeriod
+Jul 11, 2025 12:48:41 AM UnitTestAOOP.AccountingModelTest$1 starting
+INFO: Starting test: testGenerateSalaryComparisonReport_Success
+Jul 11, 2025 12:48:41 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:41 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:48:41 AM UnitTestAOOP.AccountingModelTest testGenerateSalaryComparisonReport_Success
+INFO: Testing salary comparison report generation
+Jul 11, 2025 12:48:42 AM UnitTestAOOP.AccountingModelTest testGenerateSalaryComparisonReport_Success
+INFO: Salary comparison report generated successfully
+Jul 11, 2025 12:48:42 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:42 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:48:42 AM UnitTestAOOP.AccountingModelTest$1 finished
+INFO: Finished test: testGenerateSalaryComparisonReport_Success
+Jul 11, 2025 12:48:42 AM UnitTestAOOP.AccountingModelTest$1 starting
+INFO: Starting test: testVerifyPayrollForPeriod_InvalidPeriod
+Jul 11, 2025 12:48:42 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:42 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:48:42 AM UnitTestAOOP.AccountingModelTest testVerifyPayrollForPeriod_InvalidPeriod
+INFO: Testing verification with invalid period
+Jul 11, 2025 12:48:42 AM UnitTestAOOP.AccountingModelTest testVerifyPayrollForPeriod_InvalidPeriod
+INFO: Verification failed as expected for invalid period
+Jul 11, 2025 12:48:42 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:42 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:48:42 AM UnitTestAOOP.AccountingModelTest$1 finished
+INFO: Finished test: testVerifyPayrollForPeriod_InvalidPeriod
+Jul 11, 2025 12:48:42 AM UnitTestAOOP.AccountingModelTest$1 starting
+INFO: Starting test: testPerformFinancialAudit_NoPayrollData
+Jul 11, 2025 12:48:42 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:42 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:48:42 AM UnitTestAOOP.AccountingModelTest testPerformFinancialAudit_NoPayrollData
+INFO: Testing audit with no payroll data
+Jul 11, 2025 12:48:42 AM UnitTestAOOP.AccountingModelTest testPerformFinancialAudit_NoPayrollData
+INFO: Audit failed as expected for missing payroll data
+Jul 11, 2025 12:48:42 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:42 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:48:42 AM UnitTestAOOP.AccountingModelTest$1 finished
+INFO: Finished test: testPerformFinancialAudit_NoPayrollData
+Jul 11, 2025 12:48:42 AM UnitTestAOOP.AccountingModelTest$1 starting
+INFO: Starting test: testGetEmployeeById_NonExistent
+Jul 11, 2025 12:48:42 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:42 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:48:42 AM UnitTestAOOP.AccountingModelTest testGetEmployeeById_NonExistent
+INFO: Testing retrieval of non-existent employee
+Jul 11, 2025 12:48:42 AM UnitTestAOOP.AccountingModelTest testGetEmployeeById_NonExistent
+INFO: Correctly returned null for non-existent employee
+Jul 11, 2025 12:48:42 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:42 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:48:42 AM UnitTestAOOP.AccountingModelTest$1 finished
+INFO: Finished test: testGetEmployeeById_NonExistent
+Jul 11, 2025 12:48:42 AM UnitTestAOOP.AccountingModelTest$1 starting
+INFO: Starting test: testGeneratePayrollWithDetails_NonExistentPeriod
+Jul 11, 2025 12:48:42 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:42 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:48:42 AM UnitTestAOOP.AccountingModelTest testGeneratePayrollWithDetails_NonExistentPeriod
+INFO: Testing payroll generation with non-existent period
+Jul 11, 2025 12:48:42 AM UnitTestAOOP.AccountingModelTest testGeneratePayrollWithDetails_NonExistentPeriod
+INFO: Payroll generation failed as expected for non-existent period
+Jul 11, 2025 12:48:42 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:42 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:48:42 AM UnitTestAOOP.AccountingModelTest$1 finished
+INFO: Finished test: testGeneratePayrollWithDetails_NonExistentPeriod
+Jul 11, 2025 12:48:42 AM UnitTestAOOP.AccountingModelTest$1 starting
+INFO: Starting test: testVerifyPayrollForPeriod_NoPayrollData
+Jul 11, 2025 12:48:42 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:42 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:48:42 AM UnitTestAOOP.AccountingModelTest testVerifyPayrollForPeriod_NoPayrollData
+INFO: Testing verification with no payroll data
+Jul 11, 2025 12:48:42 AM UnitTestAOOP.AccountingModelTest testVerifyPayrollForPeriod_NoPayrollData
+INFO: Verification failed as expected for missing payroll data
+Jul 11, 2025 12:48:42 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:42 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:48:42 AM UnitTestAOOP.AccountingModelTest$1 finished
+INFO: Finished test: testVerifyPayrollForPeriod_NoPayrollData
+Jul 11, 2025 12:48:42 AM UnitTestAOOP.AccountingModelTest$1 starting
+INFO: Starting test: testPerformFinancialAudit_InsufficientPermissions
+Jul 11, 2025 12:48:42 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:42 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:48:42 AM UnitTestAOOP.AccountingModelTest testPerformFinancialAudit_InsufficientPermissions
+INFO: Testing audit without permissions
+Jul 11, 2025 12:48:42 AM UnitTestAOOP.AccountingModelTest testPerformFinancialAudit_InsufficientPermissions
+INFO: Audit blocked due to insufficient permissions
+Jul 11, 2025 12:48:42 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:42 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:48:42 AM UnitTestAOOP.AccountingModelTest$1 finished
+INFO: Finished test: testPerformFinancialAudit_InsufficientPermissions
+Jul 11, 2025 12:48:42 AM UnitTestAOOP.AccountingModelTest$1 starting
+INFO: Starting test: testGetPayrollRecords_EmptyPeriod
+Jul 11, 2025 12:48:42 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:42 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:48:42 AM UnitTestAOOP.AccountingModelTest testGetPayrollRecords_EmptyPeriod
+INFO: Testing payroll records for empty period
+Jul 11, 2025 12:48:42 AM UnitTestAOOP.AccountingModelTest testGetPayrollRecords_EmptyPeriod
+INFO: Correctly returned empty list for non-existent period
+Jul 11, 2025 12:48:42 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:42 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:48:42 AM UnitTestAOOP.AccountingModelTest$1 finished
+INFO: Finished test: testGetPayrollRecords_EmptyPeriod
+Jul 11, 2025 12:48:42 AM UnitTestAOOP.AccountingModelTest$1 starting
+INFO: Starting test: testVerifyPayrollForPeriod_InsufficientPermissions
+Jul 11, 2025 12:48:42 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:42 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:48:42 AM UnitTestAOOP.AccountingModelTest testVerifyPayrollForPeriod_InsufficientPermissions
+INFO: Testing verification without permissions
+Jul 11, 2025 12:48:42 AM UnitTestAOOP.AccountingModelTest testVerifyPayrollForPeriod_InsufficientPermissions
+INFO: Verification blocked due to insufficient permissions
+Jul 11, 2025 12:48:42 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:42 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:48:42 AM UnitTestAOOP.AccountingModelTest$1 finished
+INFO: Finished test: testVerifyPayrollForPeriod_InsufficientPermissions
+Jul 11, 2025 12:48:42 AM UnitTestAOOP.AccountingModelTest$1 starting
+INFO: Starting test: testConcurrentPayrollGeneration
+Jul 11, 2025 12:48:42 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:42 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:48:42 AM UnitTestAOOP.AccountingModelTest testConcurrentPayrollGeneration
+INFO: Testing concurrent payroll generation attempts
+Jul 11, 2025 12:48:44 AM UnitTestAOOP.AccountingModelTest testConcurrentPayrollGeneration
+INFO: Concurrent generation handled correctly
+Jul 11, 2025 12:48:44 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:44 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:48:44 AM UnitTestAOOP.AccountingModelTest$1 finished
+INFO: Finished test: testConcurrentPayrollGeneration
+Jul 11, 2025 12:48:44 AM UnitTestAOOP.AccountingModelTest$1 starting
+INFO: Starting test: testVerifyPayrollForPeriod_DataDiscrepancy
+Jul 11, 2025 12:48:44 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:44 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:48:44 AM UnitTestAOOP.AccountingModelTest testVerifyPayrollForPeriod_DataDiscrepancy
+INFO: Testing verification with data discrepancy
+Jul 11, 2025 12:48:46 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:46 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:48:46 AM UnitTestAOOP.AccountingModelTest testVerifyPayrollForPeriod_DataDiscrepancy
+INFO: Data discrepancy detected correctly
+Jul 11, 2025 12:48:46 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:46 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:48:46 AM UnitTestAOOP.AccountingModelTest$1 finished
+INFO: Finished test: testVerifyPayrollForPeriod_DataDiscrepancy
+Jul 11, 2025 12:48:46 AM UnitTestAOOP.AccountingModelTest$1 starting
+INFO: Starting test: testGetEmployeeById_InvalidId
+Jul 11, 2025 12:48:46 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:46 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:48:46 AM UnitTestAOOP.AccountingModelTest testGetEmployeeById_InvalidId
+INFO: Testing employee retrieval with invalid ID
+Jul 11, 2025 12:48:46 AM UnitTestAOOP.AccountingModelTest testGetEmployeeById_InvalidId
+INFO: Correctly handled invalid employee ID
+Jul 11, 2025 12:48:46 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:46 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:48:46 AM UnitTestAOOP.AccountingModelTest$1 finished
+INFO: Finished test: testGetEmployeeById_InvalidId
+Jul 11, 2025 12:48:46 AM UnitTestAOOP.AccountingModelTest tearDownClass
+INFO: === Cleaning up test data ===
+Jul 11, 2025 12:48:46 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:48:46 AM UnitTestAOOP.AccountingModelTest cleanupTestData
+INFO: Test data cleaned up successfully
+Jul 11, 2025 12:48:46 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:04 AM UnitTestAOOP.AccountingModelTest setUpClass
+INFO: === Starting AccountingModelTest Suite ===
+Jul 11, 2025 12:51:05 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:05 AM UnitTestAOOP.AccountingModelTest createTestData
+INFO: Test data created successfully
+Jul 11, 2025 12:51:05 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:05 AM UnitTestAOOP.AccountingModelTest setUpClass
+INFO: Test setup completed successfully
+Jul 11, 2025 12:51:05 AM UnitTestAOOP.AccountingModelTest$1 starting
+INFO: Starting test: testGeneratePayrollWithDetails_DuplicateGeneration
+Jul 11, 2025 12:51:05 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:05 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:05 AM UnitTestAOOP.AccountingModelTest testGeneratePayrollWithDetails_DuplicateGeneration
+INFO: Testing duplicate payroll generation
+Jul 11, 2025 12:51:09 AM UnitTestAOOP.AccountingModelTest testGeneratePayrollWithDetails_DuplicateGeneration
+INFO: Duplicate generation handled correctly
+Jul 11, 2025 12:51:09 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:09 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:09 AM UnitTestAOOP.AccountingModelTest$1 finished
+INFO: Finished test: testGeneratePayrollWithDetails_DuplicateGeneration
+Jul 11, 2025 12:51:09 AM UnitTestAOOP.AccountingModelTest$1 starting
+INFO: Starting test: testGetAccountingPermissions
+Jul 11, 2025 12:51:09 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:09 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:09 AM UnitTestAOOP.AccountingModelTest testGetAccountingPermissions
+INFO: Testing accounting permissions retrieval
+Jul 11, 2025 12:51:09 AM UnitTestAOOP.AccountingModelTest testGetAccountingPermissions
+INFO: Accounting permissions verified: 6 permissions
+Jul 11, 2025 12:51:09 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:09 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:09 AM UnitTestAOOP.AccountingModelTest$1 finished
+INFO: Finished test: testGetAccountingPermissions
+Jul 11, 2025 12:51:09 AM UnitTestAOOP.AccountingModelTest$1 starting
+INFO: Starting test: testReportResultGettersSetters
+Jul 11, 2025 12:51:09 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:09 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:09 AM UnitTestAOOP.AccountingModelTest testReportResultGettersSetters
+INFO: Testing ReportResult getters and setters
+Jul 11, 2025 12:51:09 AM UnitTestAOOP.AccountingModelTest testReportResultGettersSetters
+INFO: ReportResult getters/setters verified
+Jul 11, 2025 12:51:09 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:09 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:09 AM UnitTestAOOP.AccountingModelTest$1 finished
+INFO: Finished test: testReportResultGettersSetters
+Jul 11, 2025 12:51:09 AM UnitTestAOOP.AccountingModelTest$1 starting
+INFO: Starting test: testGeneratePayrollWithDetails_InsufficientPermissions
+Jul 11, 2025 12:51:09 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:09 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:09 AM UnitTestAOOP.AccountingModelTest testGeneratePayrollWithDetails_InsufficientPermissions
+INFO: Testing payroll generation without accounting permissions
+Jul 11, 2025 12:51:09 AM UnitTestAOOP.AccountingModelTest testGeneratePayrollWithDetails_InsufficientPermissions
+INFO: Payroll generation blocked due to insufficient permissions
+Jul 11, 2025 12:51:09 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:09 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:09 AM UnitTestAOOP.AccountingModelTest$1 finished
+INFO: Finished test: testGeneratePayrollWithDetails_InsufficientPermissions
+Jul 11, 2025 12:51:09 AM UnitTestAOOP.AccountingModelTest$1 starting
+INFO: Starting test: testGenerateReportsWithNullService
+Jul 11, 2025 12:51:09 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:09 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:09 AM UnitTestAOOP.AccountingModelTest testGenerateReportsWithNullService
+INFO: Testing report generation with potential null service
+Jul 11, 2025 12:51:09 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:09 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:09 AM UnitTestAOOP.AccountingModelTest$1 finished
+INFO: Finished test: testGenerateReportsWithNullService
+Jul 11, 2025 12:51:09 AM UnitTestAOOP.AccountingModelTest$1 starting
+INFO: Starting test: testVerifyPayrollForPeriod_NullPeriod
+Jul 11, 2025 12:51:09 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:10 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:10 AM UnitTestAOOP.AccountingModelTest testVerifyPayrollForPeriod_NullPeriod
+INFO: Testing verification with null period
+Jul 11, 2025 12:51:10 AM UnitTestAOOP.AccountingModelTest testVerifyPayrollForPeriod_NullPeriod
+INFO: Verification failed as expected for null period
+Jul 11, 2025 12:51:10 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:10 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:10 AM UnitTestAOOP.AccountingModelTest$1 finished
+INFO: Finished test: testVerifyPayrollForPeriod_NullPeriod
+Jul 11, 2025 12:51:10 AM UnitTestAOOP.AccountingModelTest$1 starting
+INFO: Starting test: testGetPayrollRecords_InsufficientPermissions
+Jul 11, 2025 12:51:10 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:10 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:10 AM UnitTestAOOP.AccountingModelTest testGetPayrollRecords_InsufficientPermissions
+INFO: Testing payroll records without permissions
+Jul 11, 2025 12:51:10 AM UnitTestAOOP.AccountingModelTest testGetPayrollRecords_InsufficientPermissions
+INFO: Access denied for non-accounting user
+Jul 11, 2025 12:51:10 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:10 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:10 AM UnitTestAOOP.AccountingModelTest$1 finished
+INFO: Finished test: testGetPayrollRecords_InsufficientPermissions
+Jul 11, 2025 12:51:10 AM UnitTestAOOP.AccountingModelTest$1 starting
+INFO: Starting test: testGetEmployeeById_Success
+Jul 11, 2025 12:51:10 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:10 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:10 AM UnitTestAOOP.AccountingModelTest testGetEmployeeById_Success
+INFO: Testing employee retrieval by ID
+Jul 11, 2025 12:51:10 AM UnitTestAOOP.AccountingModelTest testGetEmployeeById_Success
+INFO: Successfully retrieved employee: Test Accountant
+Jul 11, 2025 12:51:10 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:10 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:10 AM UnitTestAOOP.AccountingModelTest$1 finished
+INFO: Finished test: testGetEmployeeById_Success
+Jul 11, 2025 12:51:10 AM UnitTestAOOP.AccountingModelTest$1 starting
+INFO: Starting test: testGetPayrollRecords_Success
+Jul 11, 2025 12:51:10 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:10 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:10 AM UnitTestAOOP.AccountingModelTest testGetPayrollRecords_Success
+INFO: Testing payroll records retrieval
+Jul 11, 2025 12:51:11 AM UnitTestAOOP.AccountingModelTest testGetPayrollRecords_Success
+INFO: Retrieved 41 payroll records
+Jul 11, 2025 12:51:11 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:11 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:11 AM UnitTestAOOP.AccountingModelTest$1 finished
+INFO: Finished test: testGetPayrollRecords_Success
+Jul 11, 2025 12:51:11 AM UnitTestAOOP.AccountingModelTest$1 starting
+INFO: Starting test: testPayrollGenerationResultGetters
+Jul 11, 2025 12:51:11 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:11 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:11 AM UnitTestAOOP.AccountingModelTest testPayrollGenerationResultGetters
+INFO: Testing PayrollGenerationResult getters
+Jul 11, 2025 12:51:11 AM UnitTestAOOP.AccountingModelTest testPayrollGenerationResultGetters
+INFO: PayrollGenerationResult getters verified
+Jul 11, 2025 12:51:11 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:11 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:11 AM UnitTestAOOP.AccountingModelTest$1 finished
+INFO: Finished test: testPayrollGenerationResultGetters
+Jul 11, 2025 12:51:11 AM UnitTestAOOP.AccountingModelTest$1 starting
+INFO: Starting test: testGenerateTaxComplianceReport_FutureMonth
+Jul 11, 2025 12:51:11 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:11 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:11 AM UnitTestAOOP.AccountingModelTest testGenerateTaxComplianceReport_FutureMonth
+INFO: Testing tax report for future month
+Jul 11, 2025 12:51:12 AM UnitTestAOOP.AccountingModelTest testGenerateTaxComplianceReport_FutureMonth
+INFO: Tax report generation handled future date
+Jul 11, 2025 12:51:12 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:12 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:12 AM UnitTestAOOP.AccountingModelTest$1 finished
+INFO: Finished test: testGenerateTaxComplianceReport_FutureMonth
+Jul 11, 2025 12:51:12 AM UnitTestAOOP.AccountingModelTest$1 starting
+INFO: Starting test: testGenerateFinancialReport_Success
+Jul 11, 2025 12:51:12 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:12 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:12 AM UnitTestAOOP.AccountingModelTest testGenerateFinancialReport_Success
+INFO: Testing financial report generation
+Jul 11, 2025 12:51:12 AM UnitTestAOOP.AccountingModelTest testGenerateFinancialReport_Success
+INFO: Financial report generated successfully
+Jul 11, 2025 12:51:12 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:12 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:12 AM UnitTestAOOP.AccountingModelTest$1 finished
+INFO: Finished test: testGenerateFinancialReport_Success
+Jul 11, 2025 12:51:12 AM UnitTestAOOP.AccountingModelTest$1 starting
+INFO: Starting test: testToString
+Jul 11, 2025 12:51:12 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:12 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:12 AM UnitTestAOOP.AccountingModelTest testToString
+INFO: Testing toString method
+Jul 11, 2025 12:51:12 AM UnitTestAOOP.AccountingModelTest testToString
+INFO: toString output: AccountingModel{employeeId=99999, name='Test Accountant', email='test.accountant@company.com', permissions=[VERIFY_PAYROLL, VIEW_PAYROLL_DATA, GENERATE_FINANCIAL_REPORTS, AUDIT_FINANCIAL_DATA, MANAGE_TAX_CALCULATIONS, GENERATE_PAYROLL]}
+Jul 11, 2025 12:51:12 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:12 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:12 AM UnitTestAOOP.AccountingModelTest$1 finished
+INFO: Finished test: testToString
+Jul 11, 2025 12:51:12 AM UnitTestAOOP.AccountingModelTest$1 starting
+INFO: Starting test: testGetAllActiveEmployees_InsufficientPermissions
+Jul 11, 2025 12:51:12 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:13 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:13 AM UnitTestAOOP.AccountingModelTest testGetAllActiveEmployees_InsufficientPermissions
+INFO: Testing active employees retrieval without permissions
+Jul 11, 2025 12:51:13 AM UnitTestAOOP.AccountingModelTest testGetAllActiveEmployees_InsufficientPermissions
+INFO: Access denied for non-accounting user
+Jul 11, 2025 12:51:13 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:13 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:13 AM UnitTestAOOP.AccountingModelTest$1 finished
+INFO: Finished test: testGetAllActiveEmployees_InsufficientPermissions
+Jul 11, 2025 12:51:13 AM UnitTestAOOP.AccountingModelTest$1 starting
+INFO: Starting test: testGeneratePayrollWithDetails_InvalidPeriod
+Jul 11, 2025 12:51:13 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:13 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:13 AM UnitTestAOOP.AccountingModelTest testGeneratePayrollWithDetails_InvalidPeriod
+INFO: Testing payroll generation with invalid period ID
+Jul 11, 2025 12:51:13 AM UnitTestAOOP.AccountingModelTest testGeneratePayrollWithDetails_InvalidPeriod
+INFO: Payroll generation failed as expected for invalid period
+Jul 11, 2025 12:51:13 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:13 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:13 AM UnitTestAOOP.AccountingModelTest$1 finished
+INFO: Finished test: testGeneratePayrollWithDetails_InvalidPeriod
+Jul 11, 2025 12:51:13 AM UnitTestAOOP.AccountingModelTest$1 starting
+INFO: Starting test: testPerformFinancialAudit_Success
+Jul 11, 2025 12:51:13 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:13 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:13 AM UnitTestAOOP.AccountingModelTest testPerformFinancialAudit_Success
+INFO: Testing financial audit operation
+Jul 11, 2025 12:51:14 AM UnitTestAOOP.AccountingModelTest testPerformFinancialAudit_Success
+INFO: Financial audit completed with compliance score: 7.317073170731707
+Jul 11, 2025 12:51:14 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:14 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:14 AM UnitTestAOOP.AccountingModelTest$1 finished
+INFO: Finished test: testPerformFinancialAudit_Success
+Jul 11, 2025 12:51:14 AM UnitTestAOOP.AccountingModelTest$1 starting
+INFO: Starting test: testGenerateTaxComplianceReport_NullMonth
+Jul 11, 2025 12:51:14 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:14 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:14 AM UnitTestAOOP.AccountingModelTest testGenerateTaxComplianceReport_NullMonth
+INFO: Testing tax report with null month
+Jul 11, 2025 12:51:14 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:14 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:14 AM UnitTestAOOP.AccountingModelTest$1 finished
+INFO: Finished test: testGenerateTaxComplianceReport_NullMonth
+Jul 11, 2025 12:51:14 AM UnitTestAOOP.AccountingModelTest$1 starting
+INFO: Starting test: testGenerateTaxComplianceReport_Success
+Jul 11, 2025 12:51:14 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:14 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:14 AM UnitTestAOOP.AccountingModelTest testGenerateTaxComplianceReport_Success
+INFO: Testing tax compliance report generation
+Jul 11, 2025 12:51:15 AM UnitTestAOOP.AccountingModelTest testGenerateTaxComplianceReport_Success
+INFO: Tax compliance report generated successfully
+Jul 11, 2025 12:51:15 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:15 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:15 AM UnitTestAOOP.AccountingModelTest$1 finished
+INFO: Finished test: testGenerateTaxComplianceReport_Success
+Jul 11, 2025 12:51:15 AM UnitTestAOOP.AccountingModelTest$1 starting
+INFO: Starting test: testGenerateFinancialReport_InsufficientPermissions
+Jul 11, 2025 12:51:15 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:15 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:15 AM UnitTestAOOP.AccountingModelTest testGenerateFinancialReport_InsufficientPermissions
+INFO: Testing financial report without permissions
+Jul 11, 2025 12:51:15 AM UnitTestAOOP.AccountingModelTest testGenerateFinancialReport_InsufficientPermissions
+INFO: Report generation blocked due to insufficient permissions
+Jul 11, 2025 12:51:15 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:15 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:15 AM UnitTestAOOP.AccountingModelTest$1 finished
+INFO: Finished test: testGenerateFinancialReport_InsufficientPermissions
+Jul 11, 2025 12:51:15 AM UnitTestAOOP.AccountingModelTest$1 starting
+INFO: Starting test: testAccountingModelConstructorFromEmployeeModel
+Jul 11, 2025 12:51:15 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:15 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:15 AM UnitTestAOOP.AccountingModelTest testAccountingModelConstructorFromEmployeeModel
+INFO: Testing AccountingModel constructor from EmployeeModel
+Jul 11, 2025 12:51:15 AM UnitTestAOOP.AccountingModelTest testAccountingModelConstructorFromEmployeeModel
+INFO: AccountingModel created successfully from EmployeeModel
+Jul 11, 2025 12:51:15 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:15 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:15 AM UnitTestAOOP.AccountingModelTest$1 finished
+INFO: Finished test: testAccountingModelConstructorFromEmployeeModel
+Jul 11, 2025 12:51:15 AM UnitTestAOOP.AccountingModelTest$1 starting
+INFO: Starting test: testAccountingResultToString
+Jul 11, 2025 12:51:15 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:15 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:15 AM UnitTestAOOP.AccountingModelTest testAccountingResultToString
+INFO: Testing AccountingResult toString
+Jul 11, 2025 12:51:15 AM UnitTestAOOP.AccountingModelTest testAccountingResultToString
+INFO: AccountingResult toString: AccountingResult{success=true, message='Test message', totalRecords=10, verifiedRecords=9, discrepancyRecords=1, complianceScore=90.00%}
+Jul 11, 2025 12:51:15 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:15 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:15 AM UnitTestAOOP.AccountingModelTest$1 finished
+INFO: Finished test: testAccountingResultToString
+Jul 11, 2025 12:51:15 AM UnitTestAOOP.AccountingModelTest$1 starting
+INFO: Starting test: testGetAllActiveEmployees_Success
+Jul 11, 2025 12:51:15 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:15 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:15 AM UnitTestAOOP.AccountingModelTest testGetAllActiveEmployees_Success
+INFO: Testing retrieval of all active employees
+Jul 11, 2025 12:51:15 AM UnitTestAOOP.AccountingModelTest testGetAllActiveEmployees_Success
+INFO: Retrieved 41 active employees
+Jul 11, 2025 12:51:15 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:15 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:15 AM UnitTestAOOP.AccountingModelTest$1 finished
+INFO: Finished test: testGetAllActiveEmployees_Success
+Jul 11, 2025 12:51:15 AM UnitTestAOOP.AccountingModelTest$1 starting
+INFO: Starting test: testGenerateSalaryComparisonReport_InvalidDateRange
+Jul 11, 2025 12:51:15 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:15 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:15 AM UnitTestAOOP.AccountingModelTest testGenerateSalaryComparisonReport_InvalidDateRange
+INFO: Testing salary report with invalid date range
+Jul 11, 2025 12:51:15 AM UnitTestAOOP.AccountingModelTest testGenerateSalaryComparisonReport_InvalidDateRange
+INFO: Salary report handled invalid date range
+Jul 11, 2025 12:51:15 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:15 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:15 AM UnitTestAOOP.AccountingModelTest$1 finished
+INFO: Finished test: testGenerateSalaryComparisonReport_InvalidDateRange
+Jul 11, 2025 12:51:15 AM UnitTestAOOP.AccountingModelTest$1 starting
+INFO: Starting test: testGenerateFinancialReport_InvalidPeriod
+Jul 11, 2025 12:51:15 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:15 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:15 AM UnitTestAOOP.AccountingModelTest testGenerateFinancialReport_InvalidPeriod
+INFO: Testing financial report with invalid period
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest testGenerateFinancialReport_InvalidPeriod
+INFO: Financial report generation completed
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest$1 finished
+INFO: Finished test: testGenerateFinancialReport_InvalidPeriod
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest$1 starting
+INFO: Starting test: testGenerateSalaryComparisonReport_Success
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest testGenerateSalaryComparisonReport_Success
+INFO: Testing salary comparison report generation
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest testGenerateSalaryComparisonReport_Success
+INFO: Salary comparison report generated successfully
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest$1 finished
+INFO: Finished test: testGenerateSalaryComparisonReport_Success
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest$1 starting
+INFO: Starting test: testVerifyPayrollForPeriod_InvalidPeriod
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest testVerifyPayrollForPeriod_InvalidPeriod
+INFO: Testing verification with invalid period
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest testVerifyPayrollForPeriod_InvalidPeriod
+INFO: Verification failed as expected for invalid period
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest$1 finished
+INFO: Finished test: testVerifyPayrollForPeriod_InvalidPeriod
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest$1 starting
+INFO: Starting test: testPerformFinancialAudit_NoPayrollData
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest testPerformFinancialAudit_NoPayrollData
+INFO: Testing audit with no payroll data
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest testPerformFinancialAudit_NoPayrollData
+INFO: Audit failed as expected for missing payroll data
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest$1 finished
+INFO: Finished test: testPerformFinancialAudit_NoPayrollData
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest$1 starting
+INFO: Starting test: testGetEmployeeById_NonExistent
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest testGetEmployeeById_NonExistent
+INFO: Testing retrieval of non-existent employee
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest testGetEmployeeById_NonExistent
+INFO: Correctly returned null for non-existent employee
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest$1 finished
+INFO: Finished test: testGetEmployeeById_NonExistent
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest$1 starting
+INFO: Starting test: testGeneratePayrollWithDetails_NonExistentPeriod
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest testGeneratePayrollWithDetails_NonExistentPeriod
+INFO: Testing payroll generation with non-existent period
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest testGeneratePayrollWithDetails_NonExistentPeriod
+INFO: Payroll generation failed as expected for non-existent period
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest$1 finished
+INFO: Finished test: testGeneratePayrollWithDetails_NonExistentPeriod
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest$1 starting
+INFO: Starting test: testVerifyPayrollForPeriod_NoPayrollData
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest testVerifyPayrollForPeriod_NoPayrollData
+INFO: Testing verification with no payroll data
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest testVerifyPayrollForPeriod_NoPayrollData
+INFO: Verification failed as expected for missing payroll data
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest$1 finished
+INFO: Finished test: testVerifyPayrollForPeriod_NoPayrollData
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest$1 starting
+INFO: Starting test: testPerformFinancialAudit_InsufficientPermissions
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest testPerformFinancialAudit_InsufficientPermissions
+INFO: Testing audit without permissions
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest testPerformFinancialAudit_InsufficientPermissions
+INFO: Audit blocked due to insufficient permissions
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest$1 finished
+INFO: Finished test: testPerformFinancialAudit_InsufficientPermissions
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest$1 starting
+INFO: Starting test: testGetPayrollRecords_EmptyPeriod
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest testGetPayrollRecords_EmptyPeriod
+INFO: Testing payroll records for empty period
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest testGetPayrollRecords_EmptyPeriod
+INFO: Correctly returned empty list for non-existent period
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest$1 finished
+INFO: Finished test: testGetPayrollRecords_EmptyPeriod
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest$1 starting
+INFO: Starting test: testVerifyPayrollForPeriod_InsufficientPermissions
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest testVerifyPayrollForPeriod_InsufficientPermissions
+INFO: Testing verification without permissions
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest testVerifyPayrollForPeriod_InsufficientPermissions
+INFO: Verification blocked due to insufficient permissions
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest$1 finished
+INFO: Finished test: testVerifyPayrollForPeriod_InsufficientPermissions
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest$1 starting
+INFO: Starting test: testConcurrentPayrollGeneration
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:16 AM UnitTestAOOP.AccountingModelTest testConcurrentPayrollGeneration
+INFO: Testing concurrent payroll generation attempts
+Jul 11, 2025 12:51:19 AM UnitTestAOOP.AccountingModelTest testConcurrentPayrollGeneration
+INFO: Concurrent generation handled correctly
+Jul 11, 2025 12:51:19 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:19 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:19 AM UnitTestAOOP.AccountingModelTest$1 finished
+INFO: Finished test: testConcurrentPayrollGeneration
+Jul 11, 2025 12:51:19 AM UnitTestAOOP.AccountingModelTest$1 starting
+INFO: Starting test: testVerifyPayrollForPeriod_DataDiscrepancy
+Jul 11, 2025 12:51:19 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:19 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:19 AM UnitTestAOOP.AccountingModelTest testVerifyPayrollForPeriod_DataDiscrepancy
+INFO: Testing verification with data discrepancy
+Jul 11, 2025 12:51:20 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:20 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:21 AM UnitTestAOOP.AccountingModelTest testVerifyPayrollForPeriod_DataDiscrepancy
+INFO: Data discrepancy detected correctly
+Jul 11, 2025 12:51:21 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:21 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:21 AM UnitTestAOOP.AccountingModelTest$1 finished
+INFO: Finished test: testVerifyPayrollForPeriod_DataDiscrepancy
+Jul 11, 2025 12:51:21 AM UnitTestAOOP.AccountingModelTest$1 starting
+INFO: Starting test: testGetEmployeeById_InvalidId
+Jul 11, 2025 12:51:21 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:21 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:21 AM UnitTestAOOP.AccountingModelTest testGetEmployeeById_InvalidId
+INFO: Testing employee retrieval with invalid ID
+Jul 11, 2025 12:51:21 AM UnitTestAOOP.AccountingModelTest testGetEmployeeById_InvalidId
+INFO: Correctly handled invalid employee ID
+Jul 11, 2025 12:51:21 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:21 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
+Jul 11, 2025 12:51:21 AM UnitTestAOOP.AccountingModelTest$1 finished
+INFO: Finished test: testGetEmployeeById_InvalidId
+Jul 11, 2025 12:51:21 AM UnitTestAOOP.AccountingModelTest tearDownClass
+INFO: === Cleaning up test data ===
+Jul 11, 2025 12:51:21 AM UnitTestAOOP.AccountingModelTest disableForeignKeyChecks
+FINE: Foreign key checks disabled
+Jul 11, 2025 12:51:21 AM UnitTestAOOP.AccountingModelTest cleanupTestData
+INFO: Test data cleaned up successfully
+Jul 11, 2025 12:51:21 AM UnitTestAOOP.AccountingModelTest enableForeignKeyChecks
+FINE: Foreign key checks enabled
