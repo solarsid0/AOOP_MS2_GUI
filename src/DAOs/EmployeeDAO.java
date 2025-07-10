@@ -212,6 +212,21 @@ public class EmployeeDAO extends BaseDAO<EmployeeModel, Integer> {
         }
     }
     
+    // MISSING METHOD - findByStatus that your test is calling
+    /**
+     * Find employees by status
+     * @param status Employee status to search for
+     * @return List of employees with the specified status
+     */
+    public List<EmployeeModel> findByStatus(EmployeeStatus status) {
+        if (status == null) {
+            return new ArrayList<>();
+        }
+        
+        String sql = "SELECT * FROM employee WHERE status = ? ORDER BY lastName, firstName";
+        return executeQuery(sql, status.getValue());
+    }
+    
     // GOVERNMENT ID INTEGRATION METHODS
     
     /**
@@ -971,71 +986,71 @@ public class EmployeeDAO extends BaseDAO<EmployeeModel, Integer> {
         }
     }
     
-        @Override
-        public boolean update(EmployeeModel employee) {
-            if (employee == null || employee.getEmployeeId() == null) {
-                return false;
-            }
-
-            String sql = """
-                UPDATE employee SET 
-                firstName = ?, lastName = ?, birthDate = ?, phoneNumber = ?, email = ?, 
-                basicSalary = ?, hourlyRate = ?, userRole = ?, passwordHash = ?, status = ?, 
-                lastLogin = ?, positionId = ?, supervisorId = ?, updatedAt = ? 
-                WHERE employeeId = ?
-                """;
-
-            try (Connection conn = databaseConnection.createConnection();
-                 PreparedStatement stmt = conn.prepareStatement(sql)) {
-
-                int paramIndex = 1;
-
-                // Set all fields except employeeId
-                stmt.setString(paramIndex++, employee.getFirstName());
-                stmt.setString(paramIndex++, employee.getLastName());
-
-                if (employee.getBirthDate() != null) {
-                    stmt.setDate(paramIndex++, Date.valueOf(employee.getBirthDate()));
-                } else {
-                    stmt.setNull(paramIndex++, Types.DATE);
-                }
-
-                stmt.setString(paramIndex++, employee.getPhoneNumber());
-                stmt.setString(paramIndex++, employee.getEmail());
-                stmt.setBigDecimal(paramIndex++, employee.getBasicSalary());
-                stmt.setBigDecimal(paramIndex++, employee.getHourlyRate());
-                stmt.setString(paramIndex++, employee.getUserRole());
-                stmt.setString(paramIndex++, employee.getPasswordHash());
-                stmt.setString(paramIndex++, employee.getStatus().getValue());
-
-                if (employee.getLastLogin() != null) {
-                    stmt.setTimestamp(paramIndex++, employee.getLastLogin());
-                } else {
-                    stmt.setNull(paramIndex++, Types.TIMESTAMP);
-                }
-
-                stmt.setInt(paramIndex++, employee.getPositionId());
-
-                if (employee.getSupervisorId() != null) {
-                    stmt.setInt(paramIndex++, employee.getSupervisorId());
-                } else {
-                    stmt.setNull(paramIndex++, Types.INTEGER);
-                }
-
-                // Set updatedAt timestamp
-                stmt.setTimestamp(paramIndex++, Timestamp.valueOf(getManilaTime()));
-
-                // Finally set employeeId for WHERE clause
-                stmt.setInt(paramIndex++, employee.getEmployeeId());
-
-                int rowsAffected = stmt.executeUpdate();
-                return rowsAffected > 0;
-
-            } catch (SQLException e) {
-                System.err.println("Error updating employee: " + e.getMessage());
-                return false;
-            }
+    @Override
+    public boolean update(EmployeeModel employee) {
+        if (employee == null || employee.getEmployeeId() == null) {
+            return false;
         }
+
+        String sql = """
+            UPDATE employee SET 
+            firstName = ?, lastName = ?, birthDate = ?, phoneNumber = ?, email = ?, 
+            basicSalary = ?, hourlyRate = ?, userRole = ?, passwordHash = ?, status = ?, 
+            lastLogin = ?, positionId = ?, supervisorId = ?, updatedAt = ? 
+            WHERE employeeId = ?
+            """;
+
+        try (Connection conn = databaseConnection.createConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+            int paramIndex = 1;
+
+            // Set all fields except employeeId
+            stmt.setString(paramIndex++, employee.getFirstName());
+            stmt.setString(paramIndex++, employee.getLastName());
+
+            if (employee.getBirthDate() != null) {
+                stmt.setDate(paramIndex++, Date.valueOf(employee.getBirthDate()));
+            } else {
+                stmt.setNull(paramIndex++, Types.DATE);
+            }
+
+            stmt.setString(paramIndex++, employee.getPhoneNumber());
+            stmt.setString(paramIndex++, employee.getEmail());
+            stmt.setBigDecimal(paramIndex++, employee.getBasicSalary());
+            stmt.setBigDecimal(paramIndex++, employee.getHourlyRate());
+            stmt.setString(paramIndex++, employee.getUserRole());
+            stmt.setString(paramIndex++, employee.getPasswordHash());
+            stmt.setString(paramIndex++, employee.getStatus().getValue());
+
+            if (employee.getLastLogin() != null) {
+                stmt.setTimestamp(paramIndex++, employee.getLastLogin());
+            } else {
+                stmt.setNull(paramIndex++, Types.TIMESTAMP);
+            }
+
+            stmt.setInt(paramIndex++, employee.getPositionId());
+
+            if (employee.getSupervisorId() != null) {
+                stmt.setInt(paramIndex++, employee.getSupervisorId());
+            } else {
+                stmt.setNull(paramIndex++, Types.INTEGER);
+            }
+
+            // Set updatedAt timestamp
+            stmt.setTimestamp(paramIndex++, Timestamp.valueOf(getManilaTime()));
+
+            // Finally set employeeId for WHERE clause
+            stmt.setInt(paramIndex++, employee.getEmployeeId());
+
+            int rowsAffected = stmt.executeUpdate();
+            return rowsAffected > 0;
+
+        } catch (SQLException e) {
+            System.err.println("Error updating employee: " + e.getMessage());
+            return false;
+        }
+    }
     
     // INNER CLASSES FOR DATA TRANSFER OBJECTS
     

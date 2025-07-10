@@ -1,7 +1,6 @@
 
 package UnitTestAOOP;
 
-
 import DAOs.EmployeeDAO;
 import DAOs.DatabaseConnection;
 import Models.EmployeeModel;
@@ -18,11 +17,11 @@ import java.util.List;
 import java.util.ArrayList;
 
 /**
- * Comprehensive JUnit test class for EmployeeDAO with integrated negative testing
+ *
+ * @author chadleyayco
  */
 public class EmployeeDAOTest {
-    
-    private static DatabaseConnection databaseConnection;
+ private static DatabaseConnection databaseConnection;
     private EmployeeDAO employeeDAO;
     private static final String TEST_EMAIL_PREFIX = "test_junit_";
     private static final String TEST_EMAIL_DOMAIN = "@test.com";
