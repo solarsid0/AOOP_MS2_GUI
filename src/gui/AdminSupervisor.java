@@ -26,7 +26,6 @@ public class AdminSupervisor extends JFrame {
         initComponents();
         updateLabels();
         updateDateTime();
-        disableTemporaryButtons();
         
         setTitle("MotorPH Admin Dashboard | Welcome, " + user.getFirstName() + " " + user.getLastName() + "!");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -49,15 +48,7 @@ public class AdminSupervisor extends JFrame {
            upperRole.contains("MANAGER") ||
            upperRole.contains("ADMIN");
 }
-    
-    private void disableTemporaryButtons() {
-
-        leaveRequestManagement.setEnabled(false);
-        leaveRequestManagement.setToolTipText("Coming soon - being updated to new system");
-        
-        attendanceeTracking.setEnabled(false);
-        attendanceeTracking.setToolTipText("Coming soon - being updated to new system");
-    }
+   
 
         private void updateLabels() {
         // Since this is AdminSupervisor class, always show "Supervisor Dashboard"
@@ -100,8 +91,6 @@ public class AdminSupervisor extends JFrame {
         requestleaveemppgPB = new javax.swing.JButton();
         redOrangeDesign = new javax.swing.JLabel();
         MotorPHLogo = new javax.swing.JLabel();
-        leaveRequestManagement = new javax.swing.JButton();
-        attendanceeTracking = new javax.swing.JButton();
         lblWelcomeMessage = new javax.swing.JLabel();
         jLabelEmpName = new javax.swing.JLabel();
 
@@ -266,32 +255,6 @@ public class AdminSupervisor extends JFrame {
         emppagemainPNL.add(MotorPHLogo);
         MotorPHLogo.setBounds(760, 30, 130, 90);
 
-        leaveRequestManagement.setBackground(new java.awt.Color(153, 0, 0));
-        leaveRequestManagement.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        leaveRequestManagement.setForeground(new java.awt.Color(255, 255, 255));
-        leaveRequestManagement.setIcon(new javax.swing.ImageIcon(getClass().getResource("/media/leave.png"))); // NOI18N
-        leaveRequestManagement.setText("Leave Request Management");
-        leaveRequestManagement.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                leaveRequestManagementActionPerformed(evt);
-            }
-        });
-        emppagemainPNL.add(leaveRequestManagement);
-        leaveRequestManagement.setBounds(630, 230, 270, 80);
-
-        attendanceeTracking.setBackground(new java.awt.Color(153, 0, 0));
-        attendanceeTracking.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        attendanceeTracking.setForeground(new java.awt.Color(255, 255, 255));
-        attendanceeTracking.setIcon(new javax.swing.ImageIcon(getClass().getResource("/media/ATTENDANCE 64 X 64.png"))); // NOI18N
-        attendanceeTracking.setText("Attendance Tracking");
-        attendanceeTracking.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                attendanceeTrackingActionPerformed(evt);
-            }
-        });
-        emppagemainPNL.add(attendanceeTracking);
-        attendanceeTracking.setBounds(630, 140, 270, 80);
-
         lblWelcomeMessage.setBackground(new java.awt.Color(0, 0, 51));
         lblWelcomeMessage.setFont(new java.awt.Font("Segoe UI", 1, 22)); // NOI18N
         lblWelcomeMessage.setForeground(new java.awt.Color(51, 0, 0));
@@ -437,20 +400,6 @@ public class AdminSupervisor extends JFrame {
     }
     }//GEN-LAST:event_requestleaveemppgPBActionPerformed
 
-    private void leaveRequestManagementActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_leaveRequestManagementActionPerformed
-        JOptionPane.showMessageDialog(this, 
-            "Leave Request Management is being updated to the new system.\nComing soon!", 
-            "Feature Updating", 
-            JOptionPane.INFORMATION_MESSAGE);
-    }//GEN-LAST:event_leaveRequestManagementActionPerformed
-
-    private void attendanceeTrackingActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_attendanceeTrackingActionPerformed
-        JOptionPane.showMessageDialog(this, 
-            "Attendance Tracking is being updated to the new system.\nComing soon!", 
-            "Feature Updating", 
-            JOptionPane.INFORMATION_MESSAGE);
-    }//GEN-LAST:event_attendanceeTrackingActionPerformed
-
     /**
      * @param args the command line arguments
      */
@@ -470,7 +419,6 @@ public class AdminSupervisor extends JFrame {
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JLabel MotorPHLogo;
     private javax.swing.JButton aboutPB;
-    private javax.swing.JButton attendanceeTracking;
     private javax.swing.JButton attendanceemppgPB;
     private javax.swing.JLabel dateTimejLabel;
     private javax.swing.JLabel employeepagenameLBL;
@@ -479,7 +427,6 @@ public class AdminSupervisor extends JFrame {
     private javax.swing.JLabel jLabelEmpName;
     private javax.swing.JPopupMenu jPopupMenu1;
     private javax.swing.JLabel lblWelcomeMessage;
-    private javax.swing.JButton leaveRequestManagement;
     private javax.swing.JButton logoutemppgPB;
     private javax.swing.JButton payrollemppgPB;
     private javax.swing.JButton personaldetPB;

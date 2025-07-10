@@ -16,7 +16,6 @@ import DAOs.PayPeriodDAO;
 import DAOs.DatabaseConnection;
 import DAOs.PayrollAttendanceDAO;
 import DAOs.PayrollBenefitDAO;
-import DAOs.PayrollLeaveDAO;
 import DAOs.PayrollOvertimeDAO;
 import DAOs.TardinessRecordDAO; // NEW
 
@@ -35,7 +34,6 @@ public class AccountingModel extends EmployeeModel {
     // Detail DAOs for payroll generation - UPDATED with TardinessRecordDAO
     private final PayrollAttendanceDAO payrollAttendanceDAO;
     private final PayrollBenefitDAO payrollBenefitDAO;
-    private final PayrollLeaveDAO payrollLeaveDAO;
     private final PayrollOvertimeDAO payrollOvertimeDAO;
     private final TardinessRecordDAO tardinessRecordDAO; // NEW
     
@@ -68,7 +66,6 @@ public class AccountingModel extends EmployeeModel {
         // Initialize detail DAOs
         this.payrollAttendanceDAO = new PayrollAttendanceDAO(dbConnection);
         this.payrollBenefitDAO = new PayrollBenefitDAO(dbConnection);
-        this.payrollLeaveDAO = new PayrollLeaveDAO(dbConnection);
         this.payrollOvertimeDAO = new PayrollOvertimeDAO(dbConnection);
         this.tardinessRecordDAO = new TardinessRecordDAO(dbConnection); // NEW
         
@@ -99,7 +96,6 @@ public class AccountingModel extends EmployeeModel {
         // Initialize detail DAOs
         this.payrollAttendanceDAO = new PayrollAttendanceDAO(dbConnection);
         this.payrollBenefitDAO = new PayrollBenefitDAO(dbConnection);
-        this.payrollLeaveDAO = new PayrollLeaveDAO(dbConnection);
         this.payrollOvertimeDAO = new PayrollOvertimeDAO(dbConnection);
         this.tardinessRecordDAO = new TardinessRecordDAO(dbConnection); // NEW
         
@@ -148,7 +144,6 @@ public class AccountingModel extends EmployeeModel {
             payrollDAO.deletePayrollByPeriod(payPeriodId);
             payrollAttendanceDAO.deleteByPayPeriod(payPeriodId);
             payrollBenefitDAO.deleteByPayPeriod(payPeriodId);
-            payrollLeaveDAO.deleteByPayPeriod(payPeriodId);
             payrollOvertimeDAO.deleteByPayPeriod(payPeriodId);
             tardinessRecordDAO.deleteByPayPeriod(payPeriodId);
 
@@ -187,18 +182,7 @@ public class AccountingModel extends EmployeeModel {
                 System.err.println("Error generating benefit records: " + e.getMessage());
             }
             
-            try {
-                int leaveRecords = payrollLeaveDAO.generateLeaveRecords(payPeriodId);
-                leavesPopulated = leaveRecords >= 0;
-                System.out.println("Generated " + leaveRecords + " leave records");
-                if (leaveRecords == 0) {
-                    System.out.println("Note: No leave records to generate for this period (this is normal if no leaves were taken)");
-                }
-            } catch (Exception e) {
-                errorLog.append("Leave error: ").append(e.getMessage()).append("; ");
-                System.err.println("Error generating leave records: " + e.getMessage());
-                leavesPopulated = true; // Consider it successful if no leaves exist
-            }
+            
             
             try {
                 int overtimeRecords = payrollOvertimeDAO.generateOvertimeRecords(payPeriodId);
@@ -268,17 +252,7 @@ private boolean verifyDetailTables(int payPeriodId) {
                 System.err.println("Error checking benefit records: " + e.getMessage());
             }
             
-            try {
-                leavesOK = payrollLeaveDAO.hasRecordsForPeriod(payPeriodId);
-                // For leaves, OK if no records exist (no leaves taken)
-                if (!leavesOK) {
-                    System.out.println("No leave records found - this is normal if no leaves were taken");
-                    leavesOK = true;
-                }
-            } catch (Exception e) {
-                System.err.println("Error checking leave records: " + e.getMessage());
-                leavesOK = true; // Consider OK if error (probably no leaves)
-            }
+           
             
             try {
                 overtimeOK = payrollOvertimeDAO.hasRecordsForPeriod(payPeriodId);

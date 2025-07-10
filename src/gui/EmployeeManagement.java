@@ -29,6 +29,7 @@ public class EmployeeManagement extends javax.swing.JFrame {
     // User session information
     private final UserAuthenticationModel loggedInUser;
     private final String userRole;
+    private final HRModel hrModel;
     
     // DAO instances
     private final DatabaseConnection databaseConnection;
@@ -48,6 +49,17 @@ public class EmployeeManagement extends javax.swing.JFrame {
         this.loggedInUser = loggedInUser;
         this.userRole = (loggedInUser != null) ? loggedInUser.getUserRole() : "HR";
         
+        // Initialize HRModel
+        this.hrModel = new HRModel();
+        if (loggedInUser != null && "HR".equals(loggedInUser.getUserRole())) {
+            this.hrModel.setHrId(loggedInUser.getEmployeeId());
+            this.hrModel.setFirstName(loggedInUser.getFirstName());
+            this.hrModel.setLastName(loggedInUser.getLastName());
+            this.hrModel.setEmail(loggedInUser.getEmail());
+            this.hrModel.setPosition("HR Manager");
+            this.hrModel.setLastLogin(loggedInUser.getLastLogin());
+        }
+        
         this.databaseConnection = new DatabaseConnection();
         this.employeeDAO = new EmployeeDAO(databaseConnection);
         this.positionDAO = new PositionDAO(databaseConnection);
@@ -58,6 +70,7 @@ public class EmployeeManagement extends javax.swing.JFrame {
     public EmployeeManagement() {
         this.loggedInUser = null;
         this.userRole = "HR";
+        this.hrModel = new HRModel();
         
         this.databaseConnection = new DatabaseConnection();
         this.employeeDAO = new EmployeeDAO(databaseConnection);
@@ -77,8 +90,9 @@ public class EmployeeManagement extends javax.swing.JFrame {
             
             JOptionPane.showMessageDialog(this, 
                 "Employee Management System loaded successfully!\n" +
-                "• Benefits are automatically populated based on position\n" +
-                "• Click on any employee row to view/edit details",
+                "HR: " + hrModel.getDisplayName() + "\n" +
+                "Benefits are automatically populated based on position\n" +
+                "Click on any employee row to view/edit details",
                 "System Ready", JOptionPane.INFORMATION_MESSAGE);
                 
         } catch (Exception e) {
@@ -124,6 +138,11 @@ public class EmployeeManagement extends javax.swing.JFrame {
     
     private void loadPositions() {
         try {
+            if (!hrModel.isCanManagePositions()) {
+                System.err.println("HR user does not have permission to manage positions");
+                return;
+            }
+            
             positionList = positionDAO.findAll();
             System.out.println("Loaded " + positionList.size() + " positions");
         } catch (Exception e) {
@@ -134,12 +153,16 @@ public class EmployeeManagement extends javax.swing.JFrame {
     
     private void loadPositionBenefits() {
         try {
+            if (!hrModel.isCanManageBenefits()) {
+                System.err.println("HR user does not have permission to manage benefits");
+                return;
+            }
+            
             positionBenefitsCache.clear();
             
             for (PositionModel position : positionList) {
                 Map<String, BigDecimal> benefits = new HashMap<>();
                 
-                // Default benefits - replace with actual database queries
                 benefits.put("Rice Subsidy", new BigDecimal("1500.00"));
                 benefits.put("Phone Allowance", new BigDecimal("800.00"));
                 benefits.put("Clothing Allowance", new BigDecimal("1000.00"));
@@ -156,7 +179,6 @@ public class EmployeeManagement extends javax.swing.JFrame {
     
     private void setupDropdowns() {
         try {
-            // Setup position dropdown
             DefaultComboBoxModel<String> positionModel = new DefaultComboBoxModel<>();
             positionModel.addElement("Select Position");
             for (PositionModel position : positionList) {
@@ -164,7 +186,6 @@ public class EmployeeManagement extends javax.swing.JFrame {
             }
             TFpos.setModel(positionModel);
             
-            // Add listener to position dropdown
             TFpos.addActionListener(e -> {
                 if (TFpos.getSelectedIndex() > 0) {
                     populateBenefitsForPosition(TFpos.getSelectedItem().toString());
@@ -202,6 +223,10 @@ public class EmployeeManagement extends javax.swing.JFrame {
     
     private void populateBenefitsForPosition(String positionName) {
         try {
+            if (!hrModel.isCanManageBenefits()) {
+                return;
+            }
+            
             PositionModel position = findPositionByName(positionName);
             if (position != null) {
                 Map<String, BigDecimal> benefits = positionBenefitsCache.get(position.getPositionId());
@@ -239,6 +264,13 @@ public class EmployeeManagement extends javax.swing.JFrame {
     
     private void loadEmployeeData() {
         try {
+            if (!hrModel.isCanManageEmployees()) {
+                JOptionPane.showMessageDialog(this, 
+                    "You do not have permission to manage employees", 
+                    "Access Denied", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            
             employeeList = employeeDAO.getActiveEmployees();
             
             DefaultTableModel model = (DefaultTableModel) tblERecords.getModel();
@@ -278,7 +310,6 @@ public class EmployeeManagement extends javax.swing.JFrame {
             rowData[4] = "";
             rowData[5] = employee.getPhoneNumber() != null ? employee.getPhoneNumber() : "";
             
-            // Get government IDs
             GovIdModel govIds = employeeDAO.getEmployeeGovIds(employee.getEmployeeId());
             rowData[6] = govIds != null ? (govIds.getSss() != null ? govIds.getSss() : "") : "";
             rowData[7] = govIds != null ? (govIds.getPhilhealth() != null ? govIds.getPhilhealth() : "") : "";
@@ -287,17 +318,14 @@ public class EmployeeManagement extends javax.swing.JFrame {
             
             rowData[10] = employee.getStatus() != null ? employee.getStatus().getValue() : "";
             
-            // Get position information
             PositionModel position = getEmployeePosition(employee.getPositionId());
             rowData[11] = position != null ? position.getPosition() : "";
             
-            // Get supervisor name
             String supervisorName = getEmployeeSupervisorName(employee.getSupervisorId());
             rowData[12] = supervisorName != null ? supervisorName : "";
             
             rowData[13] = formatMoney(employee.getBasicSalary());
             
-            // Get benefits from position benefits cache
             if (position != null) {
                 Map<String, BigDecimal> benefits = positionBenefitsCache.get(position.getPositionId());
                 if (benefits != null) {
@@ -389,7 +417,6 @@ public class EmployeeManagement extends javax.swing.JFrame {
             selectedEmployee = employeeWithGovIds.getEmployee();
             selectedGovIds = employeeWithGovIds.getGovIds();
             
-            // Populate form fields
             TFenum.setText(String.valueOf(selectedEmployee.getEmployeeId()));
             TFlastn.setText(selectedEmployee.getLastName() != null ? selectedEmployee.getLastName() : "");
             TFfirstn.setText(selectedEmployee.getFirstName() != null ? selectedEmployee.getFirstName() : "");
@@ -403,7 +430,6 @@ public class EmployeeManagement extends javax.swing.JFrame {
             TFAddress.setText("");
             TFphonenum.setText(selectedEmployee.getPhoneNumber() != null ? selectedEmployee.getPhoneNumber() : "");
             
-            // Set government IDs
             if (selectedGovIds != null) {
                 TFsss.setText(selectedGovIds.getSss() != null ? selectedGovIds.getSss() : "");
                 TFphilh.setText(selectedGovIds.getPhilhealth() != null ? selectedGovIds.getPhilhealth() : "");
@@ -416,14 +442,12 @@ public class EmployeeManagement extends javax.swing.JFrame {
                 TFtin.setText("");
             }
             
-            // Set status
             if (selectedEmployee.getStatus() != null) {
                 TFstatus.setSelectedItem(selectedEmployee.getStatus().getValue());
             } else {
                 TFstatus.setSelectedIndex(0);
             }
             
-            // Set position and trigger benefit population
             PositionModel position = getEmployeePosition(selectedEmployee.getPositionId());
             if (position != null) {
                 TFpos.setSelectedItem(position.getPosition());
@@ -432,7 +456,6 @@ public class EmployeeManagement extends javax.swing.JFrame {
                 clearBenefitFields();
             }
             
-            // Set supervisor
             if (selectedEmployee.getSupervisorId() != null) {
                 try {
                     EmployeeModel supervisor = employeeDAO.findById(selectedEmployee.getSupervisorId());
@@ -449,7 +472,6 @@ public class EmployeeManagement extends javax.swing.JFrame {
                 TFsupervisor.setSelectedItem("None");
             }
             
-            // Set monetary values (remove commas for editing)
             TFbasicsalary.setText(selectedEmployee.getBasicSalary() != null ? 
                     selectedEmployee.getBasicSalary().toString() : "");
             TFhourlyrate.setText(selectedEmployee.getHourlyRate() != null ? 
@@ -467,6 +489,13 @@ public class EmployeeManagement extends javax.swing.JFrame {
     
     private void addEmployee() {
         try {
+            if (!hrModel.isCanManageEmployees()) {
+                JOptionPane.showMessageDialog(this, 
+                    "You do not have permission to manage employees", 
+                    "Access Denied", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            
             if (!validateInput()) {
                 JOptionPane.showMessageDialog(this, "Please fill in all required fields", 
                         "Validation Error", JOptionPane.ERROR_MESSAGE);
@@ -482,6 +511,22 @@ public class EmployeeManagement extends javax.swing.JFrame {
             EmployeeModel newEmployee = createEmployeeFromForm();
             GovIdModel newGovIds = createGovIdsFromForm();
             
+            Integer positionId = findPositionIdByName(TFpos.getSelectedItem().toString());
+            boolean hrSuccess = hrModel.createEmployee(
+                newEmployee.getFirstName(),
+                newEmployee.getLastName(),
+                newEmployee.getEmail(),
+                positionId != null ? positionId : 0,
+                newEmployee.getBasicSalary()
+            );
+            
+            if (!hrSuccess) {
+                JOptionPane.showMessageDialog(this, 
+                    "Failed to validate employee creation through HR model", 
+                    "HR Validation Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
+            
             boolean success = employeeDAO.saveEmployeeWithGovIds(newEmployee, newGovIds);
             
             if (success) {
@@ -491,7 +536,8 @@ public class EmployeeManagement extends javax.swing.JFrame {
                 
                 JOptionPane.showMessageDialog(this, 
                     "Employee and government IDs added successfully!\n" +
-                    "Employee ID: " + newEmployee.getEmployeeId(), 
+                    "Employee ID: " + newEmployee.getEmployeeId() + "\n" +
+                    "Created by: " + hrModel.getDisplayName(), 
                     "Success", JOptionPane.INFORMATION_MESSAGE);
             } else {
                 JOptionPane.showMessageDialog(this, "Failed to add employee to database", 
@@ -508,6 +554,13 @@ public class EmployeeManagement extends javax.swing.JFrame {
     
     private void updateEmployee() {
         try {
+            if (!hrModel.isCanManageEmployees()) {
+                JOptionPane.showMessageDialog(this, 
+                    "You do not have permission to manage employees", 
+                    "Access Denied", JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            
             if (selectedEmployee == null) {
                 JOptionPane.showMessageDialog(this, "Please select an employee to update", 
                         "No Selection", JOptionPane.WARNING_MESSAGE);
@@ -521,6 +574,21 @@ public class EmployeeManagement extends javax.swing.JFrame {
             }
             
             System.out.println("Updating employee ID: " + selectedEmployee.getEmployeeId());
+            
+            Map<String, Object> updates = new HashMap<>();
+            updates.put("firstName", TFfirstn.getText().trim());
+            updates.put("lastName", TFlastn.getText().trim());
+            updates.put("phoneNumber", TFphonenum.getText().trim());
+            updates.put("email", generateEmailFromName(TFfirstn.getText(), TFlastn.getText()));
+            
+            boolean hrSuccess = hrModel.updateEmployee(selectedEmployee.getEmployeeId(), updates);
+            
+            if (!hrSuccess) {
+                JOptionPane.showMessageDialog(this, 
+                    "Failed to validate employee update through HR model", 
+                    "HR Validation Error", JOptionPane.ERROR_MESSAGE);
+                return;
+            }
             
             selectedEmployee.setFirstName(TFfirstn.getText().trim());
             selectedEmployee.setLastName(TFlastn.getText().trim());
@@ -565,7 +633,8 @@ public class EmployeeManagement extends javax.swing.JFrame {
                 
                 JOptionPane.showMessageDialog(this, 
                     "Employee information updated successfully!\n" +
-                    "Employee: " + selectedEmployee.getFirstName() + " " + selectedEmployee.getLastName(), 
+                    "Employee: " + selectedEmployee.getFirstName() + " " + selectedEmployee.getLastName() + "\n" +
+                    "Updated by: " + hrModel.getDisplayName(), 
                     "Success", JOptionPane.INFORMATION_MESSAGE);
                     
                 System.out.println("Employee updated successfully");

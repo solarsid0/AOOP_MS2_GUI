@@ -26,7 +26,7 @@ public class AdminHR extends JFrame {
         initComponents();
         updateLabels();
         updateDateTime();
-        disableTemporaryButtons();
+
         
         setTitle("MotorPH Admin Dashboard | Welcome, " + user.getFirstName() + " " + user.getLastName() + "!");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -47,15 +47,7 @@ public class AdminHR extends JFrame {
         return upperRole.contains("HR") || upperRole.contains("ADMIN");
     }
     
-    private void disableTemporaryButtons() {
 
-        leaveRequestManagement.setEnabled(false);
-        leaveRequestManagement.setToolTipText("Coming soon - being updated to new system");
-        
-        attendanceeTracking.setEnabled(false);
-        attendanceeTracking.setToolTipText("Coming soon - being updated to new system");
-
-    }
 
 
     private void updateLabels() {
@@ -125,8 +117,6 @@ public class AdminHR extends JFrame {
         payrollsummarypgPB = new javax.swing.JButton();
         redOrangeDesign = new javax.swing.JLabel();
         MotorPHLogo = new javax.swing.JLabel();
-        leaveRequestManagement = new javax.swing.JButton();
-        attendanceeTracking = new javax.swing.JButton();
         empManagement = new javax.swing.JButton();
         lblWelcomeMessage = new javax.swing.JLabel();
         jLabelEmpName = new javax.swing.JLabel();
@@ -293,32 +283,6 @@ public class AdminHR extends JFrame {
         MotorPHLogo.setIcon(new javax.swing.ImageIcon(getClass().getResource("/media/OG Logo _ 100X124.png"))); // NOI18N
         emppagemainPNL.add(MotorPHLogo);
         MotorPHLogo.setBounds(760, 30, 130, 90);
-
-        leaveRequestManagement.setBackground(new java.awt.Color(153, 0, 0));
-        leaveRequestManagement.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        leaveRequestManagement.setForeground(new java.awt.Color(255, 255, 255));
-        leaveRequestManagement.setIcon(new javax.swing.ImageIcon(getClass().getResource("/media/leave.png"))); // NOI18N
-        leaveRequestManagement.setText("Leave Request Management");
-        leaveRequestManagement.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                leaveRequestManagementActionPerformed(evt);
-            }
-        });
-        emppagemainPNL.add(leaveRequestManagement);
-        leaveRequestManagement.setBounds(630, 320, 270, 80);
-
-        attendanceeTracking.setBackground(new java.awt.Color(153, 0, 0));
-        attendanceeTracking.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        attendanceeTracking.setForeground(new java.awt.Color(255, 255, 255));
-        attendanceeTracking.setIcon(new javax.swing.ImageIcon(getClass().getResource("/media/ATTENDANCE 64 X 64.png"))); // NOI18N
-        attendanceeTracking.setText("Attendance Tracking");
-        attendanceeTracking.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                attendanceeTrackingActionPerformed(evt);
-            }
-        });
-        emppagemainPNL.add(attendanceeTracking);
-        attendanceeTracking.setBounds(630, 230, 270, 80);
 
         empManagement.setBackground(new java.awt.Color(153, 0, 0));
         empManagement.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
@@ -495,31 +459,17 @@ public class AdminHR extends JFrame {
     }
     }//GEN-LAST:event_payrollsummarypgPBActionPerformed
 
-    private void leaveRequestManagementActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_leaveRequestManagementActionPerformed
-        JOptionPane.showMessageDialog(this, 
-            "Leave Request Management is being updated to the new system.\nComing soon!", 
-            "Feature Updating", 
-            JOptionPane.INFORMATION_MESSAGE);
-    }//GEN-LAST:event_leaveRequestManagementActionPerformed
-
-    private void attendanceeTrackingActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_attendanceeTrackingActionPerformed
-        JOptionPane.showMessageDialog(this, 
-            "Attendance Tracking is being updated to the new system.\nComing soon!", 
-            "Feature Updating", 
-            JOptionPane.INFORMATION_MESSAGE);
-    }//GEN-LAST:event_attendanceeTrackingActionPerformed
-
     private void empManagementActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_empManagementActionPerformed
     try {
-        EmployeeManagement empManagement = new EmployeeManagement(loggedInUser);
-        empManagement.setVisible(true);
-        this.dispose();
-    } catch (Exception e) {
-        System.err.println("Error opening Employee Management: " + e.getMessage());
-        JOptionPane.showMessageDialog(this, 
-            "Error opening Employee Management: " + e.getMessage(), 
-            "Navigation Error", JOptionPane.ERROR_MESSAGE);
-    }
+            EmployeeManagement empManagement = new EmployeeManagement(loggedInUser);
+            empManagement.setVisible(true);
+            this.dispose();
+        } catch (Exception e) {
+            System.err.println("Error opening Employee Management: " + e.getMessage());
+            JOptionPane.showMessageDialog(this, 
+                "Error opening Employee Management: " + e.getMessage(), 
+                "Navigation Error", JOptionPane.ERROR_MESSAGE);
+        }
     }//GEN-LAST:event_empManagementActionPerformed
 
     private void requestleaveemppgPB1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_requestleaveemppgPB1ActionPerformed
@@ -560,7 +510,6 @@ public class AdminHR extends JFrame {
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JLabel MotorPHLogo;
     private javax.swing.JButton aboutPB;
-    private javax.swing.JButton attendanceeTracking;
     private javax.swing.JButton attendanceemppgPB;
     private javax.swing.JLabel dateTimejLabel;
     private javax.swing.JButton empManagement;
@@ -570,7 +519,6 @@ public class AdminHR extends JFrame {
     private javax.swing.JLabel jLabelEmpName;
     private javax.swing.JPopupMenu jPopupMenu1;
     private javax.swing.JLabel lblWelcomeMessage;
-    private javax.swing.JButton leaveRequestManagement;
     private javax.swing.JButton logoutemppgPB;
     private javax.swing.JButton payrollemppgPB;
     private javax.swing.JButton payrollsummarypgPB;

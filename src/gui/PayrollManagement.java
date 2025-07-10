@@ -55,7 +55,6 @@ public class PayrollManagement extends javax.swing.JFrame {
     // Additional DAO components for payroll details
     private PayrollAttendanceDAO payrollAttendanceDAO;
     private PayrollBenefitDAO payrollBenefitDAO;
-    private PayrollLeaveDAO payrollLeaveDAO;
     private PayrollOvertimeDAO payrollOvertimeDAO;
     
     // Current state
@@ -112,7 +111,6 @@ public class PayrollManagement extends javax.swing.JFrame {
         // Initialize detail DAOs with shared database connection
         this.payrollAttendanceDAO = new PayrollAttendanceDAO(dbConnection);
         this.payrollBenefitDAO = new PayrollBenefitDAO(dbConnection);
-        this.payrollLeaveDAO = new PayrollLeaveDAO(dbConnection);
         this.payrollOvertimeDAO = new PayrollOvertimeDAO(dbConnection);
         
         // Initialize ReportService
@@ -648,59 +646,64 @@ private void generatePayslipsForSelectedMonth(String selectedMonth) {
                 return;
             }
             
-            // Delete existing payroll and related data before regenerating
-            payrollDAO.deletePayrollDetailsByPeriod(payPeriod.getPayPeriodId());
-            payrollDAO.deletePayrollByPeriod(payPeriod.getPayPeriodId());
+            // FIXED: Delete in correct order to avoid foreign key constraint violations
+            // Delete payslips FIRST (they reference payroll)
             payslipDAO.deletePayrollByPeriod(payPeriod.getPayPeriodId());
+            
+            // Delete payroll detail tables SECOND (they reference payroll)
+            payrollDAO.deletePayrollDetailsByPeriod(payPeriod.getPayPeriodId());
+            
+            // Delete payroll records LAST (they are referenced by others)
+            payrollDAO.deletePayrollByPeriod(payPeriod.getPayPeriodId());
         }
         
-            // USE AccountingModel for payroll generation with detail tables
-            AccountingModel.PayrollGenerationResult result = 
-                accountingModel.generatePayrollWithDetails(payPeriod.getPayPeriodId());
+        // USE AccountingModel for payroll generation with detail tables
+        AccountingModel.PayrollGenerationResult result = 
+            accountingModel.generatePayrollWithDetails(payPeriod.getPayPeriodId());
 
-            if (result.isSuccess()) {
-                // Also generate payslip records with PENDING status
-                int payslipCount = payslipDAO.generateAllPayslips(payPeriod.getPayPeriodId());
+        if (result.isSuccess()) {
+            // Also generate payslip records with PENDING status
+            int payslipCount = payslipDAO.generateAllPayslips(payPeriod.getPayPeriodId());
 
-                // Verify payroll using AccountingModel
-                AccountingModel.AccountingResult verification = 
-                    accountingModel.verifyPayrollForPeriod(payPeriod.getPayPeriodId());
+            // Verify payroll using AccountingModel
+            AccountingModel.AccountingResult verification = 
+                accountingModel.verifyPayrollForPeriod(payPeriod.getPayPeriodId());
 
-                String verificationMsg = verification.isSuccess() ? 
-                    "\n✅ Verification: " + verification.getVerifiedRecords() + "/" + 
-                    verification.getTotalRecords() + " records verified" : 
-                    "\n⚠️ Verification issues detected";
+            String verificationMsg = verification.isSuccess() ? 
+                "\n✅ Verification: " + verification.getVerifiedRecords() + "/" + 
+                verification.getTotalRecords() + " records verified" : 
+                "\n⚠️ Verification issues detected";
 
-                JOptionPane.showMessageDialog(this,
-                    "Payslips for " + selectedMonth + " generated successfully!\n" +
-                    "Generated payslips for " + result.getGeneratedCount() + " employees.\n" +
-                    "Detail tables populated: " + (result.isDetailTablesPopulated() ? "✅ Yes" : "❌ No") + "\n" +
-                    "• payrollattendance\n" +
-                    "• payrollbenefit\n" +
-                    "• payrollleave\n" +
-                    "• payrollovertime" +
-                    verificationMsg,
-                    "Payslips Generated Successfully",
-                    JOptionPane.INFORMATION_MESSAGE);
-
-                // Refresh current view if it matches the generated month OR if "All" is selected
-                String currentSelectedMonth = (String) selectDateJComboBox2.getSelectedItem();
-                if (selectedMonth.equals(currentSelectedMonth) || "All".equals(currentSelectedMonth)) {
-                    loadPayrollData();
-                }
-            } else {
-                JOptionPane.showMessageDialog(this,
-                    "Failed to generate payslips: " + result.getMessage(),
-                    "Generation Error", JOptionPane.ERROR_MESSAGE);
-            }
-
-        } catch (Exception e) {
             JOptionPane.showMessageDialog(this,
-                "Error generating payslips: " + e.getMessage(),
+                "Payslips for " + selectedMonth + " generated successfully!\n" +
+                "Generated payslips for " + result.getGeneratedCount() + " employees.\n" +
+                "Detail tables populated: " + (result.isDetailTablesPopulated() ? "✅ Yes" : "❌ No") + "\n" +
+                "• payrollattendance\n" +
+                "• payrollbenefit\n" +
+                "• payrollleave\n" +
+                "• payrollovertime" +
+                verificationMsg,
+                "Payslips Generated Successfully",
+                JOptionPane.INFORMATION_MESSAGE);
+
+            // Refresh current view if it matches the generated month OR if "All" is selected
+            String currentSelectedMonth = (String) selectDateJComboBox2.getSelectedItem();
+            if (selectedMonth.equals(currentSelectedMonth) || "All".equals(currentSelectedMonth)) {
+                loadPayrollData();
+            }
+        } else {
+            JOptionPane.showMessageDialog(this,
+                "Failed to generate payslips: " + result.getMessage(),
                 "Generation Error", JOptionPane.ERROR_MESSAGE);
-            e.printStackTrace();
         }
+
+    } catch (Exception e) {
+        JOptionPane.showMessageDialog(this,
+            "Error generating payslips: " + e.getMessage(),
+            "Generation Error", JOptionPane.ERROR_MESSAGE);
+        e.printStackTrace();
     }
+}
     
     /**
      * Finds the pay period for the selected month
