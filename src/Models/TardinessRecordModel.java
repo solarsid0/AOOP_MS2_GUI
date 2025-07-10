@@ -1,429 +1,285 @@
 package Models;
 
-import java.time.*;
-import java.sql.Timestamp;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalTime;
 
 public class TardinessRecordModel {
-    private static final ZoneId MANILA_TIMEZONE = ZoneId.of("Asia/Manila");
-    private static final LocalTime STANDARD_START_TIME = LocalTime.of(8, 0);   // 8:00 AM
-    private static final LocalTime STANDARD_END_TIME = LocalTime.of(17, 0);    // 5:00 PM
-    private static final LocalTime GRACE_PERIOD_CUTOFF = LocalTime.of(8, 10);  // 8:10 AM grace period
     
-    public enum TardinessType {
-        LATE("Late"),
-        UNDERTIME("Undertime");
-        
-        private final String value;
-        TardinessType(String value) { this.value = value; }
-        
-        public String getValue() { return value; }
-        public String getDisplayName() { return value; } // Added for compatibility with DAO
-        
-        public static TardinessType fromString(String type) {
-            if (type == null) return LATE;
-            
-            for (TardinessType tt : TardinessType.values()) {
-                if (tt.value.equalsIgnoreCase(type.trim())) {
-                    return tt;
-                }
-            }
-            return LATE;
-        }
-    }
-    
-    private int tardinessId;
-    private int attendanceId;
-    private BigDecimal tardinessHours;
+    // ===== FIELDS =====
+    private Integer tardinessRecordId;
+    private Integer attendanceId;
+    private BigDecimal tardinessHours = BigDecimal.ZERO;
     private TardinessType tardinessType;
     private String supervisorNotes;
-    private Timestamp createdAt;
     
-    // Additional fields for calculations
-    private AttendanceModel relatedAttendance;
-    private double hourlyRate;
-    private double deductionAmount;
-    
-    // Constructors
-    public TardinessRecordModel() {
-        this.createdAt = Timestamp.valueOf(LocalDateTime.now(MANILA_TIMEZONE));
+    // ===== ENUMS =====
+    public enum TardinessType {
+        LATE, UNDERTIME, ABSENCE
     }
     
-    public TardinessRecordModel(int attendanceId, double tardinessHours, TardinessType tardinessType) {
-        this();
+    // ===== CONSTRUCTORS =====
+    public TardinessRecordModel() {
+        this.tardinessHours = BigDecimal.ZERO;
+    }
+    
+    public TardinessRecordModel(Integer attendanceId, BigDecimal tardinessHours, 
+                               TardinessType tardinessType, String supervisorNotes) {
         this.attendanceId = attendanceId;
-        this.tardinessHours = BigDecimal.valueOf(tardinessHours).setScale(2, RoundingMode.HALF_UP);
+        this.tardinessHours = tardinessHours != null ? tardinessHours.setScale(4, RoundingMode.HALF_UP) : BigDecimal.ZERO;
+        this.tardinessType = tardinessType;
+        this.supervisorNotes = supervisorNotes;
+    }
+    
+    // ===== GETTERS AND SETTERS =====
+    
+    public Integer getTardinessRecordId() {
+        return tardinessRecordId;
+    }
+    
+    public void setTardinessRecordId(Integer tardinessRecordId) {
+        this.tardinessRecordId = tardinessRecordId;
+    }
+    
+    public Integer getAttendanceId() {
+        return attendanceId;
+    }
+    
+    public void setAttendanceId(Integer attendanceId) {
+        this.attendanceId = attendanceId;
+    }
+    
+    public BigDecimal getTardinessHours() {
+        return tardinessHours != null ? tardinessHours : BigDecimal.ZERO;
+    }
+    
+    public void setTardinessHours(BigDecimal tardinessHours) {
+        this.tardinessHours = tardinessHours != null ? tardinessHours.setScale(4, RoundingMode.HALF_UP) : BigDecimal.ZERO;
+    }
+    
+    public TardinessType getTardinessType() {
+        return tardinessType;
+    }
+    
+    public void setTardinessType(TardinessType tardinessType) {
         this.tardinessType = tardinessType;
     }
     
-    public TardinessRecordModel(AttendanceModel attendance, TardinessType tardinessType) {
-        this();
-        if (attendance != null) {
-            this.attendanceId = attendance.getAttendanceId();
-            this.relatedAttendance = attendance;
-            this.tardinessType = tardinessType;
-            calculateTardinessHours(attendance);
-        }
+    public String getSupervisorNotes() {
+        return supervisorNotes;
     }
     
-    // Manila timezone operations
-    public LocalDateTime getCreatedAtInManila() {
-        if (createdAt == null) return null;
-        return createdAt.toLocalDateTime().atZone(ZoneId.systemDefault())
-                .withZoneSameInstant(MANILA_TIMEZONE).toLocalDateTime();
+    public void setSupervisorNotes(String supervisorNotes) {
+        this.supervisorNotes = supervisorNotes;
     }
     
-    public static LocalDateTime nowInManila() {
-        return LocalDateTime.now(MANILA_TIMEZONE);
-    }
+    // ===== BACKWARD COMPATIBILITY METHODS =====
     
-    // Late/undertime calculations with Manila timezone
-    private void calculateTardinessHours(AttendanceModel attendance) {
-        if (attendance == null) return;
-        
-        if (tardinessType == TardinessType.LATE) {
-            calculateLateHours(attendance);
-        } else if (tardinessType == TardinessType.UNDERTIME) {
-            calculateUndertimeHours(attendance);
-        }
-    }
-    
-    private void calculateLateHours(AttendanceModel attendance) {
-        if (attendance.getTimeIn() == null) return;
-        
-        LocalTime actualTimeIn = attendance.getTimeInManila();
-        
-        // Only count as late if beyond grace period (8:10 AM)
-        if (actualTimeIn.isAfter(GRACE_PERIOD_CUTOFF)) {
-            Duration lateDuration = Duration.between(STANDARD_START_TIME, actualTimeIn);
-            double lateHours = lateDuration.toMinutes() / 60.0;
-            this.tardinessHours = BigDecimal.valueOf(lateHours).setScale(2, RoundingMode.HALF_UP);
-        } else {
-            this.tardinessHours = BigDecimal.ZERO;
-        }
-    }
-    
-    private void calculateUndertimeHours(AttendanceModel attendance) {
-        if (attendance.getTimeOut() == null) return;
-        
-        LocalTime actualTimeOut = attendance.getTimeOutManila();
-        
-        // Count as undertime if left before standard end time
-        if (actualTimeOut.isBefore(STANDARD_END_TIME)) {
-            Duration undertimeDuration = Duration.between(actualTimeOut, STANDARD_END_TIME);
-            double undertimeHours = undertimeDuration.toMinutes() / 60.0;
-            this.tardinessHours = BigDecimal.valueOf(undertimeHours).setScale(2, RoundingMode.HALF_UP);
-        } else {
-            this.tardinessHours = BigDecimal.ZERO;
-        }
-    }
-    
-    // Enhanced factory methods for creating tardiness records with grace period logic
-    public static TardinessRecordModel createLateRecord(AttendanceModel attendance) {
-        if (attendance == null || attendance.getTimeIn() == null) {
-            return null;
-        }
-        
-        // Check if actually late (beyond grace period)
-        LocalTime actualTimeIn = attendance.getTimeInManila();
-        if (!actualTimeIn.isAfter(GRACE_PERIOD_CUTOFF)) {
-            return null; // Within grace period, no tardiness record needed
-        }
-        
-        TardinessRecordModel record = new TardinessRecordModel(attendance, TardinessType.LATE);
-        return record.tardinessHours != null && record.tardinessHours.compareTo(BigDecimal.ZERO) > 0 ? record : null;
-    }
-    
-    public static TardinessRecordModel createUndertimeRecord(AttendanceModel attendance) {
-        if (attendance == null || attendance.getTimeOut() == null) {
-            return null;
-        }
-        
-        // Check if actually undertime (left before standard end time)
-        LocalTime actualTimeOut = attendance.getTimeOutManila();
-        if (!actualTimeOut.isBefore(STANDARD_END_TIME)) {
-            return null; // Left at or after standard time, no undertime
-        }
-        
-        TardinessRecordModel record = new TardinessRecordModel(attendance, TardinessType.UNDERTIME);
-        return record.tardinessHours != null && record.tardinessHours.compareTo(BigDecimal.ZERO) > 0 ? record : null;
-    }
-    
-    // Calculate deduction amount based on hourly rate
-    public void calculateDeductionAmount(double hourlyRate) {
-        if (tardinessHours != null && hourlyRate > 0) {
-            this.hourlyRate = hourlyRate;
-            this.deductionAmount = tardinessHours.doubleValue() * hourlyRate;
-        }
-    }
-    
-    // Enhanced validation methods
-    public boolean isValidRecord() {
-        return attendanceId > 0 && 
-               tardinessHours != null && 
-               tardinessHours.compareTo(BigDecimal.ZERO) > 0 &&
-               tardinessType != null;
-    }
-    
-    public boolean hasSignificantTardiness() {
-        // Consider tardiness significant if more than 5 minutes (0.083 hours)
-        BigDecimal threshold = BigDecimal.valueOf(0.083);
-        return tardinessHours != null && tardinessHours.compareTo(threshold) > 0;
-    }
-    
-    public boolean isWithinGracePeriod() {
-        // Check if the tardiness would have been within grace period
-        if (tardinessType != TardinessType.LATE || tardinessHours == null) {
-            return false;
-        }
-        
-        // If late hours is less than 10 minutes (grace period), it was within grace
-        BigDecimal gracePeriodMinutes = BigDecimal.valueOf(10.0 / 60.0); // 10 minutes in hours
-        return tardinessHours.compareTo(gracePeriodMinutes) <= 0;
-    }
-    
-    // Business logic methods
-    public boolean requiresSupervisorNotes() {
-        // Require supervisor notes for tardiness over 1 hour
-        BigDecimal oneHour = BigDecimal.ONE;
-        return tardinessHours != null && tardinessHours.compareTo(oneHour) > 0;
-    }
-    
-    public String getFormattedTardinessHours() {
-        if (tardinessHours == null) return "0.00";
-        return tardinessHours.setScale(2, RoundingMode.HALF_UP).toString();
-    }
-    
-    public String getFormattedTardinessMinutes() {
-        if (tardinessHours == null) return "0";
-        double minutes = tardinessHours.doubleValue() * 60;
-        return String.format("%.0f", minutes);
-    }
-    
-    public String getTardinessDescription() {
-        if (tardinessHours == null || tardinessType == null) return "";
-        
-        StringBuilder description = new StringBuilder();
-        description.append(tardinessType.getValue()).append(": ");
-        description.append(getFormattedTardinessMinutes()).append(" minutes");
-        
-        if (tardinessType == TardinessType.LATE) {
-            description.append(" late arrival");
-            if (isWithinGracePeriod()) {
-                description.append(" (within grace period)");
-            }
-        } else {
-            description.append(" early departure");
-        }
-        
-        return description.toString();
-    }
-    
-    public String getDetailedDescription() {
-        StringBuilder description = new StringBuilder();
-        description.append(getTardinessDescription());
-        
-        if (deductionAmount > 0) {
-            description.append(" - Deduction: ₱").append(String.format("%.2f", deductionAmount));
-        }
-        
-        if (supervisorNotes != null && !supervisorNotes.trim().isEmpty()) {
-            description.append(" - Notes: ").append(supervisorNotes);
-        }
-        
-        return description.toString();
-    }
-    
-    // Utility methods for reporting and rank-and-file calculations
-    public boolean isLate() {
-        return tardinessType == TardinessType.LATE;
-    }
-    
-    public boolean isUndertime() {
-        return tardinessType == TardinessType.UNDERTIME;
-    }
-    
+    /**
+     * Get tardiness hours as double for backward compatibility
+     */
+    @Deprecated
     public double getTardinessHoursAsDouble() {
         return tardinessHours != null ? tardinessHours.doubleValue() : 0.0;
     }
     
-    public double getTardinessMinutesAsDouble() {
-        return getTardinessHoursAsDouble() * 60.0;
+    /**
+     * Set tardiness hours from double for backward compatibility
+     */
+    @Deprecated
+    public void setTardinessHoursFromDouble(double tardinessHours) {
+        this.tardinessHours = BigDecimal.valueOf(tardinessHours).setScale(4, RoundingMode.HALF_UP);
     }
     
+    // ===== FACTORY METHODS =====
+    
     /**
-     * Calculates rank-and-file deduction impact
-     * For rank-and-file employees, late hours are deducted from total work hours
-     * @param totalWorkHours The total work hours for the day
-     * @return Adjusted work hours after tardiness deduction
+     * Create a late tardiness record from attendance
      */
-    public double calculateRankAndFileAdjustedHours(double totalWorkHours) {
-        if (tardinessType != TardinessType.LATE || tardinessHours == null) {
-            return totalWorkHours;
+    public static TardinessRecordModel createLateRecord(AttendanceModel attendance) {
+        if (attendance == null || !attendance.isLateAttendance()) {
+            return null;
         }
         
-        // For rank-and-file, deduct late hours from total work hours
-        double adjustedHours = totalWorkHours - getTardinessHoursAsDouble();
-        return Math.max(0, adjustedHours); // Cannot be negative
+        // Check if attendance has a valid ID
+        if (attendance.getAttendanceId() == null || attendance.getAttendanceId() <= 0) {
+            System.err.println("Cannot create tardiness record: Attendance ID is null or invalid");
+            return null;
+        }
+        
+        BigDecimal lateHours = attendance.getLateHoursBigDecimal();
+        String notes = "Late arrival at " + attendance.getFormattedTimeIn() + 
+                      " - " + lateHours + " hours late";
+        
+        return new TardinessRecordModel(
+            attendance.getAttendanceId(),
+            lateHours,
+            TardinessType.LATE,
+            notes
+        );
     }
     
     /**
-     * Checks if this tardiness record requires disciplinary action
-     * @return true if disciplinary action may be needed
+     * Create an undertime tardiness record from attendance
      */
-    public boolean requiresDisciplinaryAction() {
-        if (tardinessHours == null) return false;
+    public static TardinessRecordModel createUndertimeRecord(AttendanceModel attendance) {
+        if (attendance == null || !attendance.isEarlyOut()) {
+            return null;
+        }
         
-        // More than 2 hours tardiness may require disciplinary action
-        BigDecimal threshold = BigDecimal.valueOf(2.0);
-        return tardinessHours.compareTo(threshold) > 0;
+        // Check if attendance has a valid ID
+        if (attendance.getAttendanceId() == null || attendance.getAttendanceId() <= 0) {
+            System.err.println("Cannot create tardiness record: Attendance ID is null or invalid");
+            return null;
+        }
+        
+        BigDecimal undertimeHours = attendance.getUndertimeHoursBigDecimal();
+        String notes = "Early departure at " + attendance.getFormattedTimeOut() + 
+                      " - " + undertimeHours + " hours undertime";
+        
+        return new TardinessRecordModel(
+            attendance.getAttendanceId(),
+            undertimeHours,
+            TardinessType.UNDERTIME,
+            notes
+        );
     }
     
     /**
-     * Gets the severity level of tardiness
-     * @return Severity level (LOW, MEDIUM, HIGH, CRITICAL)
+     * Create an absence tardiness record
      */
-    public String getSeverityLevel() {
-        if (tardinessHours == null) return "NONE";
+    public static TardinessRecordModel createAbsenceRecord(Integer attendanceId, String notes) {
+        return new TardinessRecordModel(
+            attendanceId,
+            new BigDecimal("8.0"), // Full day absence = 8 hours
+            TardinessType.ABSENCE,
+            notes != null ? notes : "Full day absence"
+        );
+    }
+    
+    // ===== VALIDATION METHODS =====
+    
+    /**
+     * Check if the tardiness record is valid
+     */
+    public boolean isValidRecord() {
+        return attendanceId != null && attendanceId > 0 && 
+               tardinessHours != null && 
+               tardinessHours.compareTo(BigDecimal.ZERO) > 0 && 
+               tardinessType != null;
+    }
+    
+    /**
+     * Get a description of the tardiness
+     */
+    public String getTardinessDescription() {
+        if (!isValidRecord()) {
+            return "Invalid tardiness record";
+        }
         
-        double hours = tardinessHours.doubleValue();
-        
-        if (hours <= 0.25) { // 15 minutes or less
-            return "LOW";
-        } else if (hours <= 1.0) { // 1 hour or less
-            return "MEDIUM";
-        } else if (hours <= 2.0) { // 2 hours or less
-            return "HIGH";
+        return tardinessType + " - " + tardinessHours + " hours";
+    }
+    
+    /**
+     * Check if this is a severe tardiness (over 2 hours)
+     */
+    public boolean isSevereTardiness() {
+        return tardinessHours != null && 
+               tardinessHours.compareTo(new BigDecimal("2.0")) > 0;
+    }
+    
+    /**
+     * Check if this is a minor tardiness (under 30 minutes)
+     */
+    public boolean isMinorTardiness() {
+        return tardinessHours != null && 
+               tardinessHours.compareTo(new BigDecimal("0.5")) <= 0;
+    }
+    
+    // ===== UTILITY METHODS =====
+    
+    /**
+     * Round tardiness hours to specified decimal places
+     */
+    public void roundTardinessHours(int decimalPlaces) {
+        if (tardinessHours != null) {
+            this.tardinessHours = tardinessHours.setScale(decimalPlaces, RoundingMode.HALF_UP);
+        }
+    }
+    
+    /**
+     * Add hours to tardiness (for combining multiple tardiness instances)
+     */
+    public void addTardinessHours(BigDecimal additionalHours) {
+        if (additionalHours != null && additionalHours.compareTo(BigDecimal.ZERO) > 0) {
+            this.tardinessHours = this.tardinessHours.add(additionalHours);
+        }
+    }
+    
+    /**
+     * Check if tardiness exceeds a threshold
+     */
+    public boolean exceedsThreshold(BigDecimal threshold) {
+        return tardinessHours != null && 
+               threshold != null && 
+               tardinessHours.compareTo(threshold) > 0;
+    }
+    
+    /**
+     * Get tardiness impact level
+     */
+    public String getTardinessImpactLevel() {
+        if (tardinessHours == null || tardinessHours.compareTo(BigDecimal.ZERO) <= 0) {
+            return "None";
+        } else if (tardinessHours.compareTo(new BigDecimal("0.25")) <= 0) {
+            return "Minimal"; // 15 minutes or less
+        } else if (tardinessHours.compareTo(new BigDecimal("0.5")) <= 0) {
+            return "Minor"; // 30 minutes or less
+        } else if (tardinessHours.compareTo(new BigDecimal("1.0")) <= 0) {
+            return "Moderate"; // 1 hour or less
+        } else if (tardinessHours.compareTo(new BigDecimal("2.0")) <= 0) {
+            return "Significant"; // 2 hours or less
         } else {
-            return "CRITICAL";
+            return "Severe"; // Over 2 hours
         }
     }
     
     /**
-     * Calculates the grace period adjustment for Manila timezone
-     * @param originalLateMinutes The original late minutes
-     * @return Adjusted late minutes after grace period
+     * Calculate potential salary deduction based on hourly rate
      */
-    public static double calculateGracePeriodAdjustment(double originalLateMinutes) {
-        final double GRACE_PERIOD_MINUTES = 10.0; // 8:10 AM grace period
-        
-        if (originalLateMinutes <= GRACE_PERIOD_MINUTES) {
-            return 0.0; // Within grace period
-        } else {
-            return originalLateMinutes - GRACE_PERIOD_MINUTES;
+    public BigDecimal calculateSalaryDeduction(BigDecimal hourlyRate) {
+        if (tardinessHours == null || hourlyRate == null) {
+            return BigDecimal.ZERO;
         }
+        return tardinessHours.multiply(hourlyRate).setScale(2, RoundingMode.HALF_UP);
     }
     
-    /**
-     * Checks if this tardiness occurred on a Monday (often has different rules)
-     * @return true if the tardiness was on a Monday
-     */
-    public boolean isMonday() {
-        if (createdAt == null) return false;
-        
-        LocalDateTime dateTime = getCreatedAtInManila();
-        return dateTime != null && dateTime.getDayOfWeek() == DayOfWeek.MONDAY;
-    }
-    
-    /**
-     * Gets the day of week for this tardiness record
-     * @return DayOfWeek enum value
-     */
-    public DayOfWeek getDayOfWeek() {
-        if (createdAt == null) return null;
-        
-        LocalDateTime dateTime = getCreatedAtInManila();
-        return dateTime != null ? dateTime.getDayOfWeek() : null;
-    }
-    
-    /**
-     * Formats the tardiness for payroll display
-     * @return Formatted string for payroll systems
-     */
-    public String getPayrollDisplayFormat() {
-        return String.format("%s: %.2f hrs (₱%.2f deduction)", 
-                           tardinessType.getValue(), 
-                           getTardinessHoursAsDouble(), 
-                           deductionAmount);
-    }
-    
-    // Getters and Setters
-    public int getTardinessId() { return tardinessId; }
-    public void setTardinessId(int tardinessId) { this.tardinessId = tardinessId; }
-    
-    public int getAttendanceId() { return attendanceId; }
-    public void setAttendanceId(int attendanceId) { this.attendanceId = attendanceId; }
-    
-    public BigDecimal getTardinessHours() { return tardinessHours; }
-    public void setTardinessHours(BigDecimal tardinessHours) { 
-        this.tardinessHours = tardinessHours != null ? 
-            tardinessHours.setScale(2, RoundingMode.HALF_UP) : null; 
-    }
-    
-    public TardinessType getTardinessType() { return tardinessType; }
-    public void setTardinessType(TardinessType tardinessType) { this.tardinessType = tardinessType; }
-    
-    public String getSupervisorNotes() { return supervisorNotes; }
-    public void setSupervisorNotes(String supervisorNotes) { 
-        this.supervisorNotes = supervisorNotes != null ? supervisorNotes.trim() : null; 
-    }
-    
-    public Timestamp getCreatedAt() { return createdAt; }
-    public void setCreatedAt(Timestamp createdAt) { this.createdAt = createdAt; }
-    public void setCreatedAt(LocalDateTime createdAt) { 
-        this.createdAt = createdAt != null ? Timestamp.valueOf(createdAt) : null; 
-    }
-    
-    public AttendanceModel getRelatedAttendance() { return relatedAttendance; }
-    public void setRelatedAttendance(AttendanceModel relatedAttendance) { 
-        this.relatedAttendance = relatedAttendance; 
-    }
-    
-    public double getHourlyRate() { return hourlyRate; }
-    public void setHourlyRate(double hourlyRate) { 
-        this.hourlyRate = hourlyRate;
-        if (tardinessHours != null && hourlyRate > 0) {
-            calculateDeductionAmount(hourlyRate);
-        }
-    }
-    
-    public double getDeductionAmount() { return deductionAmount; }
-    public void setDeductionAmount(double deductionAmount) { this.deductionAmount = deductionAmount; }
-    
-    // Static utility methods for Manila timezone
-    public static LocalDateTime getCurrentManilaTime() {
-        return LocalDateTime.now(MANILA_TIMEZONE);
-    }
-    
-    public static LocalTime getStandardStartTime() {
-        return STANDARD_START_TIME;
-    }
-    
-    public static LocalTime getStandardEndTime() {
-        return STANDARD_END_TIME;
-    }
-    
-    public static LocalTime getGracePeriodCutoff() {
-        return GRACE_PERIOD_CUTOFF;
-    }
+    // ===== toString, equals, hashCode =====
     
     @Override
     public String toString() {
-        return String.format("TardinessRecordModel{tardinessId=%d, attendanceId=%d, tardinessHours=%s, type=%s, deduction=%.2f, severity=%s}",
-                tardinessId, attendanceId, getFormattedTardinessHours(), tardinessType, deductionAmount, getSeverityLevel());
+        return "TardinessRecordModel{" +
+                "tardinessRecordId=" + tardinessRecordId +
+                ", attendanceId=" + attendanceId +
+                ", tardinessHours=" + tardinessHours +
+                ", tardinessType=" + tardinessType +
+                ", supervisorNotes='" + supervisorNotes + '\'' +
+                ", impactLevel='" + getTardinessImpactLevel() + '\'' +
+                '}';
     }
     
     @Override
-    public boolean equals(Object obj) {
-        if (this == obj) return true;
-        if (obj == null || getClass() != obj.getClass()) return false;
-        TardinessRecordModel that = (TardinessRecordModel) obj;
-        return tardinessId == that.tardinessId;
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        
+        TardinessRecordModel that = (TardinessRecordModel) o;
+        
+        return tardinessRecordId != null && tardinessRecordId.equals(that.tardinessRecordId);
     }
     
     @Override
     public int hashCode() {
-        return Integer.hashCode(tardinessId);
+        return tardinessRecordId != null ? tardinessRecordId.hashCode() : 0;
     }
 }

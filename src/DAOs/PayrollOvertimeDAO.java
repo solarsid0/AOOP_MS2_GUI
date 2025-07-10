@@ -1,399 +1,211 @@
-
 package DAOs;
 
 import Models.PayrollOvertime;
-import java.math.BigDecimal;
 import java.sql.*;
-import java.util.List;
+import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.List;
 
-/**
- * PayrollOvertimeDAO - Junction table DAO for payroll-overtime relationships
- * Links payroll records with overtime requests and stores computed hours/pay
- * @author Chad
- */
 public class PayrollOvertimeDAO {
     
-    private final DatabaseConnection databaseConnection;
+    private DatabaseConnection databaseConnection;
+    
+    public PayrollOvertimeDAO() {
+        this.databaseConnection = new DatabaseConnection();
+    }
     
     public PayrollOvertimeDAO(DatabaseConnection databaseConnection) {
         this.databaseConnection = databaseConnection;
     }
     
     /**
-     * Create - Link payroll with overtime request
-     * @param payrollOvertime
-     * @return 
+     * Populate payrollovertime table for a specific payroll record
      */
-    public boolean save(PayrollOvertime payrollOvertime) {
-        String sql = "INSERT INTO payrollovertime (payrollId, overtimeRequestId, overtimeHours, overtimePay) VALUES (?, ?, ?, ?)";
+    public int populateForPayroll(Integer payrollId, Integer employeeId, LocalDate startDate, LocalDate endDate) {
+        String sql = """
+            INSERT INTO payrollovertime (payrollId, overtimeRequestId, overtimeHours, overtimePay)
+            SELECT ?, ot.overtimeRequestId,
+                   TIMESTAMPDIFF(HOUR, ot.overtimeStart, ot.overtimeEnd) as overtimeHours,
+                   TIMESTAMPDIFF(HOUR, ot.overtimeStart, ot.overtimeEnd) * e.hourlyRate * 1.25 as overtimePay
+            FROM overtimerequest ot
+            JOIN employee e ON ot.employeeId = e.employeeId
+            WHERE ot.employeeId = ? 
+            AND ot.approvalStatus = 'Approved'
+            AND DATE(ot.overtimeStart) BETWEEN ? AND ?
+            """;
         
         try (Connection conn = databaseConnection.createConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
             
-            pstmt.setInt(1, payrollOvertime.getPayrollId());
-            pstmt.setInt(2, payrollOvertime.getOvertimeRequestId());
-            pstmt.setBigDecimal(3, payrollOvertime.getOvertimeHours());
-            pstmt.setBigDecimal(4, payrollOvertime.getOvertimePay());
+            stmt.setInt(1, payrollId);
+            stmt.setInt(2, employeeId);
+            stmt.setDate(3, Date.valueOf(startDate));
+            stmt.setDate(4, Date.valueOf(endDate));
             
-            return pstmt.executeUpdate() > 0;
+            return stmt.executeUpdate();
             
         } catch (SQLException e) {
-            System.err.println("Error saving payroll overtime: " + e.getMessage());
-            return false;
+            System.err.println("Error populating payrollovertime: " + e.getMessage());
+            return 0;
         }
     }
     
     /**
-     * Read - Find all overtime records for a payroll
-     * @param payrollId
-     * @return 
+     * Generate overtime records for a pay period - FIXED table and column names
      */
-    public List<PayrollOvertime> findByPayrollId(Integer payrollId) {
-        List<PayrollOvertime> overtimeList = new ArrayList<>();
-        String sql = "SELECT po.*, ot.overtimeStart, ot.overtimeEnd, ot.overtimeReason " +
-                    "FROM payrollovertime po " +
-                    "JOIN overtimerequest ot ON po.overtimeRequestId = ot.overtimeRequestId " +
-                    "WHERE po.payrollId = ? ORDER BY ot.overtimeStart";
+    public int generateOvertimeRecords(int payPeriodId) {
+        String sql = """
+            INSERT INTO payrollovertime (payrollId, overtimeRequestId, overtimeHours, overtimePay)
+            SELECT p.payrollId, ot.overtimeRequestId,
+                   TIMESTAMPDIFF(HOUR, ot.overtimeStart, ot.overtimeEnd) as overtimeHours,
+                   TIMESTAMPDIFF(HOUR, ot.overtimeStart, ot.overtimeEnd) * e.hourlyRate * 1.25 as overtimePay
+            FROM payroll p
+            JOIN employee e ON p.employeeId = e.employeeId
+            JOIN overtimerequest ot ON p.employeeId = ot.employeeId
+            JOIN payperiod pp ON p.payPeriodId = pp.payPeriodId
+            WHERE p.payPeriodId = ?
+            AND ot.approvalStatus = 'Approved'
+            AND DATE(ot.overtimeStart) BETWEEN pp.startDate AND pp.endDate
+            """;
         
         try (Connection conn = databaseConnection.createConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
             
-            pstmt.setInt(1, payrollId);
-            ResultSet rs = pstmt.executeQuery();
-            
-            while (rs.next()) {
-                PayrollOvertime po = new PayrollOvertime();
-                po.setPayrollId(rs.getInt("payrollId"));
-                po.setOvertimeRequestId(rs.getInt("overtimeRequestId"));
-                po.setOvertimeHours(rs.getBigDecimal("overtimeHours"));
-                po.setOvertimePay(rs.getBigDecimal("overtimePay"));
-                overtimeList.add(po);
-            }
-        } catch (SQLException e) {
-            System.err.println("Error finding payroll overtime: " + e.getMessage());
-        }
-        return overtimeList;
-    }
-    
-    /**
-     * Read - Find overtime records by overtime request
-     * @param overtimeRequestId
-     * @return 
-     */
-    public List<PayrollOvertime> findByOvertimeRequestId(Integer overtimeRequestId) {
-        List<PayrollOvertime> overtimeList = new ArrayList<>();
-        String sql = "SELECT * FROM payrollovertime WHERE overtimeRequestId = ?";
-        
-        try (Connection conn = databaseConnection.createConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            
-            pstmt.setInt(1, overtimeRequestId);
-            ResultSet rs = pstmt.executeQuery();
-            
-            while (rs.next()) {
-                PayrollOvertime po = new PayrollOvertime();
-                po.setPayrollId(rs.getInt("payrollId"));
-                po.setOvertimeRequestId(rs.getInt("overtimeRequestId"));
-                po.setOvertimeHours(rs.getBigDecimal("overtimeHours"));
-                po.setOvertimePay(rs.getBigDecimal("overtimePay"));
-                overtimeList.add(po);
-            }
-        } catch (SQLException e) {
-            System.err.println("Error finding payroll overtime by request: " + e.getMessage());
-        }
-        return overtimeList;
-    }
-    
-    /**
-     * Update overtime hours and pay
-     * @param payrollOvertime
-     * @return 
-     */
-    public boolean update(PayrollOvertime payrollOvertime) {
-        String sql = "UPDATE payrollovertime SET overtimeHours = ?, overtimePay = ? WHERE payrollId = ? AND overtimeRequestId = ?";
-        
-        try (Connection conn = databaseConnection.createConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            
-            pstmt.setBigDecimal(1, payrollOvertime.getOvertimeHours());
-            pstmt.setBigDecimal(2, payrollOvertime.getOvertimePay());
-            pstmt.setInt(3, payrollOvertime.getPayrollId());
-            pstmt.setInt(4, payrollOvertime.getOvertimeRequestId());
-            
-            return pstmt.executeUpdate() > 0;
+            stmt.setInt(1, payPeriodId);
+            return stmt.executeUpdate();
             
         } catch (SQLException e) {
-            System.err.println("Error updating payroll overtime: " + e.getMessage());
-            return false;
+            System.err.println("Error generating overtime records: " + e.getMessage());
+            return 0;
         }
     }
     
     /**
-     * Delete - Remove payroll-overtime link
-     * @param payrollId
-     * @param overtimeRequestId
-     * @return 
+     * Delete records for a pay period - FIXED column names
      */
-    public boolean delete(Integer payrollId, Integer overtimeRequestId) {
-        String sql = "DELETE FROM payrollovertime WHERE payrollId = ? AND overtimeRequestId = ?";
+    public int deleteByPayPeriod(int payPeriodId) {
+        String sql = """
+            DELETE po FROM payrollovertime po
+            JOIN payroll p ON po.payrollId = p.payrollId
+            WHERE p.payPeriodId = ?
+            """;
         
         try (Connection conn = databaseConnection.createConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
             
-            pstmt.setInt(1, payrollId);
-            pstmt.setInt(2, overtimeRequestId);
-            
-            return pstmt.executeUpdate() > 0;
+            stmt.setInt(1, payPeriodId);
+            return stmt.executeUpdate();
             
         } catch (SQLException e) {
-            System.err.println("Error deleting payroll overtime: " + e.getMessage());
-            return false;
+            System.err.println("Error deleting payroll overtime records: " + e.getMessage());
+            return 0;
         }
     }
     
     /**
-     * Delete all overtime links for a payroll
-     * @param payrollId
-     * @return 
+     * Check if records exist for a pay period - FIXED column names
      */
-    public boolean deleteByPayrollId(Integer payrollId) {
-        String sql = "DELETE FROM payrollovertime WHERE payrollId = ?";
+    public boolean hasRecordsForPeriod(int payPeriodId) {
+        String sql = """
+            SELECT COUNT(*) FROM payrollovertime po
+            JOIN payroll p ON po.payrollId = p.payrollId
+            WHERE p.payPeriodId = ?
+            """;
         
         try (Connection conn = databaseConnection.createConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
             
-            pstmt.setInt(1, payrollId);
-            return pstmt.executeUpdate() >= 0;
-            
-        } catch (SQLException e) {
-            System.err.println("Error deleting payroll overtime by payroll: " + e.getMessage());
-            return false;
-        }
-    }
-    
-    /**
-     * Calculate total overtime hours for a payroll
-     * @param payrollId
-     * @return 
-     */
-    public BigDecimal getTotalOvertimeHours(Integer payrollId) {
-        String sql = "SELECT COALESCE(SUM(overtimeHours), 0) FROM payrollovertime WHERE payrollId = ?";
-        
-        try (Connection conn = databaseConnection.createConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            
-            pstmt.setInt(1, payrollId);
-            ResultSet rs = pstmt.executeQuery();
-            
-            if (rs.next()) {
-                return rs.getBigDecimal(1);
-            }
-        } catch (SQLException e) {
-            System.err.println("Error getting total overtime hours: " + e.getMessage());
-        }
-        return BigDecimal.ZERO;
-    }
-    
-    /**
-     * Calculate total overtime pay for a payroll
-     * @param payrollId
-     * @return 
-     */
-    public BigDecimal getTotalOvertimePay(Integer payrollId) {
-        String sql = "SELECT COALESCE(SUM(overtimePay), 0) FROM payrollovertime WHERE payrollId = ?";
-        
-        try (Connection conn = databaseConnection.createConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            
-            pstmt.setInt(1, payrollId);
-            ResultSet rs = pstmt.executeQuery();
-            
-            if (rs.next()) {
-                return rs.getBigDecimal(1);
-            }
-        } catch (SQLException e) {
-            System.err.println("Error getting total overtime pay: " + e.getMessage());
-        }
-        return BigDecimal.ZERO;
-    }
-    
-    /**
-     * Get overtime summary for a payroll (regular vs weekend vs holiday)
-     * @param payrollId
-     * @return 
-     */
-    public OvertimeSummary getOvertimeSummary(Integer payrollId) {
-        OvertimeSummary summary = new OvertimeSummary();
-        String sql = "SELECT " +
-                    "SUM(CASE WHEN DAYOFWEEK(ot.overtimeStart) IN (1, 7) THEN po.overtimeHours ELSE 0 END) as weekendHours, " +
-                    "SUM(CASE WHEN DAYOFWEEK(ot.overtimeStart) NOT IN (1, 7) THEN po.overtimeHours ELSE 0 END) as regularHours, " +
-                    "SUM(CASE WHEN DAYOFWEEK(ot.overtimeStart) IN (1, 7) THEN po.overtimePay ELSE 0 END) as weekendPay, " +
-                    "SUM(CASE WHEN DAYOFWEEK(ot.overtimeStart) NOT IN (1, 7) THEN po.overtimePay ELSE 0 END) as regularPay " +
-                    "FROM payrollovertime po " +
-                    "JOIN overtimerequest ot ON po.overtimeRequestId = ot.overtimeRequestId " +
-                    "WHERE po.payrollId = ?";
-        
-        try (Connection conn = databaseConnection.createConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            
-            pstmt.setInt(1, payrollId);
-            ResultSet rs = pstmt.executeQuery();
-            
-            if (rs.next()) {
-                summary.setWeekendHours(rs.getBigDecimal("weekendHours") != null ? rs.getBigDecimal("weekendHours") : BigDecimal.ZERO);
-                summary.setRegularHours(rs.getBigDecimal("regularHours") != null ? rs.getBigDecimal("regularHours") : BigDecimal.ZERO);
-                summary.setWeekendPay(rs.getBigDecimal("weekendPay") != null ? rs.getBigDecimal("weekendPay") : BigDecimal.ZERO);
-                summary.setRegularPay(rs.getBigDecimal("regularPay") != null ? rs.getBigDecimal("regularPay") : BigDecimal.ZERO);
-            }
-        } catch (SQLException e) {
-            System.err.println("Error getting overtime summary: " + e.getMessage());
-        }
-        return summary;
-    }
-    
-    /**
-     * Bulk insert overtime records for payroll
-     * @param overtimeList
-     * @return 
-     */
-    public boolean bulkInsert(List<PayrollOvertime> overtimeList) {
-        if (overtimeList == null || overtimeList.isEmpty()) {
-            return false;
-        }
-        
-        String sql = "INSERT INTO payrollovertime (payrollId, overtimeRequestId, overtimeHours, overtimePay) VALUES (?, ?, ?, ?)";
-        
-        try (Connection conn = databaseConnection.createConnection()) {
-            conn.setAutoCommit(false);
-            
-            try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
-                for (PayrollOvertime po : overtimeList) {
-                    pstmt.setInt(1, po.getPayrollId());
-                    pstmt.setInt(2, po.getOvertimeRequestId());
-                    pstmt.setBigDecimal(3, po.getOvertimeHours());
-                    pstmt.setBigDecimal(4, po.getOvertimePay());
-                    pstmt.addBatch();
-                }
-                
-                int[] results = pstmt.executeBatch();
-                conn.commit();
-                
-                // Check if all inserts were successful
-                for (int result : results) {
-                    if (result <= 0) {
-                        return false;
-                    }
-                }
-                return true;
-                
-            } catch (SQLException e) {
-                conn.rollback();
-                throw e;
-            }
-            
-        } catch (SQLException e) {
-            System.err.println("Error bulk inserting payroll overtime: " + e.getMessage());
-            return false;
-        }
-    }
-    
-    /**
-     * Check if overtime request is already linked to payroll
-     * @param payrollId
-     * @param overtimeRequestId
-     * @return 
-     */
-    public boolean isLinked(Integer payrollId, Integer overtimeRequestId) {
-        String sql = "SELECT COUNT(*) FROM payrollovertime WHERE payrollId = ? AND overtimeRequestId = ?";
-        
-        try (Connection conn = databaseConnection.createConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
-            
-            pstmt.setInt(1, payrollId);
-            pstmt.setInt(2, overtimeRequestId);
-            ResultSet rs = pstmt.executeQuery();
+            stmt.setInt(1, payPeriodId);
+            ResultSet rs = stmt.executeQuery();
             
             if (rs.next()) {
                 return rs.getInt(1) > 0;
             }
+            return false;
+            
         } catch (SQLException e) {
-            System.err.println("Error checking overtime link: " + e.getMessage());
+            System.err.println("Error checking payroll overtime records: " + e.getMessage());
+            return false;
         }
-        return false;
     }
     
-    /**
-     * Get rank-and-file employees' overtime for payroll period
-     * Based on business logic: Only rank-and-file employees are eligible for overtime
-     * @param payrollId
-     * @return 
-     */
-    public List<PayrollOvertime> getRankAndFileOvertime(Integer payrollId) {
+    public List<PayrollOvertime> findByPayPeriod(int payPeriodId) {
         List<PayrollOvertime> overtimeList = new ArrayList<>();
-        String sql = "SELECT po.*, ot.overtimeStart, ot.overtimeEnd, p.position, p.department " +
-                    "FROM payrollovertime po " +
-                    "JOIN overtimerequest ot ON po.overtimeRequestId = ot.overtimeRequestId " +
-                    "JOIN payroll pr ON po.payrollId = pr.payrollId " +
-                    "JOIN employee e ON pr.employeeId = e.employeeId " +
-                    "JOIN position p ON e.positionId = p.positionId " +
-                    "WHERE po.payrollId = ? " +
-                    "AND (LOWER(p.department) = 'rank-and-file' OR LOWER(p.position) LIKE '%rank%file%') " +
-                    "ORDER BY ot.overtimeStart";
+        String sql = """
+            SELECT po.* FROM payrollovertime po
+            JOIN payroll p ON po.payrollId = p.payrollId
+            WHERE p.payPeriodId = ?
+            """;
         
-        try (Connection conn = databaseConnection.createConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        try (Connection connection = databaseConnection.createConnection();
+             PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            
+            pstmt.setInt(1, payPeriodId);
+            ResultSet rs = pstmt.executeQuery();
+            
+            while (rs.next()) {
+                PayrollOvertime overtime = mapResultSetToModel(rs);
+                overtimeList.add(overtime);
+            }
+        } catch (SQLException e) {
+            System.err.println("Error finding payroll overtime: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return overtimeList;
+    }
+    
+    public PayrollOvertime findByPayrollId(int payrollId) {
+        String sql = "SELECT * FROM payrollovertime WHERE payrollId = ?";
+        
+        try (Connection connection = databaseConnection.createConnection();
+             PreparedStatement pstmt = connection.prepareStatement(sql)) {
             
             pstmt.setInt(1, payrollId);
             ResultSet rs = pstmt.executeQuery();
             
-            while (rs.next()) {
-                PayrollOvertime po = new PayrollOvertime();
-                po.setPayrollId(rs.getInt("payrollId"));
-                po.setOvertimeRequestId(rs.getInt("overtimeRequestId"));
-                po.setOvertimeHours(rs.getBigDecimal("overtimeHours"));
-                po.setOvertimePay(rs.getBigDecimal("overtimePay"));
-                overtimeList.add(po);
+            if (rs.next()) {
+                return mapResultSetToModel(rs);
             }
         } catch (SQLException e) {
-            System.err.println("Error finding rank-and-file overtime: " + e.getMessage());
+            System.err.println("Error finding payroll overtime by payroll ID: " + e.getMessage());
+            e.printStackTrace();
         }
-        return overtimeList;
+        
+        return null;
     }
     
-    /**
-     * Inner class for overtime summary
-     */
-    public static class OvertimeSummary {
-        private BigDecimal regularHours = BigDecimal.ZERO;
-        private BigDecimal weekendHours = BigDecimal.ZERO;
-        private BigDecimal regularPay = BigDecimal.ZERO;
-        private BigDecimal weekendPay = BigDecimal.ZERO;
+    public PayrollOvertime findByEmployeeAndPeriod(int employeeId, int payPeriodId) {
+        String sql = """
+            SELECT po.* FROM payrollovertime po
+            JOIN payroll p ON po.payrollId = p.payrollId
+            WHERE p.employeeId = ? AND p.payPeriodId = ?
+            """;
         
-        public BigDecimal getRegularHours() { return regularHours; }
-        public void setRegularHours(BigDecimal regularHours) { this.regularHours = regularHours; }
-        
-        public BigDecimal getWeekendHours() { return weekendHours; }
-        public void setWeekendHours(BigDecimal weekendHours) { this.weekendHours = weekendHours; }
-        
-        public BigDecimal getRegularPay() { return regularPay; }
-        public void setRegularPay(BigDecimal regularPay) { this.regularPay = regularPay; }
-        
-        public BigDecimal getWeekendPay() { return weekendPay; }
-        public void setWeekendPay(BigDecimal weekendPay) { this.weekendPay = weekendPay; }
-        
-        public BigDecimal getTotalHours() {
-            return regularHours.add(weekendHours);
+        try (Connection connection = databaseConnection.createConnection();
+             PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            
+            pstmt.setInt(1, employeeId);
+            pstmt.setInt(2, payPeriodId);
+            ResultSet rs = pstmt.executeQuery();
+            
+            if (rs.next()) {
+                return mapResultSetToModel(rs);
+            }
+        } catch (SQLException e) {
+            System.err.println("Error finding payroll overtime by employee and period: " + e.getMessage());
+            e.printStackTrace();
         }
         
-        public BigDecimal getTotalPay() {
-            return regularPay.add(weekendPay);
-        }
-        
-        @Override
-        public String toString() {
-            return String.format("Overtime Summary: %.2f hours (Regular: %.2f, Weekend: %.2f), Total Pay: ₱%.2f", 
-                    getTotalHours(), regularHours, weekendHours, getTotalPay());
-        }
+        return null;
+    }
+    
+    private PayrollOvertime mapResultSetToModel(ResultSet rs) throws SQLException {
+        PayrollOvertime overtime = new PayrollOvertime();
+        overtime.setPayrollId(rs.getInt("payrollId"));
+        overtime.setOvertimeRequestId(rs.getInt("overtimeRequestId"));
+        overtime.setOvertimeHours(rs.getBigDecimal("overtimeHours"));
+        overtime.setOvertimePay(rs.getBigDecimal("overtimePay"));
+        return overtime;
     }
 }

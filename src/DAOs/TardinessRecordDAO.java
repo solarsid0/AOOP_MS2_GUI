@@ -1,167 +1,61 @@
 package DAOs;
 
 import Models.TardinessRecordModel;
-import Models.TardinessRecordModel.TardinessType;
 import java.sql.*;
-import java.time.LocalDateTime;
-import java.time.YearMonth;
-import java.time.ZoneId;
-import java.util.List;
+import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.List;
+import java.math.BigDecimal;
 
-/**
- * Data Access Object for TardinessRecordModel entities.
- * Enhanced with Manila timezone support and late/undertime tracking
- * @author User
- */
-public class TardinessRecordDAO extends BaseDAO<TardinessRecordModel, Integer> {
+public class TardinessRecordDAO {
     
-    private static final ZoneId MANILA_TIMEZONE = ZoneId.of("Asia/Manila");
-
-    /**
-     * Constructor that accepts a DatabaseConnection instance
-     * @param databaseConnection The database connection to use for all operations
-     */
-    public TardinessRecordDAO(DatabaseConnection databaseConnection) {
-        super(databaseConnection);
-    }
-
-    /**
-     * Default constructor using default database connection
-     */
+    private DatabaseConnection databaseConnection;
+    
     public TardinessRecordDAO() {
-        super(new DatabaseConnection());
+        this.databaseConnection = new DatabaseConnection();
     }
-
-    // ABSTRACT METHOD IMPLEMENTATIONS - Required by BaseDAO
-
+    
+    public TardinessRecordDAO(DatabaseConnection databaseConnection) {
+        this.databaseConnection = databaseConnection;
+    }
+    
     /**
-     * Converts a database row into a TardinessRecordModel object
-     * @param rs The ResultSet containing tardiness data from the database
-     * @return A fully populated TardinessRecordModel object
-     * @throws SQLException if there's an error reading from the database
-     */
-    @Override
-    protected TardinessRecordModel mapResultSetToEntity(ResultSet rs) throws SQLException {
-        TardinessRecordModel tardiness = new TardinessRecordModel();
-        
-        tardiness.setTardinessId(rs.getInt("tardinessId"));
-        tardiness.setAttendanceId(rs.getInt("attendanceId"));
-        tardiness.setTardinessHours(rs.getBigDecimal("tardinessHours"));
-        
-        // Handle enum for tardiness type - fixed to use correct method
-        String typeStr = rs.getString("tardinessType");
-        if (typeStr != null) {
-            tardiness.setTardinessType(TardinessType.fromString(typeStr));
-        }
-        
-        tardiness.setSupervisorNotes(rs.getString("supervisorNotes"));
-        
-        // Handle createdAt timestamp with Manila timezone awareness
-        Timestamp createdAt = rs.getTimestamp("createdAt");
-        if (createdAt != null) {
-            tardiness.setCreatedAt(createdAt);
-        }
-        
-        return tardiness;
-    }
-
-    @Override
-    protected String getTableName() {
-        return "tardinessrecord";
-    }
-
-    @Override
-    protected String getPrimaryKeyColumn() {
-        return "tardinessId";
-    }
-
-    @Override
-    protected void setInsertParameters(PreparedStatement stmt, TardinessRecordModel tardiness) throws SQLException {
-        int paramIndex = 1;
-        
-        stmt.setInt(paramIndex++, tardiness.getAttendanceId());
-        stmt.setBigDecimal(paramIndex++, tardiness.getTardinessHours());
-        stmt.setString(paramIndex++, tardiness.getTardinessType().getValue()); // Fixed to use getValue()
-        
-        if (tardiness.getSupervisorNotes() != null) {
-            stmt.setString(paramIndex++, tardiness.getSupervisorNotes());
-        } else {
-            stmt.setNull(paramIndex++, Types.VARCHAR);
-        }
-        
-        // Set createdAt with Manila timezone
-        if (tardiness.getCreatedAt() != null) {
-            stmt.setTimestamp(paramIndex++, tardiness.getCreatedAt());
-        } else {
-            stmt.setTimestamp(paramIndex++, Timestamp.valueOf(LocalDateTime.now(MANILA_TIMEZONE)));
-        }
-    }
-
-    @Override
-    protected void setUpdateParameters(PreparedStatement stmt, TardinessRecordModel tardiness) throws SQLException {
-        int paramIndex = 1;
-        
-        stmt.setInt(paramIndex++, tardiness.getAttendanceId());
-        stmt.setBigDecimal(paramIndex++, tardiness.getTardinessHours());
-        stmt.setString(paramIndex++, tardiness.getTardinessType().getValue()); // Fixed to use getValue()
-        
-        if (tardiness.getSupervisorNotes() != null) {
-            stmt.setString(paramIndex++, tardiness.getSupervisorNotes());
-        } else {
-            stmt.setNull(paramIndex++, Types.VARCHAR);
-        }
-        
-        // Set the ID for WHERE clause
-        stmt.setInt(paramIndex++, tardiness.getTardinessId());
-    }
-
-    @Override
-    protected Integer getEntityId(TardinessRecordModel tardiness) {
-        return tardiness.getTardinessId();
-    }
-
-    @Override
-    protected void handleGeneratedKey(TardinessRecordModel entity, ResultSet generatedKeys) throws SQLException {
-        if (generatedKeys.next()) {
-            entity.setTardinessId(generatedKeys.getInt(1));
-        }
-    }
-
-    // CUSTOM SQL BUILDERS
-
-    private String buildInsertSQL() {
-        return "INSERT INTO tardinessrecord " +
-               "(attendanceId, tardinessHours, tardinessType, supervisorNotes, createdAt) " +
-               "VALUES (?, ?, ?, ?, ?)";
-    }
-
-    private String buildUpdateSQL() {
-        return "UPDATE tardinessrecord SET " +
-               "attendanceId = ?, tardinessHours = ?, tardinessType = ?, supervisorNotes = ? " +
-               "WHERE tardinessId = ?";
-    }
-
-    // CUSTOM TARDINESS METHODS
-
-    /**
-     * Creates a new tardiness record (implementation of missing method)
-     * @param tardinessRecord The tardiness record to create
-     * @return true if successful, false otherwise
+     * Create a tardiness record
      */
     public boolean createTardinessRecord(TardinessRecordModel tardinessRecord) {
-        if (tardinessRecord == null || !tardinessRecord.isValidRecord()) {
-            System.err.println("Invalid tardiness record provided");
+        String sql = """
+            INSERT INTO tardinessrecord (attendanceId, tardinessHours, tardinessType, supervisorNotes, createdAt)
+            VALUES (?, ?, ?, ?, NOW())
+            """;
+        
+        try (Connection conn = databaseConnection.createConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
+            
+            stmt.setInt(1, tardinessRecord.getAttendanceId());
+            stmt.setBigDecimal(2, tardinessRecord.getTardinessHours());
+            stmt.setString(3, tardinessRecord.getTardinessType().toString());
+            stmt.setString(4, tardinessRecord.getSupervisorNotes());
+            
+            int rowsAffected = stmt.executeUpdate();
+            
+            if (rowsAffected > 0) {
+                try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
+                    if (generatedKeys.next()) {
+                        tardinessRecord.setTardinessRecordId(generatedKeys.getInt(1));
+                    }
+                }
+                return true;
+            }
+            return false;
+            
+        } catch (SQLException e) {
+            System.err.println("Error creating tardiness record: " + e.getMessage());
             return false;
         }
-        
-        return save(tardinessRecord);
     }
-
+    
     /**
-     * Deletes all tardiness records for a specific attendance (implementation of missing method)
-     * @param attendanceId The attendance ID
-     * @return true if successful, false otherwise
+     * Delete tardiness records by attendance ID
      */
     public boolean deleteTardinessRecordsByAttendance(int attendanceId) {
         String sql = "DELETE FROM tardinessrecord WHERE attendanceId = ?";
@@ -170,300 +64,251 @@ public class TardinessRecordDAO extends BaseDAO<TardinessRecordModel, Integer> {
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             
             stmt.setInt(1, attendanceId);
-            int rowsAffected = stmt.executeUpdate();
+            int deletedRows = stmt.executeUpdate();
             
-            System.out.println("Deleted " + rowsAffected + " tardiness records for attendance ID: " + attendanceId);
-            return true;
+            if (deletedRows > 0) {
+                System.out.println("Deleted " + deletedRows + " tardiness records for attendance ID: " + attendanceId);
+            }
+            
+            return true; // Return true even if no rows deleted (no existing records)
             
         } catch (SQLException e) {
             System.err.println("Error deleting tardiness records by attendance: " + e.getMessage());
             return false;
         }
     }
-
+    
     /**
-     * Finds all tardiness records for a specific attendance record
-     * @param attendanceId The attendance ID
-     * @return List of tardiness records
+     * Generate tardiness records for a pay period
      */
-    public List<TardinessRecordModel> findByAttendanceId(Integer attendanceId) {
-        if (attendanceId == null || attendanceId <= 0) {
-            return new ArrayList<>();
-        }
-        
-        String sql = "SELECT * FROM tardinessrecord WHERE attendanceId = ? ORDER BY createdAt DESC";
-        return executeQuery(sql, attendanceId);
-    }
-
-    /**
-     * Finds tardiness records by type
-     * @param tardinessType The tardiness type to search for
-     * @return List of tardiness records with the specified type
-     */
-    public List<TardinessRecordModel> findByType(TardinessType tardinessType) {
-        if (tardinessType == null) {
-            return new ArrayList<>();
-        }
-        
-        String sql = "SELECT * FROM tardinessrecord WHERE tardinessType = ? ORDER BY createdAt DESC";
-        return executeQuery(sql, tardinessType.getValue());
-    }
-
-    /**
-     * Gets tardiness records for an employee within a date range
-     * Enhanced with Manila timezone support
-     * @param employeeId The employee ID
-     * @param startDate The start date
-     * @param endDate The end date
-     * @return List of tardiness records within the date range
-     */
-    public List<TardinessRecordModel> getTardinessRecordsForEmployee(Integer employeeId, 
-                                                                   LocalDateTime startDate, 
-                                                                   LocalDateTime endDate) {
-        if (employeeId == null || employeeId <= 0 || startDate == null || endDate == null) {
-            return new ArrayList<>();
-        }
-        
-        String sql = "SELECT t.* FROM tardinessrecord t " +
-                    "JOIN attendance a ON t.attendanceId = a.attendanceId " +
-                    "WHERE a.employeeId = ? AND t.createdAt BETWEEN ? AND ? " +
-                    "ORDER BY t.createdAt DESC";
-        
-        return executeQuery(sql, employeeId, 
-                          Timestamp.valueOf(startDate), 
-                          Timestamp.valueOf(endDate));
-    }
-
-    /**
-     * Gets tardiness records for a specific month (Manila timezone)
-     * @param employeeId The employee ID
-     * @param yearMonth The year and month
-     * @return List of tardiness records for the month
-     */
-    public List<TardinessRecordModel> getTardinessRecordsForMonth(Integer employeeId, YearMonth yearMonth) {
-        if (employeeId == null || employeeId <= 0 || yearMonth == null) {
-            return new ArrayList<>();
-        }
-        
-        // Use Manila timezone for month boundaries
-        LocalDateTime startDate = yearMonth.atDay(1).atStartOfDay();
-        LocalDateTime endDate = yearMonth.atEndOfMonth().atTime(23, 59, 59);
-        
-        return getTardinessRecordsForEmployee(employeeId, startDate, endDate);
-    }
-
-    /**
-     * Gets tardiness records for current month (Manila timezone)
-     * @param employeeId The employee ID
-     * @return List of tardiness records for current month
-     */
-    public List<TardinessRecordModel> getCurrentMonthTardinessRecords(Integer employeeId) {
-        YearMonth currentMonth = YearMonth.now(MANILA_TIMEZONE);
-        return getTardinessRecordsForMonth(employeeId, currentMonth);
-    }
-
-    /**
-     * Gets late records for an employee in a date range
-     * @param employeeId The employee ID
-     * @param startDate The start date
-     * @param endDate The end date
-     * @return List of late tardiness records
-     */
-    public List<TardinessRecordModel> getLateRecordsForEmployee(Integer employeeId, 
-                                                              LocalDateTime startDate, 
-                                                              LocalDateTime endDate) {
-        if (employeeId == null || employeeId <= 0 || startDate == null || endDate == null) {
-            return new ArrayList<>();
-        }
-        
-        String sql = "SELECT t.* FROM tardinessrecord t " +
-                    "JOIN attendance a ON t.attendanceId = a.attendanceId " +
-                    "WHERE a.employeeId = ? AND t.tardinessType = 'Late' " +
-                    "AND t.createdAt BETWEEN ? AND ? " +
-                    "ORDER BY t.createdAt DESC";
-        
-        return executeQuery(sql, employeeId, 
-                          Timestamp.valueOf(startDate), 
-                          Timestamp.valueOf(endDate));
-    }
-
-    /**
-     * Gets undertime records for an employee in a date range
-     * @param employeeId The employee ID
-     * @param startDate The start date
-     * @param endDate The end date
-     * @return List of undertime tardiness records
-     */
-    public List<TardinessRecordModel> getUndertimeRecordsForEmployee(Integer employeeId, 
-                                                                   LocalDateTime startDate, 
-                                                                   LocalDateTime endDate) {
-        if (employeeId == null || employeeId <= 0 || startDate == null || endDate == null) {
-            return new ArrayList<>();
-        }
-        
-        String sql = "SELECT t.* FROM tardinessrecord t " +
-                    "JOIN attendance a ON t.attendanceId = a.attendanceId " +
-                    "WHERE a.employeeId = ? AND t.tardinessType = 'Undertime' " +
-                    "AND t.createdAt BETWEEN ? AND ? " +
-                    "ORDER BY t.createdAt DESC";
-        
-        return executeQuery(sql, employeeId, 
-                          Timestamp.valueOf(startDate), 
-                          Timestamp.valueOf(endDate));
-    }
-
-    /**
-     * Gets total tardiness hours for an employee in a date range
-     * @param employeeId The employee ID
-     * @param startDate The start date
-     * @param endDate The end date
-     * @param tardinessType The type of tardiness (null for all types)
-     * @return Total tardiness hours
-     */
-    public double getTotalTardinessHours(Integer employeeId, 
-                                       LocalDateTime startDate, 
-                                       LocalDateTime endDate,
-                                       TardinessType tardinessType) {
-        if (employeeId == null || employeeId <= 0 || startDate == null || endDate == null) {
-            return 0.0;
-        }
-        
-        StringBuilder sql = new StringBuilder();
-        sql.append("SELECT COALESCE(SUM(t.tardinessHours), 0) as totalHours ");
-        sql.append("FROM tardinessrecord t ");
-        sql.append("JOIN attendance a ON t.attendanceId = a.attendanceId ");
-        sql.append("WHERE a.employeeId = ? AND t.createdAt BETWEEN ? AND ? ");
-        
-        List<Object> params = new ArrayList<>();
-        params.add(employeeId);
-        params.add(Timestamp.valueOf(startDate));
-        params.add(Timestamp.valueOf(endDate));
-        
-        if (tardinessType != null) {
-            sql.append("AND t.tardinessType = ? ");
-            params.add(tardinessType.getValue());
-        }
-        
-        try (Connection conn = databaseConnection.createConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql.toString())) {
-            
-            for (int i = 0; i < params.size(); i++) {
-                stmt.setObject(i + 1, params.get(i));
-            }
-            
-            try (ResultSet rs = stmt.executeQuery()) {
-                if (rs.next()) {
-                    return rs.getDouble("totalHours");
-                }
-            }
-            
-        } catch (SQLException e) {
-            System.err.println("Error getting total tardiness hours: " + e.getMessage());
-        }
-        
-        return 0.0;
-    }
-
-    /**
-     * Counts tardiness occurrences for an employee
-     * @param employeeId The employee ID
-     * @param startDate The start date
-     * @param endDate The end date
-     * @param tardinessType The type of tardiness (null for all types)
-     * @return Number of tardiness occurrences
-     */
-    public int countTardinessOccurrences(Integer employeeId, 
-                                       LocalDateTime startDate, 
-                                       LocalDateTime endDate,
-                                       TardinessType tardinessType) {
-        if (employeeId == null || employeeId <= 0 || startDate == null || endDate == null) {
-            return 0;
-        }
-        
-        StringBuilder sql = new StringBuilder();
-        sql.append("SELECT COUNT(*) as occurrences ");
-        sql.append("FROM tardinessrecord t ");
-        sql.append("JOIN attendance a ON t.attendanceId = a.attendanceId ");
-        sql.append("WHERE a.employeeId = ? AND t.createdAt BETWEEN ? AND ? ");
-        
-        List<Object> params = new ArrayList<>();
-        params.add(employeeId);
-        params.add(Timestamp.valueOf(startDate));
-        params.add(Timestamp.valueOf(endDate));
-        
-        if (tardinessType != null) {
-            sql.append("AND t.tardinessType = ? ");
-            params.add(tardinessType.getValue());
-        }
-        
-        try (Connection conn = databaseConnection.createConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql.toString())) {
-            
-            for (int i = 0; i < params.size(); i++) {
-                stmt.setObject(i + 1, params.get(i));
-            }
-            
-            try (ResultSet rs = stmt.executeQuery()) {
-                if (rs.next()) {
-                    return rs.getInt("occurrences");
-                }
-            }
-            
-        } catch (SQLException e) {
-            System.err.println("Error counting tardiness occurrences: " + e.getMessage());
-        }
-        
-        return 0;
-    }
-
-    // OVERRIDE METHODS
-
-    @Override
-    public boolean save(TardinessRecordModel tardiness) {
-        if (tardiness == null || !tardiness.isValidRecord()) {
-            System.err.println("Invalid tardiness record provided for save");
-            return false;
-        }
-        
-        String sql = buildInsertSQL();
-        
-        try (Connection conn = databaseConnection.createConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
-            
-            setInsertParameters(stmt, tardiness);
-            
-            int rowsAffected = stmt.executeUpdate();
-            
-            if (rowsAffected > 0) {
-                try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
-                    if (generatedKeys.next()) {
-                        handleGeneratedKey(tardiness, generatedKeys);
-                    }
-                }
-                return true;
-            }
-            
-            return false;
-            
-        } catch (SQLException e) {
-            System.err.println("Error saving tardiness record: " + e.getMessage());
-            return false;
-        }
-    }
-
-    @Override
-    public boolean update(TardinessRecordModel tardiness) {
-        if (tardiness == null || tardiness.getTardinessId() <= 0 || !tardiness.isValidRecord()) {
-            System.err.println("Invalid tardiness record provided for update");
-            return false;
-        }
-        
-        String sql = buildUpdateSQL();
+    public int generateTardinessRecords(int payPeriodId) {
+        String sql = """
+            INSERT INTO tardinessrecord (attendanceId, tardinessHours, tardinessType, supervisorNotes, createdAt)
+            SELECT a.attendanceId,
+                   CASE 
+                       WHEN a.timeIn > '08:10:00' THEN 
+                           (TIME_TO_SEC(a.timeIn) - TIME_TO_SEC('08:00:00')) / 3600.0
+                       ELSE 0.00
+                   END as tardinessHours,
+                   'LATE' as tardinessType,
+                   CONCAT('Late arrival at ', TIME_FORMAT(a.timeIn, '%H:%i'), 
+                          ' - Auto-generated for payroll period ', pp.periodName) as supervisorNotes,
+                   NOW() as createdAt
+            FROM attendance a
+            JOIN employee e ON a.employeeId = e.employeeId
+            JOIN payroll p ON e.employeeId = p.employeeId
+            JOIN payperiod pp ON p.payPeriodId = pp.payPeriodId
+            WHERE p.payPeriodId = ?
+              AND a.timeIn > '08:10:00'
+              AND a.date BETWEEN pp.startDate AND pp.endDate
+              AND NOT EXISTS (
+                  SELECT 1 FROM tardinessrecord tr 
+                  WHERE tr.attendanceId = a.attendanceId
+              )
+            """;
         
         try (Connection conn = databaseConnection.createConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             
-            setUpdateParameters(stmt, tardiness);
+            stmt.setInt(1, payPeriodId);
+            int insertedRows = stmt.executeUpdate();
+            
+            System.out.println("Generated " + insertedRows + " tardiness records for pay period " + payPeriodId);
+            return insertedRows;
+            
+        } catch (SQLException e) {
+            System.err.println("Error generating tardiness records: " + e.getMessage());
+            return 0;
+        }
+    }
+    
+    /**
+     * Delete tardiness records by pay period
+     */
+    public int deleteByPayPeriod(int payPeriodId) {
+        String sql = """
+            DELETE tr FROM tardinessrecord tr
+            JOIN attendance a ON tr.attendanceId = a.attendanceId
+            JOIN payroll p ON a.employeeId = p.employeeId
+            WHERE p.payPeriodId = ?
+            """;
+        
+        try (Connection conn = databaseConnection.createConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            stmt.setInt(1, payPeriodId);
+            int deletedRows = stmt.executeUpdate();
+            
+            System.out.println("Deleted " + deletedRows + " tardiness records for pay period " + payPeriodId);
+            return deletedRows;
+            
+        } catch (SQLException e) {
+            System.err.println("Error deleting tardiness records by pay period: " + e.getMessage());
+            return 0;
+        }
+    }
+    
+    /**
+     * Check if records exist for a pay period
+     */
+    public boolean hasRecordsForPeriod(int payPeriodId) {
+        String sql = """
+            SELECT COUNT(*) FROM tardinessrecord tr
+            JOIN attendance a ON tr.attendanceId = a.attendanceId
+            JOIN payroll p ON a.employeeId = p.employeeId
+            WHERE p.payPeriodId = ?
+            """;
+        
+        try (Connection conn = databaseConnection.createConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            stmt.setInt(1, payPeriodId);
+            ResultSet rs = stmt.executeQuery();
+            
+            if (rs.next()) {
+                return rs.getInt(1) > 0;
+            }
+            return false;
+            
+        } catch (SQLException e) {
+            System.err.println("Error checking tardiness records for pay period: " + e.getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Find tardiness records by pay period
+     */
+    public List<TardinessRecordModel> findByPayPeriod(int payPeriodId) {
+        List<TardinessRecordModel> tardinessRecords = new ArrayList<>();
+        String sql = """
+            SELECT tr.* FROM tardinessrecord tr
+            JOIN attendance a ON tr.attendanceId = a.attendanceId
+            JOIN payroll p ON a.employeeId = p.employeeId
+            WHERE p.payPeriodId = ?
+            ORDER BY tr.createdAt DESC
+            """;
+        
+        try (Connection conn = databaseConnection.createConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            stmt.setInt(1, payPeriodId);
+            ResultSet rs = stmt.executeQuery();
+            
+            while (rs.next()) {
+                TardinessRecordModel record = mapResultSetToModel(rs);
+                tardinessRecords.add(record);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error finding tardiness records by pay period: " + e.getMessage());
+        }
+        
+        return tardinessRecords;
+    }
+    
+    /**
+     * Find tardiness records by employee and period
+     */
+    public List<TardinessRecordModel> findByEmployeeAndPeriod(int employeeId, int payPeriodId) {
+        List<TardinessRecordModel> tardinessRecords = new ArrayList<>();
+        String sql = """
+            SELECT tr.* FROM tardinessrecord tr
+            JOIN attendance a ON tr.attendanceId = a.attendanceId
+            JOIN payroll p ON a.employeeId = p.employeeId
+            WHERE a.employeeId = ? AND p.payPeriodId = ?
+            ORDER BY a.date DESC
+            """;
+        
+        try (Connection conn = databaseConnection.createConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            stmt.setInt(1, employeeId);
+            stmt.setInt(2, payPeriodId);
+            ResultSet rs = stmt.executeQuery();
+            
+            while (rs.next()) {
+                TardinessRecordModel record = mapResultSetToModel(rs);
+                tardinessRecords.add(record);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error finding tardiness records by employee and period: " + e.getMessage());
+        }
+        
+        return tardinessRecords;
+    }
+    
+    /**
+     * Find all tardiness records for an employee
+     */
+    public List<TardinessRecordModel> findByEmployee(int employeeId) {
+        List<TardinessRecordModel> tardinessRecords = new ArrayList<>();
+        String sql = """
+            SELECT tr.* FROM tardinessrecord tr
+            JOIN attendance a ON tr.attendanceId = a.attendanceId
+            WHERE a.employeeId = ?
+            ORDER BY a.date DESC
+            """;
+        
+        try (Connection conn = databaseConnection.createConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            stmt.setInt(1, employeeId);
+            ResultSet rs = stmt.executeQuery();
+            
+            while (rs.next()) {
+                TardinessRecordModel record = mapResultSetToModel(rs);
+                tardinessRecords.add(record);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error finding tardiness records by employee: " + e.getMessage());
+        }
+        
+        return tardinessRecords;
+    }
+    
+    /**
+     * Find tardiness record by ID
+     */
+    public TardinessRecordModel findById(int tardinessRecordId) {
+        String sql = "SELECT * FROM tardinessrecord WHERE tardinessRecordId = ?";
+        
+        try (Connection conn = databaseConnection.createConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            stmt.setInt(1, tardinessRecordId);
+            ResultSet rs = stmt.executeQuery();
+            
+            if (rs.next()) {
+                return mapResultSetToModel(rs);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error finding tardiness record by ID: " + e.getMessage());
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Update tardiness record
+     */
+    public boolean updateTardinessRecord(TardinessRecordModel tardinessRecord) {
+        String sql = """
+            UPDATE tardinessrecord 
+            SET tardinessHours = ?, tardinessType = ?, supervisorNotes = ?
+            WHERE tardinessRecordId = ?
+            """;
+        
+        try (Connection conn = databaseConnection.createConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            stmt.setBigDecimal(1, tardinessRecord.getTardinessHours());
+            stmt.setString(2, tardinessRecord.getTardinessType().toString());
+            stmt.setString(3, tardinessRecord.getSupervisorNotes());
+            stmt.setInt(4, tardinessRecord.getTardinessRecordId());
             
             int rowsAffected = stmt.executeUpdate();
             return rowsAffected > 0;
@@ -473,44 +318,236 @@ public class TardinessRecordDAO extends BaseDAO<TardinessRecordModel, Integer> {
             return false;
         }
     }
-
+    
     /**
-     * Gets current Manila timezone
-     * @return Current LocalDateTime in Manila timezone
+     * Delete tardiness record by ID
      */
-    @Override
-    public LocalDateTime getCurrentManilaTime() {
-        return LocalDateTime.now(MANILA_TIMEZONE);
-    }
-
-    /**
-     * Helper method to execute queries with parameters
-     * @param sql The SQL query
-     * @param params The parameters
-     * @return List of tardiness records
-     */
-    @Override
-    protected List<TardinessRecordModel> executeQuery(String sql, Object... params) {
-        List<TardinessRecordModel> results = new ArrayList<>();
+    public boolean deleteTardinessRecord(int tardinessRecordId) {
+        String sql = "DELETE FROM tardinessrecord WHERE tardinessRecordId = ?";
         
         try (Connection conn = databaseConnection.createConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             
-            // Set parameters
-            for (int i = 0; i < params.length; i++) {
-                stmt.setObject(i + 1, params[i]);
-            }
+            stmt.setInt(1, tardinessRecordId);
+            int deletedRows = stmt.executeUpdate();
             
-            try (ResultSet rs = stmt.executeQuery()) {
-                while (rs.next()) {
-                    results.add(mapResultSetToEntity(rs));
-                }
+            return deletedRows > 0;
+            
+        } catch (SQLException e) {
+            System.err.println("Error deleting tardiness record: " + e.getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Get tardiness statistics for an employee
+     */
+    public TardinessStatistics getTardinessStatistics(int employeeId, LocalDate startDate, LocalDate endDate) {
+        String sql = """
+            SELECT 
+                COUNT(*) as totalInstances,
+                SUM(tr.tardinessHours) as totalHours,
+                AVG(tr.tardinessHours) as averageHours,
+                MAX(tr.tardinessHours) as maxHours,
+                COUNT(CASE WHEN tr.tardinessType = 'LATE' THEN 1 END) as lateInstances,
+                COUNT(CASE WHEN tr.tardinessType = 'UNDERTIME' THEN 1 END) as undertimeInstances
+            FROM tardinessrecord tr
+            JOIN attendance a ON tr.attendanceId = a.attendanceId
+            WHERE a.employeeId = ?
+              AND a.date BETWEEN ? AND ?
+            """;
+        
+        try (Connection conn = databaseConnection.createConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            stmt.setInt(1, employeeId);
+            stmt.setDate(2, Date.valueOf(startDate));
+            stmt.setDate(3, Date.valueOf(endDate));
+            
+            ResultSet rs = stmt.executeQuery();
+            
+            if (rs.next()) {
+                TardinessStatistics stats = new TardinessStatistics();
+                stats.setEmployeeId(employeeId);
+                stats.setStartDate(startDate);
+                stats.setEndDate(endDate);
+                stats.setTotalInstances(rs.getInt("totalInstances"));
+                stats.setTotalHours(rs.getBigDecimal("totalHours"));
+                stats.setAverageHours(rs.getBigDecimal("averageHours"));
+                stats.setMaxHours(rs.getBigDecimal("maxHours"));
+                stats.setLateInstances(rs.getInt("lateInstances"));
+                stats.setUndertimeInstances(rs.getInt("undertimeInstances"));
+                return stats;
             }
             
         } catch (SQLException e) {
-            System.err.println("Error executing tardiness query: " + e.getMessage());
+            System.err.println("Error getting tardiness statistics: " + e.getMessage());
         }
         
-        return results;
+        return new TardinessStatistics(); // Return empty stats if error
+    }
+    
+    /**
+     * Get monthly tardiness summary for all employees
+     */
+    public List<TardinessStatistics> getMonthlyTardinessSummary(int year, int month) {
+        List<TardinessStatistics> summaryList = new ArrayList<>();
+        String sql = """
+            SELECT 
+                a.employeeId,
+                COUNT(*) as totalInstances,
+                SUM(tr.tardinessHours) as totalHours,
+                AVG(tr.tardinessHours) as averageHours,
+                MAX(tr.tardinessHours) as maxHours,
+                COUNT(CASE WHEN tr.tardinessType = 'LATE' THEN 1 END) as lateInstances,
+                COUNT(CASE WHEN tr.tardinessType = 'UNDERTIME' THEN 1 END) as undertimeInstances
+            FROM tardinessrecord tr
+            JOIN attendance a ON tr.attendanceId = a.attendanceId
+            WHERE YEAR(a.date) = ? AND MONTH(a.date) = ?
+            GROUP BY a.employeeId
+            ORDER BY totalHours DESC
+            """;
+        
+        try (Connection conn = databaseConnection.createConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            stmt.setInt(1, year);
+            stmt.setInt(2, month);
+            
+            ResultSet rs = stmt.executeQuery();
+            
+            LocalDate startDate = LocalDate.of(year, month, 1);
+            LocalDate endDate = startDate.withDayOfMonth(startDate.lengthOfMonth());
+            
+            while (rs.next()) {
+                TardinessStatistics stats = new TardinessStatistics();
+                stats.setEmployeeId(rs.getInt("employeeId"));
+                stats.setStartDate(startDate);
+                stats.setEndDate(endDate);
+                stats.setTotalInstances(rs.getInt("totalInstances"));
+                stats.setTotalHours(rs.getBigDecimal("totalHours"));
+                stats.setAverageHours(rs.getBigDecimal("averageHours"));
+                stats.setMaxHours(rs.getBigDecimal("maxHours"));
+                stats.setLateInstances(rs.getInt("lateInstances"));
+                stats.setUndertimeInstances(rs.getInt("undertimeInstances"));
+                summaryList.add(stats);
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error getting monthly tardiness summary: " + e.getMessage());
+        }
+        
+        return summaryList;
+    }
+    
+    /**
+     * Map ResultSet to TardinessRecordModel
+     */
+    private TardinessRecordModel mapResultSetToModel(ResultSet rs) throws SQLException {
+        TardinessRecordModel record = new TardinessRecordModel();
+        record.setTardinessRecordId(rs.getInt("tardinessRecordId"));
+        record.setAttendanceId(rs.getInt("attendanceId"));
+        record.setTardinessHours(rs.getBigDecimal("tardinessHours"));
+        
+        String typeString = rs.getString("tardinessType");
+        if (typeString != null) {
+            try {
+                record.setTardinessType(TardinessRecordModel.TardinessType.valueOf(typeString));
+            } catch (IllegalArgumentException e) {
+                record.setTardinessType(TardinessRecordModel.TardinessType.LATE); // Default
+            }
+        }
+        
+        record.setSupervisorNotes(rs.getString("supervisorNotes"));
+        return record;
+    }
+    
+    /**
+     * Inner class for tardiness statistics
+     */
+    public static class TardinessStatistics {
+        private int employeeId;
+        private LocalDate startDate;
+        private LocalDate endDate;
+        private int totalInstances = 0;
+        private BigDecimal totalHours = BigDecimal.ZERO;
+        private BigDecimal averageHours = BigDecimal.ZERO;
+        private BigDecimal maxHours = BigDecimal.ZERO;
+        private int lateInstances = 0;
+        private int undertimeInstances = 0;
+        
+        // Getters and setters
+        public int getEmployeeId() { return employeeId; }
+        public void setEmployeeId(int employeeId) { this.employeeId = employeeId; }
+        
+        public LocalDate getStartDate() { return startDate; }
+        public void setStartDate(LocalDate startDate) { this.startDate = startDate; }
+        
+        public LocalDate getEndDate() { return endDate; }
+        public void setEndDate(LocalDate endDate) { this.endDate = endDate; }
+        
+        public int getTotalInstances() { return totalInstances; }
+        public void setTotalInstances(int totalInstances) { this.totalInstances = totalInstances; }
+        
+        public BigDecimal getTotalHours() { return totalHours; }
+        public void setTotalHours(BigDecimal totalHours) { 
+            this.totalHours = totalHours != null ? totalHours : BigDecimal.ZERO; 
+        }
+        
+        public BigDecimal getAverageHours() { return averageHours; }
+        public void setAverageHours(BigDecimal averageHours) { 
+            this.averageHours = averageHours != null ? averageHours : BigDecimal.ZERO; 
+        }
+        
+        public BigDecimal getMaxHours() { return maxHours; }
+        public void setMaxHours(BigDecimal maxHours) { 
+            this.maxHours = maxHours != null ? maxHours : BigDecimal.ZERO; 
+        }
+        
+        public int getLateInstances() { return lateInstances; }
+        public void setLateInstances(int lateInstances) { this.lateInstances = lateInstances; }
+        
+        public int getUndertimeInstances() { return undertimeInstances; }
+        public void setUndertimeInstances(int undertimeInstances) { this.undertimeInstances = undertimeInstances; }
+        
+        /**
+         * Calculate tardiness rate as percentage
+         */
+        public BigDecimal getTardinessRate(int workingDays) {
+            if (workingDays <= 0) return BigDecimal.ZERO;
+            return BigDecimal.valueOf(totalInstances)
+                             .divide(BigDecimal.valueOf(workingDays), 4, BigDecimal.ROUND_HALF_UP)
+                             .multiply(BigDecimal.valueOf(100));
+        }
+        
+        /**
+         * Get tardiness severity level
+         */
+        public String getSeverityLevel() {
+            if (totalHours.compareTo(BigDecimal.ZERO) <= 0) {
+                return "None";
+            } else if (averageHours.compareTo(new BigDecimal("0.5")) <= 0) {
+                return "Low";
+            } else if (averageHours.compareTo(new BigDecimal("1.0")) <= 0) {
+                return "Moderate";
+            } else if (averageHours.compareTo(new BigDecimal("2.0")) <= 0) {
+                return "High";
+            } else {
+                return "Critical";
+            }
+        }
+        
+        @Override
+        public String toString() {
+            return "TardinessStatistics{" +
+                    "employeeId=" + employeeId +
+                    ", totalInstances=" + totalInstances +
+                    ", totalHours=" + totalHours +
+                    ", averageHours=" + averageHours +
+                    ", lateInstances=" + lateInstances +
+                    ", undertimeInstances=" + undertimeInstances +
+                    ", severityLevel='" + getSeverityLevel() + '\'' +
+                    '}';
+        }
     }
 }

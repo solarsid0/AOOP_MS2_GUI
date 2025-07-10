@@ -4,6 +4,8 @@ import java.time.*;
 import java.time.format.DateTimeFormatter;
 import java.sql.Date;
 import java.sql.Time;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 
 public class AttendanceModel {
     private static final ZoneId MANILA_TIMEZONE = ZoneId.of("Asia/Manila");
@@ -11,7 +13,7 @@ public class AttendanceModel {
     private static final LocalTime STANDARD_START_TIME = LocalTime.of(8, 0);  // 8:00 AM standard start
     private static final LocalTime STANDARD_END_TIME = LocalTime.of(17, 0);   // 5:00 PM standard end
     
-    private int attendanceId;
+    private Integer attendanceId; // Changed to Integer to allow null
     private Date date;
     private Time timeIn;
     private Time timeOut;
@@ -87,7 +89,6 @@ public class AttendanceModel {
             LocalTime out = timeOut.toLocalTime();
             
             // Calculate total hours worked (minus 1 hour lunch break)
-            // Matches the database view calculation: (time_to_sec(timeOut) - time_to_sec(timeIn)) / 3600.0 - 1.0
             Duration workDuration = Duration.between(in, out);
             double totalHours = workDuration.toMinutes() / 60.0;
             this.computedHours = Math.max(0, totalHours - 1.0); // Subtract lunch break
@@ -103,7 +104,6 @@ public class AttendanceModel {
             }
             
             // Calculate overtime hours (beyond 8 hours of work)
-            // Matches database view: greatest(0, hours_worked - 8.0)
             this.overtimeHours = Math.max(0, this.computedHours - 8.0);
         }
     }
@@ -111,6 +111,47 @@ public class AttendanceModel {
     // Calculate computed amount based on hourly rate
     public void calculateComputedAmount(double hourlyRate) {
         this.computedAmount = this.computedHours * hourlyRate;
+    }
+    
+    // ADDED: BigDecimal support methods for TardinessRecordModel compatibility
+    
+    /**
+     * Get late hours as BigDecimal for TardinessRecordModel
+     */
+    public BigDecimal getLateHoursBigDecimal() {
+        return BigDecimal.valueOf(lateHours).setScale(4, RoundingMode.HALF_UP);
+    }
+    
+    /**
+     * Get overtime hours as BigDecimal
+     */
+    public BigDecimal getOvertimeHoursBigDecimal() {
+        return BigDecimal.valueOf(overtimeHours).setScale(4, RoundingMode.HALF_UP);
+    }
+    
+    /**
+     * Get computed hours as BigDecimal
+     */
+    public BigDecimal getComputedHoursBigDecimal() {
+        return BigDecimal.valueOf(computedHours).setScale(4, RoundingMode.HALF_UP);
+    }
+    
+    /**
+     * Calculate undertime hours as BigDecimal
+     */
+    public BigDecimal getUndertimeHoursBigDecimal() {
+        if (timeOut == null) {
+            return BigDecimal.ZERO;
+        }
+        
+        LocalTime actualTimeOut = timeOut.toLocalTime();
+        if (actualTimeOut.isBefore(STANDARD_END_TIME)) {
+            long minutesEarly = Duration.between(actualTimeOut, STANDARD_END_TIME).toMinutes();
+            return BigDecimal.valueOf(minutesEarly)
+                             .divide(BigDecimal.valueOf(60), 4, RoundingMode.HALF_UP);
+        }
+        
+        return BigDecimal.ZERO;
     }
     
     // Validation methods
@@ -159,9 +200,41 @@ public class AttendanceModel {
         return dayOfWeek != DayOfWeek.SATURDAY && dayOfWeek != DayOfWeek.SUNDAY;
     }
     
+    // Enhanced methods for database-calculated values
+    
+    /**
+     * Set late hours directly for database-calculated values
+     */
+    public void setLateHours(double lateHours) { 
+        this.lateHours = lateHours; 
+        this.isLate = lateHours > 0;
+    }
+    
+    /**
+     * Set overtime hours directly for database-calculated values
+     */
+    public void setOvertimeHours(double overtimeHours) { 
+        this.overtimeHours = overtimeHours; 
+    }
+    
+    /**
+     * Set attendance data without triggering automatic calculations
+     */
+    public void setAttendanceDataWithCalculatedValues(Date date, Time timeIn, Time timeOut, 
+                                                      double computedHours, double lateHours, double overtimeHours) {
+        this.date = date;
+        this.timeIn = timeIn;
+        this.timeOut = timeOut;
+        this.computedHours = computedHours;
+        this.lateHours = lateHours;
+        this.overtimeHours = overtimeHours;
+        this.isLate = lateHours > 0;
+        // Don't call calculateAttendanceMetrics() since we're setting calculated values
+    }
+    
     // Getters and Setters
-    public int getAttendanceId() { return attendanceId; }
-    public void setAttendanceId(int attendanceId) { this.attendanceId = attendanceId; }
+    public Integer getAttendanceId() { return attendanceId; }
+    public void setAttendanceId(Integer attendanceId) { this.attendanceId = attendanceId; }
     
     public Date getDate() { return date; }
     public void setDate(Date date) { 
@@ -205,11 +278,11 @@ public class AttendanceModel {
         if (this == obj) return true;
         if (obj == null || getClass() != obj.getClass()) return false;
         AttendanceModel that = (AttendanceModel) obj;
-        return attendanceId == that.attendanceId;
+        return attendanceId != null && attendanceId.equals(that.attendanceId);
     }
     
     @Override
     public int hashCode() {
-        return Integer.hashCode(attendanceId);
+        return attendanceId != null ? attendanceId.hashCode() : 0;
     }
 }

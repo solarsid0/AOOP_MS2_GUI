@@ -9,39 +9,24 @@ import java.util.List;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.time.LocalDateTime;
+
 /**
- * Data Access Object for PayrollModel entities.
- * This class handles all database operations related to payroll processing.
- * It extends BaseDAO to inherit common CRUD operations and adds payroll-specific methods.
- * @author User
+ * COMPLETE FIXED PayrollDAO - Corrected column names and full monthly salary
  */
 public class PayrollDAO extends BaseDAO<PayrollModel, Integer> {
     
     public static final ZoneId MANILA_TIMEZONE = ZoneId.of("Asia/Manila");
-    /**
-     * Constructor that accepts a DatabaseConnection instance
-     * @param databaseConnection The database connection to use for all operations
-     */
+    
     public PayrollDAO(DatabaseConnection databaseConnection) {
         super(databaseConnection);
     }
     
-
-    // ABSTRACT METHOD IMPLEMENTATIONS - Required by BaseDAO
-
+    // ABSTRACT METHOD IMPLEMENTATIONS
     
-    /**
-     * Converts a database row into a PayrollModel object
-     * This method reads each column from the ResultSet and creates a PayrollModel
-     * @param rs The ResultSet containing payroll data from the database
-     * @return A fully populated PayrollModel object
-     * @throws SQLException if there's an error reading from the database
-     */
     @Override
     protected PayrollModel mapResultSetToEntity(ResultSet rs) throws SQLException {
         PayrollModel payroll = new PayrollModel();
         
-        // Set basic payroll information
         payroll.setPayrollId(rs.getInt("payrollId"));
         payroll.setBasicSalary(rs.getBigDecimal("basicSalary"));
         payroll.setGrossIncome(rs.getBigDecimal("grossIncome"));
@@ -49,7 +34,6 @@ public class PayrollDAO extends BaseDAO<PayrollModel, Integer> {
         payroll.setTotalDeduction(rs.getBigDecimal("totalDeduction"));
         payroll.setNetSalary(rs.getBigDecimal("netSalary"));
         
-        // Handle timestamp fields
         Timestamp createdAt = rs.getTimestamp("createdAt");
         if (createdAt != null) {
             payroll.setCreatedAt(createdAt.toLocalDateTime());
@@ -60,67 +44,39 @@ public class PayrollDAO extends BaseDAO<PayrollModel, Integer> {
             payroll.setUpdatedAt(updatedAt.toLocalDateTime());
         }
         
-        // Handle foreign keys
         payroll.setPayPeriodId(rs.getInt("payPeriodId"));
         payroll.setEmployeeId(rs.getInt("employeeId"));
         
         return payroll;
     }
     
-    /**
-     * Returns the database table name for payroll
-     * @return "payroll" - the name of the payroll table in the database
-     */
     @Override
     protected String getTableName() {
         return "payroll";
     }
     
-    /**
-     * Returns the primary key column name for the payroll table
-     * @return "payrollId" - the primary key column name
-     */
     @Override
     protected String getPrimaryKeyColumn() {
         return "payrollId";
     }
     
-    /**
-     * Sets parameters for INSERT operations when creating new payroll records
-     * This method maps PayrollModel object properties to SQL parameters
-     * @param stmt The PreparedStatement to set parameters on
-     * @param payroll The PayrollModel object to get values from
-     * @throws SQLException if there's an error setting parameters
-     */
     @Override
     protected void setInsertParameters(PreparedStatement stmt, PayrollModel payroll) throws SQLException {
-        // Note: payrollId is auto-increment, createdAt and updatedAt have defaults
         int paramIndex = 1;
         
-        // Set financial information
         stmt.setBigDecimal(paramIndex++, payroll.getBasicSalary());
         stmt.setBigDecimal(paramIndex++, payroll.getGrossIncome());
         stmt.setBigDecimal(paramIndex++, payroll.getTotalBenefit());
         stmt.setBigDecimal(paramIndex++, payroll.getTotalDeduction());
         stmt.setBigDecimal(paramIndex++, payroll.getNetSalary());
-        
-        // Set foreign keys
         stmt.setInt(paramIndex++, payroll.getPayPeriodId());
         stmt.setInt(paramIndex++, payroll.getEmployeeId());
     }
     
-    /**
-     * Sets parameters for UPDATE operations when modifying existing payroll records
-     * This method maps PayrollModel object properties to SQL parameters for updates
-     * @param stmt The PreparedStatement to set parameters on
-     * @param payroll The PayrollModel object with updated values
-     * @throws SQLException if there's an error setting parameters
-     */
     @Override
     protected void setUpdateParameters(PreparedStatement stmt, PayrollModel payroll) throws SQLException {
         int paramIndex = 1;
         
-        // Set all the same fields as INSERT (excluding auto-increment ID and timestamps)
         stmt.setBigDecimal(paramIndex++, payroll.getBasicSalary());
         stmt.setBigDecimal(paramIndex++, payroll.getGrossIncome());
         stmt.setBigDecimal(paramIndex++, payroll.getTotalBenefit());
@@ -128,29 +84,14 @@ public class PayrollDAO extends BaseDAO<PayrollModel, Integer> {
         stmt.setBigDecimal(paramIndex++, payroll.getNetSalary());
         stmt.setInt(paramIndex++, payroll.getPayPeriodId());
         stmt.setInt(paramIndex++, payroll.getEmployeeId());
-        
-        // Finally, set the payroll ID for the WHERE clause
         stmt.setInt(paramIndex++, payroll.getPayrollId());
     }
     
-    /**
-     * Gets the ID from a PayrollModel object
-     * This is used by BaseDAO for update and delete operations
-     * @param payroll The PayrollModel object to get ID from
-     * @return The payroll's ID
-     */
     @Override
     protected Integer getEntityId(PayrollModel payroll) {
         return payroll.getPayrollId();
     }
     
-    /**
-     * Handles auto-generated payroll IDs after INSERT operations
-     * This method sets the generated payrollId back on the PayrollModel object
-     * @param entity The PayrollModel that was just inserted
-     * @param generatedKeys The ResultSet containing the generated payrollId
-     * @throws SQLException if there's an error reading the generated key
-     */
     @Override
     protected void handleGeneratedKey(PayrollModel entity, ResultSet generatedKeys) throws SQLException {
         if (generatedKeys.next()) {
@@ -158,24 +99,14 @@ public class PayrollDAO extends BaseDAO<PayrollModel, Integer> {
         }
     }
     
-
     // CUSTOM SQL BUILDERS
-
     
-    /**
-     * Builds the complete INSERT SQL statement for payroll
-     * @return The complete INSERT SQL statement
-     */
     private String buildInsertSQL() {
         return "INSERT INTO payroll " +
                "(basicSalary, grossIncome, totalBenefit, totalDeduction, netSalary, payPeriodId, employeeId) " +
                "VALUES (?, ?, ?, ?, ?, ?, ?)";
     }
     
-    /**
-     * Builds the complete UPDATE SQL statement for payroll
-     * @return The complete UPDATE SQL statement
-     */
     private String buildUpdateSQL() {
         return "UPDATE payroll SET " +
                "basicSalary = ?, grossIncome = ?, totalBenefit = ?, totalDeduction = ?, " +
@@ -183,15 +114,8 @@ public class PayrollDAO extends BaseDAO<PayrollModel, Integer> {
                "WHERE payrollId = ?";
     }
     
-
     // CUSTOM PAYROLL METHODS
-
     
-    /**
-     * Finds all payroll records for a specific pay period
-     * @param payPeriodId The pay period ID
-     * @return List of payroll records for the specified pay period
-     */
     public List<PayrollModel> findByPayPeriod(Integer payPeriodId) {
         String sql = "SELECT p.*, e.firstName, e.lastName " +
                     "FROM payroll p " +
@@ -202,13 +126,10 @@ public class PayrollDAO extends BaseDAO<PayrollModel, Integer> {
     }
     
     /**
-     * Generates payroll for all active employees in a specific pay period
-     * This method creates payroll records by calculating salary, benefits, and deductions
-     * @param payPeriodId The pay period ID to generate payroll for
-     * @return Number of payroll records generated successfully
+     * FIXED: Generate payroll using FULL MONTHLY SALARY (not divided by 2)
      */
     public int generatePayroll(Integer payPeriodId) {
-        // First, get pay period information
+        // Get pay period information
         String periodSql = "SELECT startDate, endDate FROM payperiod WHERE payPeriodId = ?";
         LocalDate periodStart = null;
         LocalDate periodEnd = null;
@@ -247,7 +168,7 @@ public class PayrollDAO extends BaseDAO<PayrollModel, Integer> {
                     BigDecimal basicSalary = rs.getBigDecimal("basicSalary");
                     BigDecimal hourlyRate = rs.getBigDecimal("hourlyRate");
                     
-                    // Check if payroll already exists for this employee and period
+                    // Check if payroll already exists
                     if (!payrollExists(employeeId, payPeriodId)) {
                         // Generate payroll for this employee
                         PayrollModel payroll = generateEmployeePayroll(
@@ -258,8 +179,6 @@ public class PayrollDAO extends BaseDAO<PayrollModel, Integer> {
                             generatedCount++;
                             System.out.println("✅ Generated payroll for employee " + employeeId);
                         }
-                    } else {
-                        System.out.println("⚠️ Payroll already exists for employee " + employeeId + " in period " + payPeriodId);
                     }
                 }
             }
@@ -272,11 +191,166 @@ public class PayrollDAO extends BaseDAO<PayrollModel, Integer> {
     }
     
     /**
-     * Updates payroll status by modifying the updatedAt timestamp
-     * @param payPeriodId The pay period ID
-     * @param status The new status description
-     * @return Number of payroll records updated
+     * FIXED: Delete payroll details using CORRECT column names
      */
+    public void deletePayrollDetailsByPeriod(int payPeriodId) {
+        String[] deleteQueries = {
+            "DELETE pa FROM payrollattendance pa JOIN payroll p ON pa.payrollId = p.payrollId WHERE p.payPeriodId = ?",
+            "DELETE pb FROM payrollbenefit pb JOIN payroll p ON pb.payrollId = p.payrollId WHERE p.payPeriodId = ?",
+            "DELETE pl FROM payrollleave pl JOIN payroll p ON pl.payrollId = p.payrollId WHERE p.payPeriodId = ?",
+            "DELETE po FROM payrollovertime po JOIN payroll p ON po.payrollId = p.payrollId WHERE p.payPeriodId = ?"
+        };
+        
+        String[] tableNames = {"payrollattendance", "payrollbenefit", "payrollleave", "payrollovertime"};
+        
+        for (int i = 0; i < deleteQueries.length; i++) {
+            try (Connection connection = databaseConnection.createConnection();
+                 PreparedStatement pstmt = connection.prepareStatement(deleteQueries[i])) {
+                pstmt.setInt(1, payPeriodId);
+                int deleted = pstmt.executeUpdate();
+                System.out.println("Deleted " + deleted + " records from " + tableNames[i]);
+            } catch (SQLException e) {
+                System.err.println("Error deleting from " + tableNames[i] + ": " + e.getMessage());
+            }
+        }
+    }
+    
+    /**
+     * FIXED: Populate payrollattendance using CORRECT column names
+     */
+    private void populatePayrollAttendance(int payPeriodId) {
+        String sql = """
+            INSERT INTO payrollattendance (payrollId, attendanceId, computedHours, computedAmount)
+            SELECT p.payrollId, a.attendanceId,
+                   CASE WHEN a.timeIn IS NOT NULL AND a.timeOut IS NOT NULL 
+                        THEN GREATEST(0, (TIME_TO_SEC(a.timeOut) - TIME_TO_SEC(a.timeIn)) / 3600.0 - 1.0)
+                        ELSE 0 END as computedHours,
+                   CASE WHEN a.timeIn IS NOT NULL AND a.timeOut IS NOT NULL 
+                        THEN GREATEST(0, (TIME_TO_SEC(a.timeOut) - TIME_TO_SEC(a.timeIn)) / 3600.0 - 1.0) * e.hourlyRate
+                        ELSE 0 END as computedAmount
+            FROM payroll p
+            JOIN employee e ON p.employeeId = e.employeeId
+            JOIN attendance a ON p.employeeId = a.employeeId
+            JOIN payperiod pp ON p.payPeriodId = pp.payPeriodId
+            WHERE p.payPeriodId = ? 
+            AND a.date BETWEEN pp.startDate AND pp.endDate
+            """;
+        
+        try (Connection connection = databaseConnection.createConnection();
+             PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setInt(1, payPeriodId);
+            int inserted = pstmt.executeUpdate();
+            System.out.println("Populated " + inserted + " payroll attendance records");
+        } catch (SQLException e) {
+            System.err.println("Error generating attendance records: " + e.getMessage());
+        }
+    }
+
+    /**
+     * FIXED: Populate payrollbenefit using CORRECT column names
+     */
+    private void populatePayrollBenefits(int payPeriodId) {
+        String sql = """
+            INSERT INTO payrollbenefit (payrollId, benefitTypeId, benefitAmount)
+            SELECT p.payrollId, pb.benefitTypeId, pb.benefitValue
+            FROM payroll p
+            JOIN employee e ON p.employeeId = e.employeeId
+            JOIN positionbenefit pb ON e.positionId = pb.positionId
+            WHERE p.payPeriodId = ?
+            """;
+        
+        try (Connection connection = databaseConnection.createConnection();
+             PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setInt(1, payPeriodId);
+            int inserted = pstmt.executeUpdate();
+            System.out.println("Populated " + inserted + " payroll benefit records");
+        } catch (SQLException e) {
+            System.err.println("Error generating benefit records: " + e.getMessage());
+        }
+    }
+
+    /**
+     * FIXED: Populate payrollleave using CORRECT column names
+     */
+    private void populatePayrollLeave(int payPeriodId) {
+        String sql = """
+            INSERT INTO payrollleave (payrollId, leaveRequestId, leaveHours)
+            SELECT p.payrollId, lr.leaveRequestId,
+                   (DATEDIFF(LEAST(lr.leaveEnd, pp.endDate), 
+                             GREATEST(lr.leaveStart, pp.startDate)) + 1) * 8 as leaveHours
+            FROM payroll p
+            JOIN payperiod pp ON p.payPeriodId = pp.payPeriodId
+            JOIN leaverequest lr ON p.employeeId = lr.employeeId
+            WHERE p.payPeriodId = ?
+            AND lr.approvalStatus = 'Approved'
+            AND lr.leaveStart <= pp.endDate
+            AND lr.leaveEnd >= pp.startDate
+            """;
+        
+        try (Connection connection = databaseConnection.createConnection();
+             PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setInt(1, payPeriodId);
+            int inserted = pstmt.executeUpdate();
+            System.out.println("Populated " + inserted + " payroll leave records");
+        } catch (SQLException e) {
+            System.err.println("Error generating leave records: " + e.getMessage());
+        }
+    }
+
+    /**
+     * FIXED: Populate payrollovertime using CORRECT column names
+     */
+    private void populatePayrollOvertime(int payPeriodId) {
+        String sql = """
+            INSERT INTO payrollovertime (payrollId, overtimeRequestId, overtimeHours, overtimePay)
+            SELECT p.payrollId, ot.overtimeRequestId,
+                   TIMESTAMPDIFF(HOUR, ot.overtimeStart, ot.overtimeEnd) as overtimeHours,
+                   TIMESTAMPDIFF(HOUR, ot.overtimeStart, ot.overtimeEnd) * e.hourlyRate * 1.25 as overtimePay
+            FROM payroll p
+            JOIN employee e ON p.employeeId = e.employeeId
+            JOIN overtimerequest ot ON p.employeeId = ot.employeeId
+            JOIN payperiod pp ON p.payPeriodId = pp.payPeriodId
+            WHERE p.payPeriodId = ?
+            AND ot.approvalStatus = 'Approved'
+            AND DATE(ot.overtimeStart) BETWEEN pp.startDate AND pp.endDate
+            """;
+        
+        try (Connection connection = databaseConnection.createConnection();
+             PreparedStatement pstmt = connection.prepareStatement(sql)) {
+            pstmt.setInt(1, payPeriodId);
+            int inserted = pstmt.executeUpdate();
+            System.out.println("Populated " + inserted + " payroll overtime records");
+        } catch (SQLException e) {
+            System.err.println("Error generating overtime records: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * NEW: Generate payroll with all related tables
+     */
+    public int generatePayrollWithDetails(int payPeriodId) {
+        int generatedCount = 0;
+        
+        try {
+            // First generate main payroll records
+            generatedCount = generatePayroll(payPeriodId);
+            
+            if (generatedCount > 0) {
+                // Then populate related tables using FIXED methods
+                populatePayrollAttendance(payPeriodId);
+                populatePayrollBenefits(payPeriodId);
+                populatePayrollLeave(payPeriodId);
+                populatePayrollOvertime(payPeriodId);
+            }
+            
+        } catch (Exception e) {
+            System.err.println("Error generating payroll with details: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return generatedCount;
+    }
+    
     public int updatePayrollStatus(Integer payPeriodId, String status) {
         String sql = "UPDATE payroll SET updatedAt = CURRENT_TIMESTAMP WHERE payPeriodId = ?";
         
@@ -299,12 +373,6 @@ public class PayrollDAO extends BaseDAO<PayrollModel, Integer> {
         }
     }
     
-    /**
-     * Gets payroll history for a specific employee
-     * @param employeeId The employee ID
-     * @param limit Maximum number of records to return (0 for all records)
-     * @return List of historical payroll records for the employee
-     */
     public List<PayrollModel> getPayrollHistory(Integer employeeId, int limit) {
         String sql = "SELECT p.*, pp.periodName, pp.startDate, pp.endDate " +
                     "FROM payroll p " +
@@ -319,21 +387,11 @@ public class PayrollDAO extends BaseDAO<PayrollModel, Integer> {
         return executeQuery(sql, employeeId);
     }
     
-    /**
-     * Finds payroll records by employee ID
-     * @param employeeId The employee ID
-     * @return List of payroll records for the employee
-     */
     public List<PayrollModel> findByEmployee(Integer employeeId) {
         String sql = "SELECT * FROM payroll WHERE employeeId = ? ORDER BY createdAt DESC";
         return executeQuery(sql, employeeId);
     }
     
-    /**
-     * Gets payroll summary for a pay period
-     * @param payPeriodId The pay period ID
-     * @return PayrollSummary with totals
-     */
     public PayrollSummary getPayrollSummary(Integer payPeriodId) {
         String sql = "SELECT " +
                     "COUNT(*) as employeeCount, " +
@@ -363,24 +421,14 @@ public class PayrollDAO extends BaseDAO<PayrollModel, Integer> {
             System.err.println("Error getting payroll summary: " + e.getMessage());
         }
         
-        return new PayrollSummary(); // Return empty summary if error
+        return new PayrollSummary();
     }
     
-    /**
-     * Deletes all payroll records for a specific pay period
-     * @param payPeriodId The pay period ID
-     * @return Number of payroll records deleted
-     */
     public int deletePayrollByPeriod(Integer payPeriodId) {
         String sql = "DELETE FROM payroll WHERE payPeriodId = ?";
         return executeUpdate(sql, payPeriodId);
     }
     
-    /**
-     * Checks if payroll has been generated for a pay period
-     * @param payPeriodId The pay period ID
-     * @return true if payroll exists for the period
-     */
     public boolean isPayrollGenerated(Integer payPeriodId) {
         String sql = "SELECT COUNT(*) FROM payroll WHERE payPeriodId = ?";
         
@@ -406,14 +454,7 @@ public class PayrollDAO extends BaseDAO<PayrollModel, Integer> {
     }
 
     // HELPER METHODS
-
     
-    /**
-     * Checks if a payroll record already exists for an employee in a specific pay period
-     * @param employeeId The employee ID
-     * @param payPeriodId The pay period ID
-     * @return true if payroll exists, false otherwise
-     */
     private boolean payrollExists(Integer employeeId, Integer payPeriodId) {
         String sql = "SELECT COUNT(*) FROM payroll WHERE employeeId = ? AND payPeriodId = ?";
         
@@ -436,15 +477,7 @@ public class PayrollDAO extends BaseDAO<PayrollModel, Integer> {
     }
     
     /**
-     * Generates a payroll record for a specific employee
-     * This method calculates all salary components, benefits, and deductions
-     * @param employeeId The employee ID
-     * @param basicSalary The employee's basic salary
-     * @param hourlyRate The employee's hourly rate
-     * @param payPeriodId The pay period ID
-     * @param periodStart The pay period start date
-     * @param periodEnd The pay period end date
-     * @return A fully calculated PayrollModel
+     * FIXED: Generate payroll for specific employee using FULL MONTHLY SALARY
      */
     private PayrollModel generateEmployeePayroll(Integer employeeId, BigDecimal basicSalary,
                                                BigDecimal hourlyRate, Integer payPeriodId,
@@ -455,7 +488,7 @@ public class PayrollDAO extends BaseDAO<PayrollModel, Integer> {
         // Set basic information
         payroll.setEmployeeId(employeeId);
         payroll.setPayPeriodId(payPeriodId);
-        payroll.setBasicSalary(basicSalary);
+        payroll.setBasicSalary(basicSalary); // FIXED: Use full monthly salary
         
         // Calculate total benefits
         BigDecimal totalBenefits = calculateTotalBenefits(employeeId, periodStart, periodEnd);
@@ -479,13 +512,6 @@ public class PayrollDAO extends BaseDAO<PayrollModel, Integer> {
         return payroll;
     }
     
-    /**
-     * Calculates total benefits for an employee
-     * @param employeeId The employee ID
-     * @param periodStart The period start date
-     * @param periodEnd The period end date
-     * @return Total benefits amount
-     */
     private BigDecimal calculateTotalBenefits(Integer employeeId, LocalDate periodStart, LocalDate periodEnd) {
         String sql = "SELECT COALESCE(SUM(pb.benefitValue), 0) as totalBenefits " +
                     "FROM employee e " +
@@ -510,14 +536,6 @@ public class PayrollDAO extends BaseDAO<PayrollModel, Integer> {
         return BigDecimal.ZERO;
     }
     
-    /**
-     * Calculates overtime pay from approved overtime requests
-     * @param employeeId The employee ID
-     * @param periodStart The period start date
-     * @param periodEnd The period end date
-     * @param hourlyRate The employee's hourly rate
-     * @return Total overtime pay
-     */
     private BigDecimal calculateOvertimePayEnhanced(Integer employeeId, LocalDate periodStart, LocalDate periodEnd, BigDecimal hourlyRate) {
         String sql = "SELECT COALESCE(SUM(TIMESTAMPDIFF(MINUTE, overtimeStart, overtimeEnd)), 0) as totalMinutes " +
                     "FROM overtimerequest " +
@@ -535,7 +553,6 @@ public class PayrollDAO extends BaseDAO<PayrollModel, Integer> {
                 if (rs.next()) {
                     long totalMinutes = rs.getLong("totalMinutes");
                     if (totalMinutes > 0) {
-                        // Convert minutes to hours and multiply by 1.5 (time-and-a-half)
                         BigDecimal overtimeHours = new BigDecimal(totalMinutes).divide(new BigDecimal("60"), 2, RoundingMode.HALF_UP);
                         return overtimeHours.multiply(hourlyRate).multiply(new BigDecimal("1.5"));
                     }
@@ -548,13 +565,6 @@ public class PayrollDAO extends BaseDAO<PayrollModel, Integer> {
         return BigDecimal.ZERO;
     }
     
-    /**
-     * Calculates total deductions (SSS, PhilHealth, Pag-IBIG, Withholding Tax)
-     * @param employeeId The employee ID
-     * @param basicSalary The basic salary
-     * @param grossIncome The gross income
-     * @return Total deductions amount
-     */
     private BigDecimal calculateTotalDeductions(Integer employeeId, BigDecimal basicSalary, BigDecimal grossIncome) {
         // SSS: 4.5% of basic salary (employee share)
         BigDecimal sss = basicSalary.multiply(new BigDecimal("0.045")).setScale(2, RoundingMode.HALF_UP);
@@ -571,34 +581,20 @@ public class PayrollDAO extends BaseDAO<PayrollModel, Integer> {
         return sss.add(philhealth).add(pagibig).add(withholdingTax);
     }
     
-    /**
-     * Calculates withholding tax (simplified)
-     * @param grossIncome The gross income
-     * @return Withholding tax amount
-     */
     private BigDecimal calculateWithholdingTax(BigDecimal grossIncome) {
         BigDecimal monthlyGross = grossIncome;
         
         if (monthlyGross.compareTo(new BigDecimal("20833")) <= 0) {
-            return BigDecimal.ZERO; // No tax for income 250,000 and below annually
+            return BigDecimal.ZERO;
         } else if (monthlyGross.compareTo(new BigDecimal("33333")) <= 0) {
-            // 20% tax rate
             return monthlyGross.subtract(new BigDecimal("20833")).multiply(new BigDecimal("0.20"));
         } else {
-            // Higher tax rates
             return monthlyGross.multiply(new BigDecimal("0.25")).setScale(2, RoundingMode.HALF_UP);
         }
     }
     
-
     // OVERRIDE METHODS
-
     
-    /**
-     * Override the save method to use custom INSERT SQL
-     * @param payroll The payroll to save
-     * @return true if save was successful, false otherwise
-     */
     @Override
     public boolean save(PayrollModel payroll) {
         String sql = buildInsertSQL();
@@ -626,11 +622,6 @@ public class PayrollDAO extends BaseDAO<PayrollModel, Integer> {
         }
     }
     
-    /**
-     * Override the update method to use custom UPDATE SQL
-     * @param payroll The payroll to update
-     * @return true if update was successful, false otherwise
-     */
     @Override
     public boolean update(PayrollModel payroll) {
         String sql = buildUpdateSQL();
@@ -649,13 +640,8 @@ public class PayrollDAO extends BaseDAO<PayrollModel, Integer> {
         }
     }
     
-
     // INNER CLASS - For payroll summary
-
     
-    /**
-     * Inner class to hold payroll summary information
-     */
     public static class PayrollSummary {
         private int employeeCount;
         private BigDecimal totalGrossIncome = BigDecimal.ZERO;

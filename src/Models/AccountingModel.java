@@ -14,6 +14,11 @@ import DAOs.EmployeeDAO;
 import DAOs.PayrollDAO;
 import DAOs.PayPeriodDAO;
 import DAOs.DatabaseConnection;
+import DAOs.PayrollAttendanceDAO;
+import DAOs.PayrollBenefitDAO;
+import DAOs.PayrollLeaveDAO;
+import DAOs.PayrollOvertimeDAO;
+import DAOs.TardinessRecordDAO; // NEW
 
 public class AccountingModel extends EmployeeModel {
     
@@ -27,20 +32,24 @@ public class AccountingModel extends EmployeeModel {
     private final PayrollDAO payrollDAO;
     private final PayPeriodDAO payPeriodDAO;
     
+    // Detail DAOs for payroll generation - UPDATED with TardinessRecordDAO
+    private final PayrollAttendanceDAO payrollAttendanceDAO;
+    private final PayrollBenefitDAO payrollBenefitDAO;
+    private final PayrollLeaveDAO payrollLeaveDAO;
+    private final PayrollOvertimeDAO payrollOvertimeDAO;
+    private final TardinessRecordDAO tardinessRecordDAO; // NEW
+    
     // Accounting Role Permissions
     private static final String[] ACCOUNTING_PERMISSIONS = {
         "VERIFY_PAYROLL", "VIEW_PAYROLL_DATA", "GENERATE_FINANCIAL_REPORTS", 
-        "AUDIT_FINANCIAL_DATA", "MANAGE_TAX_CALCULATIONS"
+        "AUDIT_FINANCIAL_DATA", "MANAGE_TAX_CALCULATIONS", "GENERATE_PAYROLL"
     };
 
     /**
-     * Constructor for Accounting role
+     * Constructor for Accounting role - UPDATED with TardinessRecordDAO
      */
-     public AccountingModel(int employeeId, String firstName, String lastName, String email, String userRole) {
-        // Call the parent constructor with 4 parameters (no employeeId)
+    public AccountingModel(int employeeId, String firstName, String lastName, String email, String userRole) {
         super(firstName, lastName, email, userRole);
-        
-        // Set the employeeId separately since it's not in the parent constructor
         this.setEmployeeId(employeeId);
         
         // Create single database connection for all components
@@ -49,25 +58,30 @@ public class AccountingModel extends EmployeeModel {
         // Initialize services with database connection 
         this.payrollService = new PayrollService(dbConnection);
         this.reportService = new ReportService(dbConnection);
-        this.attendanceService = new AttendanceService(); // Use no-argument constructor
+        this.attendanceService = new AttendanceService();
         
         // Initialize DAOs with database connection
         this.employeeDAO = new EmployeeDAO(dbConnection);
         this.payrollDAO = new PayrollDAO(dbConnection);
-        this.payPeriodDAO = new PayPeriodDAO(); // Use no-argument constructor
+        this.payPeriodDAO = new PayPeriodDAO();
+        
+        // Initialize detail DAOs
+        this.payrollAttendanceDAO = new PayrollAttendanceDAO(dbConnection);
+        this.payrollBenefitDAO = new PayrollBenefitDAO(dbConnection);
+        this.payrollLeaveDAO = new PayrollLeaveDAO(dbConnection);
+        this.payrollOvertimeDAO = new PayrollOvertimeDAO(dbConnection);
+        this.tardinessRecordDAO = new TardinessRecordDAO(dbConnection); // NEW
         
         System.out.println("Accounting user initialized: " + getFullName());
     }
 
     /**
-     * Constructor from existing EmployeeModel
+     * Constructor from existing EmployeeModel - UPDATED with TardinessRecordDAO
      */
     public AccountingModel(EmployeeModel employee) {
-        // Call parent constructor with the 4 available parameters
         super(employee.getFirstName(), employee.getLastName(), 
               employee.getEmail(), employee.getUserRole());
         
-        // Copy all fields from the source employee (including employeeId)
         this.copyFromEmployeeModel(employee);
         
         // Create single database connection for all components
@@ -76,23 +90,123 @@ public class AccountingModel extends EmployeeModel {
         // Initialize Accounting-specific components with database connection
         this.payrollService = new PayrollService(dbConnection);
         this.reportService = new ReportService(dbConnection);
-        this.attendanceService = new AttendanceService(); // Use no-argument constructor
+        this.attendanceService = new AttendanceService();
         
         this.employeeDAO = new EmployeeDAO(dbConnection);
         this.payrollDAO = new PayrollDAO(dbConnection);
-        this.payPeriodDAO = new PayPeriodDAO(); // Use no-argument constructor
+        this.payPeriodDAO = new PayPeriodDAO();
+        
+        // Initialize detail DAOs
+        this.payrollAttendanceDAO = new PayrollAttendanceDAO(dbConnection);
+        this.payrollBenefitDAO = new PayrollBenefitDAO(dbConnection);
+        this.payrollLeaveDAO = new PayrollLeaveDAO(dbConnection);
+        this.payrollOvertimeDAO = new PayrollOvertimeDAO(dbConnection);
+        this.tardinessRecordDAO = new TardinessRecordDAO(dbConnection); // NEW
         
         System.out.println("Accounting user initialized from EmployeeModel: " + getFullName());
     }
 
-    // Note: Removed the initialization helper methods as they're no longer needed
-    // All Services and DAOs now use consistent DatabaseConnection constructor pattern
+    // ===================================
+    // PAYROLL GENERATION IMPLEMENTATION
+    // ===================================
+
+    /**
+     * Inner class for payroll generation result
+     */
+    public static class PayrollGenerationResult {
+        private boolean success;
+        private int generatedCount;
+        private boolean detailTablesPopulated;
+        private String message;
+
+        public PayrollGenerationResult(boolean success, int generatedCount, 
+                                     boolean detailTablesPopulated, String message) {
+            this.success = success;
+            this.generatedCount = generatedCount;
+            this.detailTablesPopulated = detailTablesPopulated;
+            this.message = message;
+        }
+
+        // Getters
+        public boolean isSuccess() { return success; }
+        public int getGeneratedCount() { return generatedCount; }
+        public boolean isDetailTablesPopulated() { return detailTablesPopulated; }
+        public String getMessage() { return message; }
+    }
+
+    /**
+     * Generates payroll with all detail tables - UPDATED to include tardiness
+     */
+    public PayrollGenerationResult generatePayrollWithDetails(int payPeriodId) {
+        try {
+            if (!hasPermission("GENERATE_PAYROLL")) {
+                return new PayrollGenerationResult(false, 0, false, 
+                    "Insufficient permissions to generate payroll");
+            }
+
+            // First delete any existing payroll data for this period
+            payrollDAO.deletePayrollByPeriod(payPeriodId);
+            payrollAttendanceDAO.deleteByPayPeriod(payPeriodId);
+            payrollBenefitDAO.deleteByPayPeriod(payPeriodId);
+            payrollLeaveDAO.deleteByPayPeriod(payPeriodId);
+            payrollOvertimeDAO.deleteByPayPeriod(payPeriodId);
+            tardinessRecordDAO.deleteByPayPeriod(payPeriodId); // NEW
+
+            // Generate main payroll records using the FIXED PayrollDAO
+            int generatedCount = payrollDAO.generatePayroll(payPeriodId);
+            
+            if (generatedCount == 0) {
+                return new PayrollGenerationResult(false, 0, false,
+                    "No payroll records were generated");
+            }
+
+            // Populate detail tables
+            boolean attendancePopulated = payrollAttendanceDAO.generateAttendanceRecords(payPeriodId) >= 0;
+            boolean benefitsPopulated = payrollBenefitDAO.generateBenefitRecords(payPeriodId) >= 0;
+            boolean leavesPopulated = payrollLeaveDAO.generateLeaveRecords(payPeriodId) >= 0;
+            boolean overtimePopulated = payrollOvertimeDAO.generateOvertimeRecords(payPeriodId) >= 0;
+            boolean tardinessPopulated = tardinessRecordDAO.generateTardinessRecords(payPeriodId) >= 0; // NEW
+
+            boolean allDetailsPopulated = attendancePopulated && benefitsPopulated && 
+                                         leavesPopulated && overtimePopulated && tardinessPopulated;
+
+            logAccountingActivity("PAYROLL_GENERATED", 
+                "Generated payroll for period: " + payPeriodId + 
+                " - Records: " + generatedCount + 
+                ", Details: " + (allDetailsPopulated ? "Complete" : "Partial"));
+
+            return new PayrollGenerationResult(true, generatedCount, allDetailsPopulated,
+                "Payroll generated successfully with " + generatedCount + " records");
+
+        } catch (Exception e) {
+            System.err.println("Error generating payroll: " + e.getMessage());
+            return new PayrollGenerationResult(false, 0, false,
+                "Error generating payroll: " + e.getMessage());
+        }
+    }
+
+    /**
+     * Verifies payroll detail tables were populated correctly - UPDATED to include tardiness
+     */
+    private boolean verifyDetailTables(int payPeriodId) {
+        try {
+            boolean attendanceOK = payrollAttendanceDAO.hasRecordsForPeriod(payPeriodId);
+            boolean benefitsOK = payrollBenefitDAO.hasRecordsForPeriod(payPeriodId);
+            boolean leavesOK = payrollLeaveDAO.hasRecordsForPeriod(payPeriodId);
+            boolean overtimeOK = payrollOvertimeDAO.hasRecordsForPeriod(payPeriodId);
+            boolean tardinessOK = tardinessRecordDAO.hasRecordsForPeriod(payPeriodId); // NEW
+            
+            return attendanceOK && benefitsOK && leavesOK && overtimeOK && tardinessOK;
+        } catch (Exception e) {
+            System.err.println("Error verifying detail tables: " + e.getMessage());
+            return false;
+        }
+    }
 
     /**
      * Helper method to copy data from another EmployeeModel
      */
     private void copyFromEmployeeModel(EmployeeModel source) {
-        // Copy all the basic fields
         this.setEmployeeId(source.getEmployeeId());
         this.setFirstName(source.getFirstName());
         this.setLastName(source.getLastName());
@@ -114,86 +228,88 @@ public class AccountingModel extends EmployeeModel {
     }
 
     // ================================
-    // PAYROLL VERIFICATION OPERATIONS
+    // PAYROLL VERIFICATION OPERATIONS - FIXED for monthly salary
     // ================================
 
     /**
      * Verifies payroll calculations for a specific pay period
+     * Expects monthly salary (not semi-monthly) to match database view
      */
-    public AccountingResult verifyPayrollForPeriod(Integer payPeriodId) {
-        AccountingResult result = new AccountingResult();
-        
-        try {
-            if (!hasPermission("VERIFY_PAYROLL")) {
-                result.setSuccess(false);
-                result.setMessage("Insufficient permissions to verify payroll");
-                return result;
-            }
+        public AccountingResult verifyPayrollForPeriod(Integer payPeriodId) {
+            AccountingResult result = new AccountingResult();
 
-            if (payPeriodDAO == null) {
-                result.setSuccess(false);
-                result.setMessage("PayPeriodDAO not initialized");
-                return result;
-            }
-
-            PayPeriodModel payPeriod = payPeriodDAO.findById(payPeriodId);
-            if (payPeriod == null) {
-                result.setSuccess(false);
-                result.setMessage("Pay period not found: " + payPeriodId);
-                return result;
-            }
-
-            if (payrollDAO == null) {
-                result.setSuccess(false);
-                result.setMessage("PayrollDAO not initialized");
-                return result;
-            }
-
-            List<PayrollModel> payrollRecords = payrollDAO.findByPayPeriod(payPeriodId);
-            int verifiedCount = 0;
-            int discrepancyCount = 0;
-            BigDecimal totalGross = BigDecimal.ZERO;
-            BigDecimal totalNet = BigDecimal.ZERO;
-            BigDecimal totalDeductions = BigDecimal.ZERO;
-
-            for (PayrollModel payroll : payrollRecords) {
-                if (verifyIndividualPayroll(payroll)) {
-                    verifiedCount++;
-                } else {
-                    discrepancyCount++;
+            try {
+                if (!hasPermission("VERIFY_PAYROLL")) {
+                    result.setSuccess(false);
+                    result.setMessage("Insufficient permissions to verify payroll");
+                    return result;
                 }
-                totalGross = totalGross.add(payroll.getGrossIncome());
-                totalNet = totalNet.add(payroll.getNetSalary());
-                totalDeductions = totalDeductions.add(payroll.getTotalDeduction());
+
+                if (payPeriodDAO == null) {
+                    result.setSuccess(false);
+                    result.setMessage("PayPeriodDAO not initialized");
+                    return result;
+                }
+
+                PayPeriodModel payPeriod = payPeriodDAO.findById(payPeriodId);
+                if (payPeriod == null) {
+                    result.setSuccess(false);
+                    result.setMessage("Pay period not found: " + payPeriodId);
+                    return result;
+                }
+
+                if (payrollDAO == null) {
+                    result.setSuccess(false);
+                    result.setMessage("PayrollDAO not initialized");
+                    return result;
+                }
+
+                List<PayrollModel> payrollRecords = payrollDAO.findByPayPeriod(payPeriodId);
+                int verifiedCount = 0;
+                int discrepancyCount = 0;
+                BigDecimal totalGross = BigDecimal.ZERO;
+                BigDecimal totalNet = BigDecimal.ZERO;
+                BigDecimal totalDeductions = BigDecimal.ZERO;
+
+                for (PayrollModel payroll : payrollRecords) {
+                    if (verifyIndividualPayroll(payroll)) {
+                        verifiedCount++;
+                    } else {
+                        discrepancyCount++;
+                    }
+                    totalGross = totalGross.add(payroll.getGrossIncome());
+                    totalNet = totalNet.add(payroll.getNetSalary());
+                    totalDeductions = totalDeductions.add(payroll.getTotalDeduction());
+                }
+
+                result.setSuccess(true);
+                result.setMessage("Payroll verification completed for period: " + payPeriod.getPeriodName());
+                result.setTotalRecords(payrollRecords.size());
+                result.setVerifiedRecords(verifiedCount);
+                result.setDiscrepancyRecords(discrepancyCount);
+                result.setTotalGross(totalGross);
+                result.setTotalNet(totalNet);
+                result.setTotalDeductions(totalDeductions);
+
+                logAccountingActivity("PAYROLL_VERIFIED", 
+                    "Verified payroll for period: " + payPeriodId + 
+                    " - Records: " + payrollRecords.size() + 
+                    ", Discrepancies: " + discrepancyCount);
+
+            } catch (Exception e) {
+                result.setSuccess(false);
+                result.setMessage("Error verifying payroll: " + e.getMessage());
+                System.err.println("Accounting error verifying payroll: " + e.getMessage());
             }
 
-            result.setSuccess(true);
-            result.setMessage("Payroll verification completed for period: " + payPeriod.getPeriodName());
-            result.setTotalRecords(payrollRecords.size());
-            result.setVerifiedRecords(verifiedCount);
-            result.setDiscrepancyRecords(discrepancyCount);
-            result.setTotalGross(totalGross);
-            result.setTotalNet(totalNet);
-            result.setTotalDeductions(totalDeductions);
-            
-            logAccountingActivity("PAYROLL_VERIFIED", 
-                "Verified payroll for period: " + payPeriodId + 
-                " - Records: " + payrollRecords.size() + 
-                ", Discrepancies: " + discrepancyCount);
-
-        } catch (Exception e) {
-            result.setSuccess(false);
-            result.setMessage("Error verifying payroll: " + e.getMessage());
-            System.err.println("Accounting error verifying payroll: " + e.getMessage());
+            return result;
         }
 
-        return result;
-    }
-
-    /**
-     * Verifies individual payroll calculation
-     */
-    private boolean verifyIndividualPayroll(PayrollModel payroll) {
+        /**
+         * Verifies individual payroll calculation
+         * FIXED: Now expects monthly salary (not semi-monthly) to match database view
+         */
+        private boolean verifyIndividualPayroll(PayrollModel payroll) {
         try {
             if (employeeDAO == null) {
                 System.err.println("EmployeeDAO not initialized");
@@ -206,26 +322,27 @@ public class AccountingModel extends EmployeeModel {
                 return false;
             }
 
-            // Verify basic salary calculation (semi-monthly)
-            BigDecimal expectedBasicSalary = employee.getBasicSalary().divide(new BigDecimal("2"), 2, RoundingMode.HALF_UP);
+            // FIXED: Verify basic salary calculation (full monthly salary - no division)
+            // The payroll generation uses full monthly salary, so verification should match
+            BigDecimal expectedBasicSalary = employee.getBasicSalary(); // Full monthly salary
             if (!payroll.getBasicSalary().equals(expectedBasicSalary)) {
                 System.out.println("Basic salary mismatch for employee: " + payroll.getEmployeeId() + 
                     " - Expected: " + expectedBasicSalary + ", Found: " + payroll.getBasicSalary());
                 return false;
             }
 
-            // Verify net salary calculation
-            BigDecimal expectedNet = payroll.getGrossIncome().subtract(payroll.getTotalDeduction());
+            // Verify net salary calculation (gross + benefits - deductions)
+            BigDecimal expectedNet = payroll.getGrossIncome().add(payroll.getTotalBenefit()).subtract(payroll.getTotalDeduction());
             if (!payroll.getNetSalary().equals(expectedNet)) {
                 System.out.println("Net salary calculation mismatch for employee: " + payroll.getEmployeeId() + 
                     " - Expected: " + expectedNet + ", Found: " + payroll.getNetSalary());
                 return false;
             }
 
-            // Verify deduction calculations (basic government deductions)
+            // Verify deduction calculations (basic government deductions based on FULL monthly salary)
             BigDecimal expectedDeductions = calculateExpectedDeductions(employee.getBasicSalary());
             BigDecimal deductionDifference = payroll.getTotalDeduction().subtract(expectedDeductions).abs();
-            
+
             // Allow small tolerance for rounding differences
             if (deductionDifference.compareTo(new BigDecimal("1.00")) > 0) {
                 System.out.println("Deduction calculation mismatch for employee: " + payroll.getEmployeeId() + 
@@ -275,7 +392,6 @@ public class AccountingModel extends EmployeeModel {
             return report;
         }
 
-        // Call the actual ReportService method and wrap result in ReportResult
         try {
             Object reportServiceResult = reportService.generateMonthlyPayrollSummaryFromView(YearMonth.now());
             ReportResult report = new ReportResult();
@@ -350,7 +466,7 @@ public class AccountingModel extends EmployeeModel {
 
         try {
             YearMonth currentMonth = YearMonth.from(startDate);
-Object reportServiceResult = reportService.generateMonthlyPayrollSummaryFromView(currentMonth);
+            Object reportServiceResult = reportService.generateMonthlyPayrollSummaryFromView(currentMonth);
             ReportResult report = new ReportResult();
             report.setSuccess(true);
             report.setReportContent("Salary comparison report generated for period: " + startDate + " to " + endDate);
@@ -478,13 +594,11 @@ Object reportServiceResult = reportService.generateMonthlyPayrollSummaryFromView
      * Checks if Accounting user has specific permission
      */
     private boolean hasPermission(String permission) {
-        // First check if the user has the Accounting role
         String userRole = getUserRole();
         if (userRole == null || !userRole.equalsIgnoreCase("Accounting")) {
-            return false; // Non-accounting users have no accounting permissions
+            return false;
         }
         
-        // If user has Accounting role, check if the permission is in the list
         for (String accountingPermission : ACCOUNTING_PERMISSIONS) {
             if (accountingPermission.equals(permission)) {
                 return true;

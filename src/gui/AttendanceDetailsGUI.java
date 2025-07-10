@@ -1,24 +1,22 @@
 package gui;
 
-import DAOs.EmployeeDAO;
-import DAOs.DatabaseConnection;
+import Models.AttendanceModel;
 import Models.UserAuthenticationModel;
+import Services.AttendanceService;
+import DAOs.DatabaseConnection;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
-import java.sql.*;
-import java.time.LocalDate;
-import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 
+/**
+ * GUI for displaying employee attendance details with filtering capabilities.
+ * Provides access to overtime request functionality for eligible employees.
+ */
 public class AttendanceDetailsGUI extends javax.swing.JFrame {
 
-    private EmployeeDAO employeeDAO;
-    private DatabaseConnection databaseConnection;
+    private AttendanceService attendanceService;
     private String employeeId;
     private String employeeName;
     private UserAuthenticationModel loggedInUser;
@@ -26,29 +24,37 @@ public class AttendanceDetailsGUI extends javax.swing.JFrame {
     private final DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("MM/dd/yyyy");
     private final DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm");
 
+    /**
+     * Constructor initializes the attendance details GUI for the logged-in user.
+     * Sets up service dependencies and loads initial data.
+     */
     public AttendanceDetailsGUI(UserAuthenticationModel loggedInUser) {
-        initComponents();
-
         this.loggedInUser = loggedInUser;
         this.employeeId = String.valueOf(loggedInUser.getEmployeeId());
         this.employeeName = loggedInUser.getFirstName() + " " + loggedInUser.getLastName();
 
+        initComponents();
+        
         this.setLocationRelativeTo(null);
-        this.databaseConnection = new DatabaseConnection();
-        this.employeeDAO = new EmployeeDAO(databaseConnection);
+        
+        // Initialize service layer
+        DatabaseConnection databaseConnection = new DatabaseConnection();
+        this.attendanceService = new AttendanceService(databaseConnection);
 
         setTitle("Attendance Details - " + employeeName);
         
         initializeDateFilter();
+        setupOvertimeButtonVisibility();
         loadAttendanceData();
     }
 
-
+    /**
+     * Populates the date filter dropdown with available months.
+     * Defaults to "Select" option for initial state.
+     */
     private void initializeDateFilter() {
         dateFilter.removeAllItems();
         dateFilter.addItem("Select");
-
-        // Add only specific months from 2024
         dateFilter.addItem("2024-06");
         dateFilter.addItem("2024-07");
         dateFilter.addItem("2024-08");
@@ -56,30 +62,55 @@ public class AttendanceDetailsGUI extends javax.swing.JFrame {
         dateFilter.addItem("2024-10");
         dateFilter.addItem("2024-11");
         dateFilter.addItem("2024-12");
-
         dateFilter.setSelectedItem("Select");
     }
 
+    /**
+     * Sets up overtime button visibility based on employee rank-and-file status.
+     * Only rank-and-file employees can access overtime requests.
+     */
+    private void setupOvertimeButtonVisibility() {
+        try {
+            boolean isRankAndFile = attendanceService.isRankAndFileEmployee(Integer.parseInt(employeeId));
+            otRequestsBtn.setVisible(isRankAndFile);
+        } catch (Exception e) {
+            System.err.println("Error checking employee rank for overtime button: " + e.getMessage());
+            otRequestsBtn.setVisible(false);
+        }
+    }
+
+    /**
+     * Loads attendance data without any date filter applied.
+     * Uses default date range from service.
+     */
     private void loadAttendanceData() {
         loadAttendanceData(null);
     }
 
+    /**
+     * Loads attendance data with optional date filtering.
+     * Updates the table with calculated hours based on employee type.
+     */
     private void loadAttendanceData(String dateFilter) {
         SwingUtilities.invokeLater(() -> {
             try {
-                List<AttendanceRecord> attendanceRecords = getAttendanceFromPayslipView(dateFilter);
+                // Use AttendanceService to get calculated attendance records
+                List<AttendanceModel> attendanceRecords = attendanceService.getAttendanceRecordsWithCalculatedHours(
+                    Integer.parseInt(employeeId), dateFilter);
+                
                 DefaultTableModel model = (DefaultTableModel) AttendanceDetailsTbl.getModel();
                 model.setRowCount(0);
 
-                for (AttendanceRecord record : attendanceRecords) {
+                // Populate table with attendance data
+                for (AttendanceModel attendance : attendanceRecords) {
                     model.addRow(new Object[]{
                             employeeId,
-                            record.date != null ? record.date.format(dateFormatter) : "N/A",
-                            record.timeIn != null ? record.timeIn.format(timeFormatter) : "N/A",
-                            record.timeOut != null ? record.timeOut.format(timeFormatter) : "N/A",
-                            String.format("%.2f", record.hoursWorked),
-                            String.format("%.2f", record.lateHours),
-                            String.format("%.2f", record.overtimeHours)
+                            attendance.getDate() != null ? attendance.getDate().toLocalDate().format(dateFormatter) : "N/A",
+                            attendance.getTimeIn() != null ? attendance.getTimeIn().toLocalTime().format(timeFormatter) : "N/A",
+                            attendance.getTimeOut() != null ? attendance.getTimeOut().toLocalTime().format(timeFormatter) : "N/A",
+                            String.format("%.2f", attendance.getComputedHours()),
+                            String.format("%.2f", attendance.getLateHours()),
+                            String.format("%.2f", attendance.getOvertimeHours())
                     });
                 }
                 
@@ -94,151 +125,13 @@ public class AttendanceDetailsGUI extends javax.swing.JFrame {
     }
 
     /**
-     * Fetches attendance records with calculated hours from the attendance table.
-     * Business rules:
-     * - Regular hours: calculated only within 8AM-5PM window (excluding 1hr lunch)
-     * - Late hours: only calculated for rank-and-file employees (0.00 for non rank-and-file)
-     * - Overtime: only calculated for rank-and-file employees (0.00 for non rank-and-file)
-     * - Non rank-and-file employees get 8.00 hours every work day regardless of actual time
-     * - Shows missing work days where employee didn't attend
-     */
-    private List<AttendanceRecord> getAttendanceFromPayslipView(String dateFilter) {
-        List<AttendanceRecord> records = new ArrayList<>();
-        
-        // Get employee's position info to determine if rank-and-file
-        boolean isRankAndFile = false;
-        try {
-            isRankAndFile = employeeDAO.isEmployeeRankAndFile(Integer.parseInt(employeeId));
-        } catch (Exception e) {
-            System.err.println("Error checking employee rank: " + e.getMessage());
-        }
-
-        // Use a simpler approach: get attendance records and generate missing days in Java
-        String sql = """
-            SELECT 
-                a.employeeId,
-                a.date,
-                a.timeIn,
-                a.timeOut,
-                -- Hours worked based on employee type
-                CASE 
-                    WHEN ? = 1 THEN  -- Rank-and-file employee
-                        CASE 
-                            WHEN a.timeIn IS NOT NULL AND a.timeOut IS NOT NULL THEN
-                                GREATEST(0, 
-                                    (TIME_TO_SEC(LEAST(a.timeOut, '17:00:00')) - TIME_TO_SEC(GREATEST(a.timeIn, '08:00:00'))) / 3600.0
-                                    - CASE 
-                                        WHEN GREATEST(a.timeIn, '08:00:00') <= '12:00:00' AND LEAST(a.timeOut, '17:00:00') >= '13:00:00' 
-                                        THEN 1.0 
-                                        ELSE 0.0 
-                                      END
-                                )
-                            ELSE 0.00 
-                        END
-                    ELSE  -- Non rank-and-file employee: always 8 hours if present
-                        CASE WHEN a.timeIn IS NOT NULL THEN 8.00 ELSE 0.00 END
-                END AS hours_worked,
-                -- Late hours: only for rank-and-file employees
-                CASE 
-                    WHEN ? = 1 AND a.timeIn > '08:10:00'
-                    THEN (TIME_TO_SEC(a.timeIn) - TIME_TO_SEC('08:00:00')) / 3600.0
-                    ELSE 0.00 
-                END AS late_hours,
-                -- Overtime hours: only for rank-and-file employees
-                CASE 
-                    WHEN ? = 1 AND a.timeIn IS NOT NULL AND a.timeOut IS NOT NULL THEN
-                        CASE WHEN a.timeIn < '08:00:00' 
-                             THEN (TIME_TO_SEC('08:00:00') - TIME_TO_SEC(a.timeIn)) / 3600.0 
-                             ELSE 0 END
-                        +
-                        CASE WHEN a.timeOut > '17:00:00' 
-                             THEN (TIME_TO_SEC(a.timeOut) - TIME_TO_SEC('17:00:00')) / 3600.0 
-                             ELSE 0 END
-                    ELSE 0.00 
-                END AS overtime_hours,
-                DATE_FORMAT(a.date, '%Y-%m') AS pay_month
-            FROM attendance a
-            WHERE a.employeeId = ?
-        """;
-
-        // Apply date filtering
-        if (dateFilter != null && !dateFilter.equals("All")) {
-            if (dateFilter.length() == 4) { // Year format
-                sql += " AND YEAR(a.date) = ?";
-            } else { // Month format
-                sql += " AND DATE_FORMAT(a.date, '%Y-%m') = ?";
-            }
-        } else {
-            // Default to last 3 months if no filter
-            sql += " AND a.date >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)";
-        }
-
-        sql += " ORDER BY a.date DESC LIMIT 1000";
-
-        try (Connection conn = databaseConnection.createConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-
-            stmt.setInt(1, isRankAndFile ? 1 : 0);  // hours_worked logic
-            stmt.setInt(2, isRankAndFile ? 1 : 0);  // late_hours logic
-            stmt.setInt(3, isRankAndFile ? 1 : 0);  // overtime_hours logic
-            stmt.setInt(4, Integer.parseInt(employeeId));
-
-            if (dateFilter != null && !dateFilter.equals("All")) {
-                if (dateFilter.length() == 4) {
-                    stmt.setInt(5, Integer.parseInt(dateFilter));
-                } else {
-                    stmt.setString(5, dateFilter);
-                }
-            }
-
-            try (ResultSet rs = stmt.executeQuery()) {
-                while (rs.next()) {
-                    AttendanceRecord record = new AttendanceRecord();
-                    record.employeeId = rs.getInt("employeeId");
-                    
-                    Date sqlDate = rs.getDate("date");
-                    if (sqlDate != null) {
-                        record.date = sqlDate.toLocalDate();
-                    }
-                    
-                    Time sqlTimeIn = rs.getTime("timeIn");
-                    if (sqlTimeIn != null) {
-                        record.timeIn = sqlTimeIn.toLocalTime();
-                    }
-                    
-                    Time sqlTimeOut = rs.getTime("timeOut");
-                    if (sqlTimeOut != null) {
-                        record.timeOut = sqlTimeOut.toLocalTime();
-                    }
-                    
-                    record.hoursWorked = rs.getDouble("hours_worked");
-                    record.lateHours = rs.getDouble("late_hours");
-                    record.overtimeHours = rs.getDouble("overtime_hours");
-                    record.payMonth = rs.getString("pay_month");
-
-                    records.add(record);
-                }
-            }
-            
-            
-        } catch (SQLException e) {
-            System.err.println("Error fetching attendance records: " + e.getMessage());
-            e.printStackTrace();
-        }
-
-        return records;
-    }
-    
-
-
-    /**
-     * Opens the overtime request popup if the employee is eligible.
-     * Business rule: Only rank-and-file employees can submit overtime requests.
+     * Opens overtime request popup for eligible employees.
+     * Overtime requests are saved to the overtimerequest table.
      */
     private void showOvertimeRequestsPopup() {
         try {
-            // Check employee eligibility for overtime requests
-            boolean isRankAndFile = employeeDAO.isEmployeeRankAndFile(Integer.parseInt(employeeId));
+            // Double-check eligibility before opening popup
+            boolean isRankAndFile = attendanceService.isRankAndFileEmployee(Integer.parseInt(employeeId));
             if (!isRankAndFile) {
                 JOptionPane.showMessageDialog(this, 
                     "Only rank-and-file employees are eligible for overtime requests.", 
@@ -246,6 +139,7 @@ public class AttendanceDetailsGUI extends javax.swing.JFrame {
                 return;
             }
 
+            // Open overtime request popup which handles database operations
             OvertimeRequestPopup popup = new OvertimeRequestPopup(this, employeeId, loggedInUser);
             popup.setVisible(true);
 
@@ -258,20 +152,30 @@ public class AttendanceDetailsGUI extends javax.swing.JFrame {
         }
     }
 
+    /**
+     * Applies date filter to attendance data when selection changes.
+     * Handles "Select" option by loading data without filter.
+     */
     private void filterAttendanceByMonth() {
         String selectedFilter = (String) dateFilter.getSelectedItem();
-        if (selectedFilter != null) {
-            loadAttendanceData(selectedFilter.equals("All") ? null : selectedFilter);
+        if (selectedFilter != null && !selectedFilter.equals("Select")) {
+            loadAttendanceData(selectedFilter);
+        } else {
+            loadAttendanceData(null);
         }
     }
 
+    /**
+     * Handles back button navigation to appropriate dashboard.
+     * Routes user based on role hierarchy.
+     */
     private void goBack() {
         navigateBackToDashboard();
     }
 
     /**
-     * Navigate back to the appropriate dashboard based on user role.
-     * Role hierarchy: HR > Accounting > IT > Supervisor > Employee
+     * Navigates back to the appropriate dashboard based on user role.
+     * Role priority: HR > Accounting > IT > Supervisor > Employee
      */
     private void navigateBackToDashboard() {
         if (loggedInUser == null) {
@@ -290,7 +194,7 @@ public class AttendanceDetailsGUI extends javax.swing.JFrame {
         try {
             String upperRole = userRole.toUpperCase();
             
-            // Route to appropriate dashboard based on role priority
+            // Route to appropriate dashboard based on role
             if (upperRole.contains("HR")) {
                 AdminHR adminHR = new AdminHR(loggedInUser);
                 adminHR.setVisible(true);
@@ -335,7 +239,6 @@ public class AttendanceDetailsGUI extends javax.swing.JFrame {
             this.dispose();
         }
     }
-
 
 
     /**
@@ -520,28 +423,7 @@ public class AttendanceDetailsGUI extends javax.swing.JFrame {
         filterAttendanceByMonth();
     }//GEN-LAST:event_dateFilterActionPerformed
                                          
-    /**
-     * Data model for attendance records with calculated hours.
-     * Maps to the attendance table with business logic calculations.
-     */
-    public static class AttendanceRecord {
-        public int employeeId;
-        public LocalDate date;
-        public LocalTime timeIn;
-        public LocalTime timeOut;
-        public double hoursWorked;    // Regular hours only (max 8 hours)
-        public double lateHours;      // Hours late if after 8:10 AM
-        public double overtimeHours;  // Hours beyond 8-hour workday
-        public String payMonth;       // Format: YYYY-MM
-
-        @Override
-        public String toString() {
-            return String.format("AttendanceRecord{employeeId=%d, date=%s, timeIn=%s, timeOut=%s, hoursWorked=%.2f, lateHours=%.2f, overtimeHours=%.2f, payMonth='%s'}", 
-                employeeId, date, timeIn, timeOut, hoursWorked, lateHours, overtimeHours, payMonth);
-        }
-    }
-
-    public static void main(String[] args) {
+     public static void main(String[] args) {
         java.awt.EventQueue.invokeLater(() -> {
             System.out.println("AttendanceDetailsGUI requires a valid UserAuthenticationModel instance.");
             System.out.println("Please use: new AttendanceDetailsGUI(loggedInUser).setVisible(true);");

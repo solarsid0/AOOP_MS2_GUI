@@ -1,7 +1,6 @@
 package Services;
 
 import DAOs.*;
-import Models.*;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
@@ -10,7 +9,6 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.sql.*;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * Enhanced ReportService - Uses database views for complex payroll calculations

@@ -244,7 +244,7 @@ public class EmployeeDAO extends BaseDAO<EmployeeModel, Integer> {
             }
             
             conn.commit(); // Commit transaction
-            System.out.println("✅ Employee and government IDs saved successfully");
+            System.out.println("Employee and government IDs saved successfully");
             return true;
             
         } catch (Exception e) {
@@ -299,7 +299,7 @@ public class EmployeeDAO extends BaseDAO<EmployeeModel, Integer> {
             }
             
             conn.commit(); // Commit transaction
-            System.out.println("✅ Employee and government IDs updated successfully");
+            System.out.println("Employee and government IDs updated successfully");
             return true;
             
         } catch (Exception e) {

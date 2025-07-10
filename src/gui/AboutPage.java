@@ -26,7 +26,7 @@ public class AboutPage extends javax.swing.JFrame {
         this.loggedInUser = null;
         this.userRole = null;
 
-        setTitle("About - MotorPH"); // ✅ Title added
+        setTitle("About - MotorPH"); // Title added
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         pack();
         setLocationRelativeTo(null);

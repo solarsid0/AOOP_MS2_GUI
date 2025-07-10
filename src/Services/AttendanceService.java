@@ -5,12 +5,11 @@ import Models.TardinessRecordModel;
 import DAOs.AttendanceDAO;
 import DAOs.TardinessRecordDAO;
 import DAOs.EmployeeDAO;
+import DAOs.DatabaseConnection;
 import java.time.YearMonth;
 import java.math.BigDecimal;
-import DAOs.DatabaseConnection;
 
-import java.sql.Date;
-import java.sql.Time;
+import java.sql.*;
 import java.time.*;
 import java.util.List;
 import java.util.Map;
@@ -18,8 +17,8 @@ import java.util.HashMap;
 import java.util.ArrayList;
 
 /**
- * Enhanced AttendanceService with 8:10 AM grace period and rank-and-file rules
- * Includes Manila timezone operations and comprehensive business logic
+ * AttendanceService with TardinessRecordDAO integration
+ * Includes Manila timezone operations, BigDecimal precision, and comprehensive business logic
  */
 public class AttendanceService {
     private static final ZoneId MANILA_TIMEZONE = ZoneId.of("Asia/Manila");
@@ -29,36 +28,42 @@ public class AttendanceService {
     
     private AttendanceDAO attendanceDAO;
     private TardinessRecordDAO tardinessRecordDAO;
-    // Removed employeeDAO since it's not being used in current implementation
+    private EmployeeDAO employeeDAO;
+    private DatabaseConnection databaseConnection;
     
     // Constructors
     public AttendanceService() {
+        this.databaseConnection = new DatabaseConnection();
         this.attendanceDAO = new AttendanceDAO();
-        this.tardinessRecordDAO = new TardinessRecordDAO();
-        // Removed employeeDAO initialization
+        this.tardinessRecordDAO = new TardinessRecordDAO(this.databaseConnection);
+        this.employeeDAO = new EmployeeDAO(this.databaseConnection);
     }
     
     /**
-     * Constructor with DatabaseConnection (for service compatibility)
-     * @param databaseConnection The database connection to use
+     * Constructor with DatabaseConnection for service compatibility
+     * @param databaseConnection
      */
     public AttendanceService(DatabaseConnection databaseConnection) {
+        this.databaseConnection = databaseConnection;
         this.attendanceDAO = new AttendanceDAO(databaseConnection);
-        this.tardinessRecordDAO = new TardinessRecordDAO();
+        this.tardinessRecordDAO = new TardinessRecordDAO(databaseConnection);
+        this.employeeDAO = new EmployeeDAO(databaseConnection);
     }
     
     public AttendanceService(AttendanceDAO attendanceDAO, TardinessRecordDAO tardinessRecordDAO) {
         this.attendanceDAO = attendanceDAO;
         this.tardinessRecordDAO = tardinessRecordDAO;
-        // Removed employeeDAO parameter since it's not used
+        this.databaseConnection = new DatabaseConnection();
+        this.employeeDAO = new EmployeeDAO(this.databaseConnection);
     }
     
-    // Core attendance operations with grace period logic
+    // Core attendance operations with enhanced grace period logic
     
     /**
      * Record time in for employee with 8:10 AM grace period logic
-     * @param employeeId Employee ID
-     * @return true if successful
+     * UPDATED: Enhanced tardiness record creation with proper error handling
+     * @param employeeId
+     * @return 
      */
     public boolean recordTimeIn(int employeeId) {
         try {
@@ -88,11 +93,24 @@ public class AttendanceService {
                 attendanceDAO.createAttendance(attendance);
             
             if (success) {
+                // Ensure attendance ID is set for tardiness record creation
+                if (attendance.getAttendanceId() == null && existing == null) {
+                    // Fetch the created attendance to get the ID
+                    AttendanceModel created = attendanceDAO.getAttendanceByEmployeeAndDate(employeeId, currentDate);
+                    if (created != null) {
+                        attendance.setAttendanceId(created.getAttendanceId());
+                    }
+                }
+                
                 // Create tardiness record only if beyond grace period (8:10 AM)
-                if (attendance.isLateAttendance()) {
-                    createTardinessRecord(attendance, TardinessRecordModel.TardinessType.LATE);
-                    System.out.println("Late attendance recorded for employee " + employeeId + 
-                                     " at " + currentTime + " (beyond 8:10 AM grace period)");
+                if (attendance.isLateAttendance() && attendance.getAttendanceId() != null) {
+                    boolean tardinessCreated = createTardinessRecord(attendance, TardinessRecordModel.TardinessType.LATE);
+                    if (tardinessCreated) {
+                        System.out.println("Late attendance recorded for employee " + employeeId + 
+                                         " at " + currentTime + " (beyond 8:10 AM grace period)");
+                    } else {
+                        System.err.println("Failed to create tardiness record for employee " + employeeId);
+                    }
                 } else if (attendance.isWithinGracePeriod()) {
                     System.out.println("Employee " + employeeId + " timed in within grace period at " + currentTime);
                 } else {
@@ -103,14 +121,14 @@ public class AttendanceService {
             return success;
         } catch (Exception e) {
             System.err.println("Error recording time in: " + e.getMessage());
+            e.printStackTrace();
             return false;
         }
     }
     
     /**
      * Record time out for employee with undertime detection
-     * @param employeeId Employee ID
-     * @return true if successful
+     * UPDATED: Enhanced tardiness record creation with proper error handling
      */
     public boolean recordTimeOut(int employeeId) {
         try {
@@ -136,10 +154,14 @@ public class AttendanceService {
             
             if (success) {
                 // Create tardiness record for early departure (undertime)
-                if (attendance.isEarlyOut()) {
-                    createTardinessRecord(attendance, TardinessRecordModel.TardinessType.UNDERTIME);
-                    System.out.println("Early departure recorded for employee " + employeeId + 
-                                     " at " + currentTime + " (before 5:00 PM)");
+                if (attendance.isEarlyOut() && attendance.getAttendanceId() != null) {
+                    boolean tardinessCreated = createTardinessRecord(attendance, TardinessRecordModel.TardinessType.UNDERTIME);
+                    if (tardinessCreated) {
+                        System.out.println("Early departure recorded for employee " + employeeId + 
+                                         " at " + currentTime + " (before 5:00 PM)");
+                    } else {
+                        System.err.println("Failed to create undertime tardiness record for employee " + employeeId);
+                    }
                 } else {
                     System.out.println("Employee " + employeeId + " timed out at " + currentTime);
                 }
@@ -148,18 +170,14 @@ public class AttendanceService {
             return success;
         } catch (Exception e) {
             System.err.println("Error recording time out: " + e.getMessage());
+            e.printStackTrace();
             return false;
         }
     }
     
     /**
-     * Manual attendance entry (for HR/supervisors) with validation
-     * @param employeeId Employee ID
-     * @param date Attendance date
-     * @param timeIn Time in
-     * @param timeOut Time out (can be null)
-     * @param reason Reason for manual entry
-     * @return true if successful
+     * Manual attendance entry for HR/supervisors with validation
+     * UPDATED: Enhanced validation and tardiness record creation
      */
     public boolean createManualAttendance(int employeeId, Date date, Time timeIn, Time timeOut, String reason) {
         try {
@@ -186,12 +204,18 @@ public class AttendanceService {
             boolean success = attendanceDAO.createAttendance(attendance);
             
             if (success) {
-                // Create tardiness records if applicable
-                if (attendance.isLateAttendance()) {
-                    createTardinessRecord(attendance, TardinessRecordModel.TardinessType.LATE);
-                }
-                if (attendance.isEarlyOut()) {
-                    createTardinessRecord(attendance, TardinessRecordModel.TardinessType.UNDERTIME);
+                // Get the created attendance to ensure we have the ID
+                AttendanceModel created = attendanceDAO.getAttendanceByEmployeeAndDate(employeeId, date);
+                if (created != null) {
+                    attendance.setAttendanceId(created.getAttendanceId());
+                    
+                    // Create tardiness records if applicable
+                    if (attendance.isLateAttendance()) {
+                        createTardinessRecord(attendance, TardinessRecordModel.TardinessType.LATE);
+                    }
+                    if (attendance.isEarlyOut()) {
+                        createTardinessRecord(attendance, TardinessRecordModel.TardinessType.UNDERTIME);
+                    }
                 }
                 
                 System.out.println("Manual attendance created for employee " + employeeId + 
@@ -201,14 +225,14 @@ public class AttendanceService {
             return success;
         } catch (Exception e) {
             System.err.println("Error creating manual attendance: " + e.getMessage());
+            e.printStackTrace();
             return false;
         }
     }
     
     /**
      * Update existing attendance record with tardiness recalculation
-     * @param attendance Attendance record to update
-     * @return true if successful
+     * UPDATED: Enhanced tardiness record updates
      */
     public boolean updateAttendance(AttendanceModel attendance) {
         try {
@@ -229,18 +253,136 @@ public class AttendanceService {
             return success;
         } catch (Exception e) {
             System.err.println("Error updating attendance: " + e.getMessage());
+            e.printStackTrace();
             return false;
         }
+    }
+    
+    /**
+     * Get attendance records with calculated hours from payslip view logic.
+     * Applies business rules for rank-and-file vs salaried employees
+     */
+    public List<AttendanceModel> getAttendanceRecordsWithCalculatedHours(int employeeId, String dateFilter) {
+        List<AttendanceModel> records = new ArrayList<>();
+        
+        // Get employee's rank-and-file status
+        boolean isRankAndFile = false;
+        try {
+            isRankAndFile = employeeDAO.isEmployeeRankAndFile(employeeId);
+        } catch (Exception e) {
+            System.err.println("Error checking employee rank: " + e.getMessage());
+        }
+        
+        String sql = """
+            SELECT 
+                a.attendanceId,
+                a.employeeId,
+                a.date,
+                a.timeIn,
+                a.timeOut,
+                -- Hours worked based on employee type
+                CASE 
+                    WHEN ? = 1 THEN  -- Rank-and-file employee
+                        CASE 
+                            WHEN a.timeIn IS NOT NULL AND a.timeOut IS NOT NULL THEN
+                                GREATEST(0, 
+                                    (TIME_TO_SEC(LEAST(a.timeOut, '17:00:00')) - TIME_TO_SEC(GREATEST(a.timeIn, '08:00:00'))) / 3600.0
+                                    - CASE 
+                                        WHEN GREATEST(a.timeIn, '08:00:00') <= '12:00:00' AND LEAST(a.timeOut, '17:00:00') >= '13:00:00' 
+                                        THEN 1.0 
+                                        ELSE 0.0 
+                                      END
+                                )
+                            ELSE 0.00 
+                        END
+                    ELSE  -- Non rank-and-file employee: always 8 hours if present
+                        CASE WHEN a.timeIn IS NOT NULL THEN 8.00 ELSE 0.00 END
+                END AS hours_worked,
+                -- Late hours: only for rank-and-file employees
+                CASE 
+                    WHEN ? = 1 AND a.timeIn > '08:10:00'
+                    THEN (TIME_TO_SEC(a.timeIn) - TIME_TO_SEC('08:00:00')) / 3600.0
+                    ELSE 0.00 
+                END AS late_hours,
+                -- Overtime hours: only for rank-and-file employees
+                CASE 
+                    WHEN ? = 1 AND a.timeIn IS NOT NULL AND a.timeOut IS NOT NULL THEN
+                        CASE WHEN a.timeIn < '08:00:00' 
+                             THEN (TIME_TO_SEC('08:00:00') - TIME_TO_SEC(a.timeIn)) / 3600.0 
+                             ELSE 0 END
+                        +
+                        CASE WHEN a.timeOut > '17:00:00' 
+                             THEN (TIME_TO_SEC(a.timeOut) - TIME_TO_SEC('17:00:00')) / 3600.0 
+                             ELSE 0 END
+                    ELSE 0.00 
+                END AS overtime_hours
+            FROM attendance a
+            WHERE a.employeeId = ?
+        """;
+        
+        // Apply date filtering
+        if (dateFilter != null && !dateFilter.equals("All")) {
+            if (dateFilter.length() == 4) { // Year format
+                sql += " AND YEAR(a.date) = ?";
+            } else { // Month format
+                sql += " AND DATE_FORMAT(a.date, '%Y-%m') = ?";
+            }
+        } else {
+            // Default to last 3 months if no filter
+            sql += " AND a.date >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)";
+        }
+        
+        sql += " ORDER BY a.date DESC LIMIT 1000";
+        
+        try (Connection conn = databaseConnection.createConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            stmt.setInt(1, isRankAndFile ? 1 : 0);  // hours_worked logic
+            stmt.setInt(2, isRankAndFile ? 1 : 0);  // late_hours logic
+            stmt.setInt(3, isRankAndFile ? 1 : 0);  // overtime_hours logic
+            stmt.setInt(4, employeeId);
+            
+            if (dateFilter != null && !dateFilter.equals("All")) {
+                if (dateFilter.length() == 4) {
+                    stmt.setInt(5, Integer.parseInt(dateFilter));
+                } else {
+                    stmt.setString(5, dateFilter);
+                }
+            }
+            
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    AttendanceModel attendance = new AttendanceModel();
+                    attendance.setAttendanceId(rs.getInt("attendanceId"));
+                    attendance.setEmployeeId(rs.getInt("employeeId"));
+                    
+                    Date sqlDate = rs.getDate("date");
+                    Time sqlTimeIn = rs.getTime("timeIn");
+                    Time sqlTimeOut = rs.getTime("timeOut");
+                    double hoursWorked = rs.getDouble("hours_worked");
+                    double lateHours = rs.getDouble("late_hours");
+                    double overtimeHours = rs.getDouble("overtime_hours");
+                    
+                    // Set attendance data with database-calculated values
+                    attendance.setAttendanceDataWithCalculatedValues(
+                        sqlDate, sqlTimeIn, sqlTimeOut, hoursWorked, lateHours, overtimeHours);
+                    
+                    records.add(attendance);
+                }
+            }
+            
+        } catch (SQLException e) {
+            System.err.println("Error fetching attendance records: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        return records;
     }
     
     // Grace period and rank-and-file specific logic
     
     /**
      * Apply rank-and-file rules for attendance calculation
-     * For rank-and-file employees, late hours are deducted from total worked hours
-     * @param attendance Attendance record
-     * @param isRankAndFile Whether employee is rank-and-file
-     * @return Adjusted attendance record
      */
     public AttendanceModel applyRankAndFileRules(AttendanceModel attendance, boolean isRankAndFile) {
         if (attendance == null || !isRankAndFile) {
@@ -261,8 +403,6 @@ public class AttendanceService {
     
     /**
      * Check if employee is within 8:10 AM grace period
-     * @param timeIn Time in
-     * @return true if within grace period
      */
     public boolean isWithinGracePeriod(Time timeIn) {
         if (timeIn == null) return false;
@@ -274,9 +414,6 @@ public class AttendanceService {
     
     /**
      * Calculate effective work hours considering grace period and rank-and-file rules
-     * @param attendance Attendance record
-     * @param isRankAndFile Whether employee is rank-and-file
-     * @return Effective work hours
      */
     public double calculateEffectiveWorkHours(AttendanceModel attendance, boolean isRankAndFile) {
         if (attendance == null || !attendance.isCompleteAttendance()) {
@@ -295,22 +432,10 @@ public class AttendanceService {
     
     /**
      * Check if employee is rank-and-file based on position/department
-     * @param employeeId Employee ID
-     * @return true if rank-and-file employee
      */
     public boolean isRankAndFileEmployee(int employeeId) {
         try {
-            // Query to check if employee is rank-and-file based on position department
-            String query = "SELECT p.department, p.position FROM employee e " +
-                          "JOIN position p ON e.positionId = p.positionId " +
-                          "WHERE e.employeeId = ?";
-            
-            // This would typically be implemented in EmployeeDAO
-            // For now, we'll check if department contains "rank" or "file"
-            // You should implement this in EmployeeDAO and call that method
-            
-            // Placeholder implementation - replace with actual DAO call
-            return false; // Replace with actual logic
+            return employeeDAO.isEmployeeRankAndFile(employeeId);
         } catch (Exception e) {
             System.err.println("Error checking rank-and-file status: " + e.getMessage());
             return false;
@@ -319,12 +444,6 @@ public class AttendanceService {
     
     // Query methods
     
-    /**
-     * Get attendance by employee and date
-     * @param employeeId Employee ID
-     * @param date Date
-     * @return Attendance record
-     */
     public AttendanceModel getAttendanceByEmployeeAndDate(int employeeId, Date date) {
         try {
             return attendanceDAO.getAttendanceByEmployeeAndDate(employeeId, date);
@@ -334,13 +453,6 @@ public class AttendanceService {
         }
     }
     
-    /**
-     * Get attendance records for employee in date range
-     * @param employeeId Employee ID
-     * @param startDate Start date
-     * @param endDate End date
-     * @return List of attendance records
-     */
     public List<AttendanceModel> getAttendanceByEmployeeAndDateRange(int employeeId, Date startDate, Date endDate) {
         try {
             return attendanceDAO.getAttendanceByEmployeeAndDateRange(employeeId, startDate, endDate);
@@ -352,10 +464,6 @@ public class AttendanceService {
     
     /**
      * Get enhanced monthly attendance summary for employee with rank-and-file considerations
-     * @param employeeId Employee ID
-     * @param month Month
-     * @param year Year
-     * @return Monthly attendance summary
      */
     public Map<String, Object> getMonthlyAttendanceSummary(int employeeId, int month, int year) {
         try {
@@ -415,21 +523,11 @@ public class AttendanceService {
         }
     }
     
-    /**
-     * Get today's attendance for employee
-     * @param employeeId Employee ID
-     * @return Today's attendance record
-     */
     public AttendanceModel getTodayAttendance(int employeeId) {
         Date today = AttendanceModel.getCurrentDateInManila();
         return getAttendanceByEmployeeAndDate(employeeId, today);
     }
     
-    /**
-     * Get attendance status for today with grace period information
-     * @param employeeId Employee ID
-     * @return Attendance status map
-     */
     public Map<String, Object> getTodayAttendanceStatus(int employeeId) {
         Map<String, Object> status = new HashMap<>();
         AttendanceModel todayAttendance = getTodayAttendance(employeeId);
@@ -456,11 +554,6 @@ public class AttendanceService {
     
     // Validation methods
     
-    /**
-     * Validate if employee can time in
-     * @param employeeId Employee ID
-     * @return true if can time in
-     */
     public boolean canTimeIn(int employeeId) {
         try {
             AttendanceModel todayAttendance = getTodayAttendance(employeeId);
@@ -470,11 +563,6 @@ public class AttendanceService {
         }
     }
     
-    /**
-     * Validate if employee can time out
-     * @param employeeId Employee ID
-     * @return true if can time out
-     */
     public boolean canTimeOut(int employeeId) {
         try {
             AttendanceModel todayAttendance = getTodayAttendance(employeeId);
@@ -484,10 +572,6 @@ public class AttendanceService {
         }
     }
     
-    /**
-     * Check if current time is appropriate for time in (not too early/late)
-     * @return true if appropriate time
-     */
     public boolean isAppropriateTimeForTimeIn() {
         LocalTime currentTime = LocalTime.now(MANILA_TIMEZONE);
         LocalTime earliestTime = LocalTime.of(6, 0);  // 6:00 AM earliest
@@ -496,10 +580,6 @@ public class AttendanceService {
         return !currentTime.isBefore(earliestTime) && !currentTime.isAfter(latestTime);
     }
     
-    /**
-     * Check if current time is appropriate for time out (not too early)
-     * @return true if appropriate time
-     */
     public boolean isAppropriateTimeForTimeOut() {
         LocalTime currentTime = LocalTime.now(MANILA_TIMEZONE);
         LocalTime earliestTime = LocalTime.of(12, 0);  // 12:00 PM earliest for time out
@@ -507,13 +587,18 @@ public class AttendanceService {
         return !currentTime.isBefore(earliestTime);
     }
     
-    // Tardiness management
+    // UPDATED: Enhanced tardiness management with proper TardinessRecordDAO integration
     
     /**
-     * Create tardiness record for attendance
+     * UPDATED: Create tardiness record for attendance using factory methods
      */
-    private void createTardinessRecord(AttendanceModel attendance, TardinessRecordModel.TardinessType type) {
+    private boolean createTardinessRecord(AttendanceModel attendance, TardinessRecordModel.TardinessType type) {
         try {
+            if (attendance == null || attendance.getAttendanceId() == null) {
+                System.err.println("Cannot create tardiness record: Invalid attendance or missing ID");
+                return false;
+            }
+            
             TardinessRecordModel tardinessRecord = null;
             
             if (type == TardinessRecordModel.TardinessType.LATE) {
@@ -526,58 +611,111 @@ public class AttendanceService {
                 boolean success = tardinessRecordDAO.createTardinessRecord(tardinessRecord);
                 if (success) {
                     System.out.println("Tardiness record created: " + tardinessRecord.getTardinessDescription());
+                    return true;
+                } else {
+                    System.err.println("Failed to create tardiness record for attendance " + attendance.getAttendanceId());
+                    return false;
                 }
+            } else {
+                System.err.println("Invalid tardiness record created for attendance " + attendance.getAttendanceId());
+                return false;
             }
         } catch (Exception e) {
             System.err.println("Error creating tardiness record: " + e.getMessage());
+            e.printStackTrace();
+            return false;
         }
     }
     
     /**
-     * Update tardiness records for attendance
+     * UPDATED: Update tardiness records for attendance with enhanced error handling
      */
     private void updateTardinessRecords(AttendanceModel attendance) {
         try {
-            // Delete existing tardiness records for this attendance
-            tardinessRecordDAO.deleteTardinessRecordsByAttendance(attendance.getAttendanceId());
-            
-            // Create new tardiness records if applicable
-            if (attendance.isLateAttendance()) {
-                createTardinessRecord(attendance, TardinessRecordModel.TardinessType.LATE);
+            if (attendance == null || attendance.getAttendanceId() == null) {
+                System.err.println("Cannot update tardiness records: Invalid attendance or missing ID");
+                return;
             }
-            if (attendance.isEarlyOut()) {
-                createTardinessRecord(attendance, TardinessRecordModel.TardinessType.UNDERTIME);
+            
+            // Delete existing tardiness records for this attendance
+            boolean deleteSuccess = tardinessRecordDAO.deleteTardinessRecordsByAttendance(attendance.getAttendanceId());
+            
+            if (deleteSuccess) {
+                // Create new tardiness records if applicable
+                if (attendance.isLateAttendance()) {
+                    createTardinessRecord(attendance, TardinessRecordModel.TardinessType.LATE);
+                }
+                if (attendance.isEarlyOut()) {
+                    createTardinessRecord(attendance, TardinessRecordModel.TardinessType.UNDERTIME);
+                }
+            } else {
+                System.err.println("Failed to delete existing tardiness records for attendance " + attendance.getAttendanceId());
             }
         } catch (Exception e) {
             System.err.println("Error updating tardiness records: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+    
+    /**
+     * NEW: Get tardiness records for an employee and pay period
+     */
+    public List<TardinessRecordModel> getTardinessRecords(int employeeId, int payPeriodId) {
+        try {
+            return tardinessRecordDAO.findByEmployeeAndPeriod(employeeId, payPeriodId);
+        } catch (Exception e) {
+            System.err.println("Error getting tardiness records: " + e.getMessage());
+            return new ArrayList<>();
+        }
+    }
+    
+    /**
+     * NEW: Get tardiness statistics for an employee
+     */
+    public TardinessRecordDAO.TardinessStatistics getTardinessStatistics(int employeeId, LocalDate startDate, LocalDate endDate) {
+        try {
+            return tardinessRecordDAO.getTardinessStatistics(employeeId, startDate, endDate);
+        } catch (Exception e) {
+            System.err.println("Error getting tardiness statistics: " + e.getMessage());
+            return new TardinessRecordDAO.TardinessStatistics();
+        }
+    }
+    
+    /**
+     * NEW: Get tardiness record by ID (for supervisor review)
+     */
+    public TardinessRecordModel getTardinessRecord(int tardinessRecordId) {
+        try {
+            return tardinessRecordDAO.findById(tardinessRecordId);
+        } catch (Exception e) {
+            System.err.println("Error getting tardiness record: " + e.getMessage());
+            return null;
+        }
+    }
+    
+    /**
+     * NEW: Update tardiness record (for supervisor notes)
+     */
+    public boolean updateTardinessRecord(TardinessRecordModel tardinessRecord) {
+        try {
+            return tardinessRecordDAO.updateTardinessRecord(tardinessRecord);
+        } catch (Exception e) {
+            System.err.println("Error updating tardiness record: " + e.getMessage());
+            return false;
         }
     }
     
     // Utility methods
     
-    /**
-     * Get current Manila time
-     * @return Current LocalDateTime in Manila timezone
-     */
     public LocalDateTime getCurrentManilaTime() {
         return LocalDateTime.now(MANILA_TIMEZONE);
     }
     
-    /**
-     * Check if current time is within work hours
-     * @return true if within work hours
-     */
     public boolean isWithinWorkHours() {
         LocalTime currentTime = LocalTime.now(MANILA_TIMEZONE);
         return !currentTime.isBefore(STANDARD_START_TIME) && !currentTime.isAfter(STANDARD_END_TIME);
     }
     
-    /**
-     * Calculate working days in month (excluding weekends)
-     * @param month Month
-     * @param year Year
-     * @return Number of working days
-     */
     public int getWorkingDaysInMonth(int month, int year) {
         LocalDate startDate = LocalDate.of(year, month, 1);
         LocalDate endDate = startDate.withDayOfMonth(startDate.lengthOfMonth());
@@ -596,10 +734,6 @@ public class AttendanceService {
         return workingDays;
     }
     
-    /**
-     * Get grace period information
-     * @return Map with grace period details
-     */
     public Map<String, Object> getGracePeriodInfo() {
         Map<String, Object> info = new HashMap<>();
         info.put("standardStartTime", STANDARD_START_TIME.toString());
@@ -609,13 +743,6 @@ public class AttendanceService {
         return info;
     }
     
-    /**
-     * Calculate attendance compliance rate for an employee
-     * @param employeeId Employee ID
-     * @param startDate Start date
-     * @param endDate End date
-     * @return Compliance rate percentage
-     */
     public double calculateAttendanceComplianceRate(int employeeId, Date startDate, Date endDate) {
         try {
             List<AttendanceModel> attendanceList = getAttendanceByEmployeeAndDateRange(employeeId, startDate, endDate);
@@ -637,196 +764,183 @@ public class AttendanceService {
             return 0.0;
         }
     }
-        /**
- * Get daily attendance report for all employees on a specific date
- * @param date Date to generate report for
- * @return List of daily attendance records
- */
-public List<DailyAttendanceRecord> getDailyAttendanceReport(LocalDate date) {
-    List<DailyAttendanceRecord> dailyRecords = new ArrayList<>();
     
-    try {
-        Date sqlDate = Date.valueOf(date);
+    /**
+     * Get daily attendance report for all employees on a specific date
+     */
+    public List<DailyAttendanceRecord> getDailyAttendanceReport(LocalDate date) {
+        List<DailyAttendanceRecord> dailyRecords = new ArrayList<>();
         
-        // Get all employees (you may need to inject EmployeeDAO or get this from somewhere)
-        // For now, we'll get attendance records and build from there
-        List<AttendanceModel> attendanceList = attendanceDAO.getAttendanceByDate(sqlDate);
-        
-        for (AttendanceModel attendance : attendanceList) {
-            DailyAttendanceRecord record = new DailyAttendanceRecord();
-            record.setEmployeeId(attendance.getEmployeeId());
-            record.setDate(date);
-            record.setTimeIn(attendance.getFormattedTimeIn());
-            record.setTimeOut(attendance.getFormattedTimeOut());
-            record.setComputedHours(BigDecimal.valueOf(attendance.getComputedHours()));
+        try {
+            Date sqlDate = Date.valueOf(date);
+            List<AttendanceModel> attendanceList = attendanceDAO.getAttendanceByDate(sqlDate);
             
-            // Determine status based on attendance
-            if (attendance.isCompleteAttendance()) {
-                if (attendance.isLateAttendance()) {
-                    record.setStatus("Late");
+            for (AttendanceModel attendance : attendanceList) {
+                DailyAttendanceRecord record = new DailyAttendanceRecord();
+                record.setEmployeeId(attendance.getEmployeeId());
+                record.setDate(date);
+                record.setTimeIn(attendance.getFormattedTimeIn());
+                record.setTimeOut(attendance.getFormattedTimeOut());
+                record.setComputedHours(BigDecimal.valueOf(attendance.getComputedHours()));
+                
+                // Determine status based on attendance
+                if (attendance.isCompleteAttendance()) {
+                    if (attendance.isLateAttendance()) {
+                        record.setStatus("Late");
+                    } else {
+                        record.setStatus("Present");
+                    }
+                } else if (attendance.hasTimeIn()) {
+                    record.setStatus("Incomplete");
                 } else {
-                    record.setStatus("Present");
+                    record.setStatus("Absent");
                 }
-            } else if (attendance.hasTimeIn()) {
-                record.setStatus("Incomplete");
-            } else {
-                record.setStatus("Absent");
+                
+                record.setLateHours(BigDecimal.valueOf(attendance.getLateHours()));
+                record.setOvertimeHours(BigDecimal.valueOf(attendance.getOvertimeHours()));
+                
+                dailyRecords.add(record);
             }
             
-            record.setLateHours(BigDecimal.valueOf(attendance.getLateHours()));
-            record.setOvertimeHours(BigDecimal.valueOf(attendance.getOvertimeHours()));
-            
-            dailyRecords.add(record);
+        } catch (Exception e) {
+            System.err.println("Error generating daily attendance report: " + e.getMessage());
         }
         
-    } catch (Exception e) {
-        System.err.println("Error generating daily attendance report: " + e.getMessage());
+        return dailyRecords;
     }
     
-    return dailyRecords;
-}
-
-/**
- * Get monthly attendance summary for a specific employee
- * @param employeeId Employee ID
- * @param yearMonth Year and month
- * @return Attendance summary for the month
- */
-public AttendanceSummary getMonthlyAttendanceSummary(Integer employeeId, YearMonth yearMonth) {
-    AttendanceSummary summary = new AttendanceSummary();
-    
-    try {
-        Date startDate = Date.valueOf(yearMonth.atDay(1));
-        Date endDate = Date.valueOf(yearMonth.atEndOfMonth());
+    /**
+     * Get monthly attendance summary for a specific employee
+     */
+    public AttendanceSummary getMonthlyAttendanceSummary(Integer employeeId, YearMonth yearMonth) {
+        AttendanceSummary summary = new AttendanceSummary();
         
-        List<AttendanceModel> monthlyAttendance = getAttendanceByEmployeeAndDateRange(
-            employeeId, startDate, endDate);
-        
-        int totalDays = 0;
-        int completeDays = 0;
-        int lateInstances = 0;
-        BigDecimal totalHours = BigDecimal.ZERO;
-        
-        for (AttendanceModel attendance : monthlyAttendance) {
-            totalDays++;
+        try {
+            Date startDate = Date.valueOf(yearMonth.atDay(1));
+            Date endDate = Date.valueOf(yearMonth.atEndOfMonth());
             
-            if (attendance.isCompleteAttendance()) {
-                completeDays++;
-                totalHours = totalHours.add(BigDecimal.valueOf(attendance.getComputedHours()));
+            List<AttendanceModel> monthlyAttendance = getAttendanceByEmployeeAndDateRange(
+                employeeId, startDate, endDate);
+            
+            int totalDays = 0;
+            int completeDays = 0;
+            int lateInstances = 0;
+            BigDecimal totalHours = BigDecimal.ZERO;
+            
+            for (AttendanceModel attendance : monthlyAttendance) {
+                totalDays++;
+                
+                if (attendance.isCompleteAttendance()) {
+                    completeDays++;
+                    totalHours = totalHours.add(BigDecimal.valueOf(attendance.getComputedHours()));
+                }
+                
+                if (attendance.isLateAttendance()) {
+                    lateInstances++;
+                }
             }
             
-            if (attendance.isLateAttendance()) {
-                lateInstances++;
-            }
+            // Calculate attendance rate
+            BigDecimal attendanceRate = totalDays > 0 ? 
+                BigDecimal.valueOf(completeDays).divide(BigDecimal.valueOf(totalDays), 4, java.math.RoundingMode.HALF_UP)
+                    .multiply(BigDecimal.valueOf(100)) : BigDecimal.ZERO;
+            
+            summary.setEmployeeId(employeeId);
+            summary.setYearMonth(yearMonth);
+            summary.setTotalDays(totalDays);
+            summary.setCompleteDays(completeDays);
+            summary.setTotalHours(totalHours);
+            summary.setAttendanceRate(attendanceRate);
+            summary.setLateInstances(lateInstances);
+            
+        } catch (Exception e) {
+            System.err.println("Error getting monthly attendance summary: " + e.getMessage());
         }
         
-        // Calculate attendance rate
-        BigDecimal attendanceRate = totalDays > 0 ? 
-            BigDecimal.valueOf(completeDays).divide(BigDecimal.valueOf(totalDays), 4, java.math.RoundingMode.HALF_UP)
-                .multiply(BigDecimal.valueOf(100)) : BigDecimal.ZERO;
+        return summary;
+    }
+    
+    // Inner classes for reporting
+    
+    public static class DailyAttendanceRecord {
+        private Integer employeeId;
+        private String employeeName;
+        private LocalDate date;
+        private String timeIn;
+        private String timeOut;
+        private BigDecimal computedHours = BigDecimal.ZERO;
+        private String status; // Present, Late, Absent, Incomplete
+        private BigDecimal lateHours = BigDecimal.ZERO;
+        private BigDecimal overtimeHours = BigDecimal.ZERO;
         
-        summary.setEmployeeId(employeeId);
-        summary.setYearMonth(yearMonth);
-        summary.setTotalDays(totalDays);
-        summary.setCompleteDays(completeDays);
-        summary.setTotalHours(totalHours);
-        summary.setAttendanceRate(attendanceRate);
-        summary.setLateInstances(lateInstances);
+        // Getters and setters
+        public Integer getEmployeeId() { return employeeId; }
+        public void setEmployeeId(Integer employeeId) { this.employeeId = employeeId; }
         
-    } catch (Exception e) {
-        System.err.println("Error getting monthly attendance summary: " + e.getMessage());
+        public String getEmployeeName() { return employeeName; }
+        public void setEmployeeName(String employeeName) { this.employeeName = employeeName; }
+        
+        public LocalDate getDate() { return date; }
+        public void setDate(LocalDate date) { this.date = date; }
+        
+        public String getTimeIn() { return timeIn; }
+        public void setTimeIn(String timeIn) { this.timeIn = timeIn; }
+        
+        public String getTimeOut() { return timeOut; }
+        public void setTimeOut(String timeOut) { this.timeOut = timeOut; }
+        
+        public BigDecimal getComputedHours() { return computedHours; }
+        public void setComputedHours(BigDecimal computedHours) { 
+            this.computedHours = computedHours != null ? computedHours : BigDecimal.ZERO; 
+        }
+        
+        public String getStatus() { return status; }
+        public void setStatus(String status) { this.status = status; }
+        
+        public BigDecimal getLateHours() { return lateHours; }
+        public void setLateHours(BigDecimal lateHours) { 
+            this.lateHours = lateHours != null ? lateHours : BigDecimal.ZERO; 
+        }
+        
+        public BigDecimal getOvertimeHours() { return overtimeHours; }
+        public void setOvertimeHours(BigDecimal overtimeHours) { 
+            this.overtimeHours = overtimeHours != null ? overtimeHours : BigDecimal.ZERO; 
+        }
     }
     
-    return summary;
-}
-
-// ADD THESE INNER CLASSES TO YOUR AttendanceService.java
-
-/**
- * Daily attendance record for reporting
- */
-public static class DailyAttendanceRecord {
-    private Integer employeeId;
-    private String employeeName;
-    private LocalDate date;
-    private String timeIn;
-    private String timeOut;
-    private BigDecimal computedHours = BigDecimal.ZERO;
-    private String status; // Present, Late, Absent, Incomplete
-    private BigDecimal lateHours = BigDecimal.ZERO;
-    private BigDecimal overtimeHours = BigDecimal.ZERO;
-    
-    // Getters and setters
-    public Integer getEmployeeId() { return employeeId; }
-    public void setEmployeeId(Integer employeeId) { this.employeeId = employeeId; }
-    
-    public String getEmployeeName() { return employeeName; }
-    public void setEmployeeName(String employeeName) { this.employeeName = employeeName; }
-    
-    public LocalDate getDate() { return date; }
-    public void setDate(LocalDate date) { this.date = date; }
-    
-    public String getTimeIn() { return timeIn; }
-    public void setTimeIn(String timeIn) { this.timeIn = timeIn; }
-    
-    public String getTimeOut() { return timeOut; }
-    public void setTimeOut(String timeOut) { this.timeOut = timeOut; }
-    
-    public BigDecimal getComputedHours() { return computedHours; }
-    public void setComputedHours(BigDecimal computedHours) { 
-        this.computedHours = computedHours != null ? computedHours : BigDecimal.ZERO; 
+    public static class AttendanceSummary {
+        private Integer employeeId;
+        private YearMonth yearMonth;
+        private int totalDays = 0;
+        private int completeDays = 0;
+        private BigDecimal totalHours = BigDecimal.ZERO;
+        private BigDecimal attendanceRate = BigDecimal.ZERO;
+        private int lateInstances = 0;
+        
+        // Getters and setters
+        public Integer getEmployeeId() { return employeeId; }
+        public void setEmployeeId(Integer employeeId) { this.employeeId = employeeId; }
+        
+        public YearMonth getYearMonth() { return yearMonth; }
+        public void setYearMonth(YearMonth yearMonth) { this.yearMonth = yearMonth; }
+        
+        public int getTotalDays() { return totalDays; }
+        public void setTotalDays(int totalDays) { this.totalDays = totalDays; }
+        
+        public int getCompleteDays() { return completeDays; }
+        public void setCompleteDays(int completeDays) { this.completeDays = completeDays; }
+        
+        public BigDecimal getTotalHours() { return totalHours; }
+        public void setTotalHours(BigDecimal totalHours) { 
+            this.totalHours = totalHours != null ? totalHours : BigDecimal.ZERO; 
+        }
+        
+        public BigDecimal getAttendanceRate() { return attendanceRate; }
+        public void setAttendanceRate(BigDecimal attendanceRate) { 
+            this.attendanceRate = attendanceRate != null ? attendanceRate : BigDecimal.ZERO; 
+        }
+        
+        public int getLateInstances() { return lateInstances; }
+        public void setLateInstances(int lateInstances) { this.lateInstances = lateInstances; }
     }
-    
-    public String getStatus() { return status; }
-    public void setStatus(String status) { this.status = status; }
-    
-    public BigDecimal getLateHours() { return lateHours; }
-    public void setLateHours(BigDecimal lateHours) { 
-        this.lateHours = lateHours != null ? lateHours : BigDecimal.ZERO; 
-    }
-    
-    public BigDecimal getOvertimeHours() { return overtimeHours; }
-    public void setOvertimeHours(BigDecimal overtimeHours) { 
-        this.overtimeHours = overtimeHours != null ? overtimeHours : BigDecimal.ZERO; 
-    }
-}
-
-/**
- * Monthly attendance summary
- */
-public static class AttendanceSummary {
-    private Integer employeeId;
-    private YearMonth yearMonth;
-    private int totalDays = 0;
-    private int completeDays = 0;
-    private BigDecimal totalHours = BigDecimal.ZERO;
-    private BigDecimal attendanceRate = BigDecimal.ZERO;
-    private int lateInstances = 0;
-    
-    // Getters and setters
-    public Integer getEmployeeId() { return employeeId; }
-    public void setEmployeeId(Integer employeeId) { this.employeeId = employeeId; }
-    
-    public YearMonth getYearMonth() { return yearMonth; }
-    public void setYearMonth(YearMonth yearMonth) { this.yearMonth = yearMonth; }
-    
-    public int getTotalDays() { return totalDays; }
-    public void setTotalDays(int totalDays) { this.totalDays = totalDays; }
-    
-    public int getCompleteDays() { return completeDays; }
-    public void setCompleteDays(int completeDays) { this.completeDays = completeDays; }
-    
-    public BigDecimal getTotalHours() { return totalHours; }
-    public void setTotalHours(BigDecimal totalHours) { 
-        this.totalHours = totalHours != null ? totalHours : BigDecimal.ZERO; 
-    }
-    
-    public BigDecimal getAttendanceRate() { return attendanceRate; }
-    public void setAttendanceRate(BigDecimal attendanceRate) { 
-        this.attendanceRate = attendanceRate != null ? attendanceRate : BigDecimal.ZERO; 
-    }
-    
-    public int getLateInstances() { return lateInstances; }
-    public void setLateInstances(int lateInstances) { this.lateInstances = lateInstances; }
-}
 }

@@ -63,13 +63,13 @@ public class DatabaseConnection {
     private static final int CONNECTION_TIMEOUT = 30; // seconds
     private static final String CONFIG_FILE = "src/config/database.properties";
     
-    // The "address" where your database is located (server + port + database name)
+    // The "address" where database is located (server + port + database name)
     private static final String URL = "jdbc:mysql://localhost:3306/payrollsystem_db";
     
-    // Username to log into MySQL (change this if your MySQL username is different)
+    // Username to log into MySQL 
     private static final String USER = "root"; //change depends on your MySQL server's username
     
-    // Password to log into MySQL (change this to match your MySQL password)
+    // Password to log into MySQL 
     private static final String PASSWORD = "Mmdc_2025*"; //change based on your MySQL server's password
     
     

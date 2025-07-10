@@ -1,5 +1,6 @@
 package Models;
 
+import DAOs.TardinessRecordDAO;
 import java.time.*;
 import java.sql.Date;
 import java.sql.Timestamp;
@@ -301,16 +302,110 @@ public class ImmediateSupervisorModel {
      * @param notes
      * @return 
      */
-    public boolean reviewTardinessRecord(TardinessRecordModel tardiness, String notes) {
-        if (tardiness.getRelatedAttendance() != null && 
-            canManageEmployeeAttendance(tardiness.getRelatedAttendance().getEmployeeId())) {
-            
-            tardiness.setSupervisorNotes(notes);
-            return true;
-        }
-        return false;
-    }
-    
+        public boolean reviewTardinessRecord(TardinessRecordModel tardiness, String notes) {
+                try {
+                    if (tardiness == null || tardiness.getAttendanceId() == null) {
+                        System.err.println("Invalid tardiness record provided for review");
+                        return false;
+                    }
+
+                    // Use TardinessRecordDAO to get the employee ID from the attendance record
+                    TardinessRecordDAO tardinessRecordDAO = new TardinessRecordDAO();
+
+                    // Query to get employee ID from attendance table using attendance ID
+                    int employeeId = getEmployeeIdFromAttendance(tardiness.getAttendanceId());
+
+                    if (employeeId > 0 && canManageEmployeeAttendance(employeeId)) {
+
+                        // Update supervisor notes
+                        tardiness.setSupervisorNotes(notes);
+
+                        // Update the tardiness record in database
+                        boolean success = tardinessRecordDAO.updateTardinessRecord(tardiness);
+
+                        if (success) {
+                            recordApprovalAction();
+                            System.out.println("Tardiness record reviewed by supervisor " + getSupervisorId() + 
+                                             " for employee " + employeeId);
+                        }
+
+                        return success;
+                    } else {
+                        System.err.println("Supervisor " + getSupervisorId() + 
+                                         " does not have permission to review this tardiness record or employee not found");
+                        return false;
+                    }
+
+                } catch (Exception e) {
+                    System.err.println("Error reviewing tardiness record: " + e.getMessage());
+                    return false;
+                }
+            }
+
+            /**
+             * Helper method to get employee ID from attendance record
+             */
+            private int getEmployeeIdFromAttendance(int attendanceId) {
+                String sql = "SELECT employeeId FROM attendance WHERE attendanceId = ?";
+
+                try (java.sql.Connection conn = new DAOs.DatabaseConnection().createConnection();
+                     java.sql.PreparedStatement stmt = conn.prepareStatement(sql)) {
+
+                    stmt.setInt(1, attendanceId);
+                    java.sql.ResultSet rs = stmt.executeQuery();
+
+                    if (rs.next()) {
+                        return rs.getInt("employeeId");
+                    }
+
+                } catch (java.sql.SQLException e) {
+                    System.err.println("Error getting employee ID from attendance: " + e.getMessage());
+                }
+
+                return 0; // Return 0 if not found or error
+            }
+
+            /**
+             * Review tardiness record with service integration (preferred method)
+             */
+            public boolean reviewTardinessRecord(TardinessRecordModel tardiness, String notes, 
+                                               Services.AttendanceService attendanceService) {
+                try {
+                    if (tardiness == null || tardiness.getAttendanceId() == null) {
+                        System.err.println("Invalid tardiness record provided for review");
+                        return false;
+                    }
+
+                    // Get employee ID from attendance record
+                    int employeeId = getEmployeeIdFromAttendance(tardiness.getAttendanceId());
+
+                    if (employeeId > 0 && canManageEmployeeAttendance(employeeId)) {
+
+                        // Update supervisor notes
+                        tardiness.setSupervisorNotes(notes);
+
+                        // Update the tardiness record using the service
+                        boolean success = attendanceService.updateTardinessRecord(tardiness);
+
+                        if (success) {
+                            recordApprovalAction();
+                            System.out.println("Tardiness record reviewed by supervisor " + getSupervisorId() + 
+                                             " for employee " + employeeId);
+                        }
+
+                        return success;
+                    } else {
+                        System.err.println("Supervisor " + getSupervisorId() + 
+                                         " does not have permission to review this tardiness record or employee not found");
+                        return false;
+                    }
+
+                } catch (Exception e) {
+                    System.err.println("Error reviewing tardiness record: " + e.getMessage());
+                    return false;
+                }
+            }
+
     // Dashboard and reporting methods
     
     /**
