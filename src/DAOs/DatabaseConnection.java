@@ -70,7 +70,7 @@ public class DatabaseConnection {
     private static final String USER = "root"; //change depends on your MySQL server's username
     
     // Password to log into MySQL 
-    private static final String PASSWORD = "Mmdc_2025*"; //change based on your MySQL server's password
+    private static final String PASSWORD = "motorph_123"; //change based on your MySQL server's password
     
     
     // Load MySQL driver once when class is loaded
