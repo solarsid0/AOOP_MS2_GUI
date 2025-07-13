@@ -1,6 +1,7 @@
 package gui;
 
 import Models.UserAuthenticationModel;
+import Models.HRModel;
 import DAOs.DatabaseConnection;
 import Services.ReportService;
 import Services.PurePDFPayrollSummaryGenerator;
@@ -21,16 +22,19 @@ import java.time.LocalDate;
 import java.time.YearMonth;
 
 /**
- * Enhanced Payroll Summary Report GUI Class
+ * Enhanced Payroll Summary Report GUI Class with HR Model Integration
  * Generates monthly payroll summary reports with enhanced PDF output
  * Matches MotorPH corporate branding and layout standards
- * @author MotorPH System - Enhanced Edition
+ * @author MotorPH System - Enhanced Edition with HR Model
  */
 public class PayrollSummaryReport extends javax.swing.JFrame {
     
     // User session information
     private final UserAuthenticationModel loggedInUser;
     private final String userRole;
+    
+    // HR Model for HR-specific operations
+    private final HRModel hrModel;
     
     // Service instances for business logic
     private final DatabaseConnection databaseConnection;
@@ -43,12 +47,29 @@ public class PayrollSummaryReport extends javax.swing.JFrame {
     private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
     
     /**
-     * Constructor with logged in user
+     * Constructor with logged in user and HR model integration
      * @param loggedInUser The currently logged in user
      */
     public PayrollSummaryReport(UserAuthenticationModel loggedInUser) {
         this.loggedInUser = loggedInUser;
         this.userRole = (loggedInUser != null) ? loggedInUser.getUserRole() : "HR";
+        
+        // Initialize HR Model for HR-specific operations
+        if (loggedInUser != null && "HR".equalsIgnoreCase(loggedInUser.getUserRole())) {
+            this.hrModel = new HRModel(
+                loggedInUser.getEmployeeId(),
+                loggedInUser.getFirstName(),
+                loggedInUser.getLastName(),
+                loggedInUser.getEmail()
+            );
+            this.hrModel.setPosition(loggedInUser.getPosition());
+            this.hrModel.setDepartment(loggedInUser.getDepartment());
+        } else {
+            // Create a default HR model for non-HR users with limited permissions
+            this.hrModel = new HRModel();
+            this.hrModel.setCanGenerateReports(true);
+            this.hrModel.setCanManagePayroll(false);
+        }
         
         // Initialize services
         this.databaseConnection = new DatabaseConnection();
@@ -57,7 +78,8 @@ public class PayrollSummaryReport extends javax.swing.JFrame {
         initializeGUI();
         
         System.out.println("Enhanced PayrollSummaryReport initialized for user: " + 
-            (loggedInUser != null ? loggedInUser.getDisplayName() : "Unknown"));
+            (loggedInUser != null ? loggedInUser.getDisplayName() : "Unknown") + 
+            " with HR Model capabilities");
     }
     
     /**
@@ -67,13 +89,16 @@ public class PayrollSummaryReport extends javax.swing.JFrame {
         this.loggedInUser = null;
         this.userRole = "HR";
         
+        // Initialize default HR model for testing
+        this.hrModel = new HRModel();
+        
         // Initialize services
         this.databaseConnection = new DatabaseConnection();
         this.reportService = new ReportService(databaseConnection);
         
         initializeGUI();
         
-        System.out.println("Enhanced PayrollSummaryReport initialized without user (testing mode)");
+        System.out.println("Enhanced PayrollSummaryReport initialized without user (testing mode) with HR Model");
     }
     
     /**
@@ -83,26 +108,51 @@ public class PayrollSummaryReport extends javax.swing.JFrame {
         initComponents(); // Initialize Swing components
         setupUIComponents(); // Additional UI setup
         loadInitialData(); // Load dropdown data
+        updateUIBasedOnHRPermissions(); // Set UI based on HR permissions
     }
     
     /**
-     * Sets up UI components with enhanced styling
+     * Update UI based on HR model permissions
+     */
+    private void updateUIBasedOnHRPermissions() {
+        // Enable/disable features based on HR permissions
+        generatePayrollSummaryBtn.setEnabled(hrModel.isCanGenerateReports());
+        viewGeneratedReportsHistoryBtn.setEnabled(hrModel.isCanGenerateReports());
+        
+        // Update form title to include HR context
+        if (loggedInUser != null) {
+            String title = "MotorPH - Monthly Payroll Summary Report Generator - " + 
+                          loggedInUser.getDisplayName() + " (" + userRole + ")";
+            this.setTitle(title);
+        }
+        
+        // Add HR status indicator
+        if (hrModel.hasValidHRPermissions()) {
+            System.out.println("HR Model active with full permissions: " + hrModel.getDisplayName());
+        } else {
+            System.out.println("Limited HR permissions for user: " + 
+                (loggedInUser != null ? loggedInUser.getDisplayName() : "Unknown"));
+        }
+    }
+    
+    /**
+     * Sets up UI components with enhanced styling and wider columns
      */
     private void setupUIComponents() {
         try {
             // Center the form on screen
             this.setLocationRelativeTo(null);
             
-            // Set enhanced form title
-            this.setTitle("MotorPH - Monthly Payroll Summary Report Generator");
+            // Set enhanced form title with HR context
+            this.setTitle("MotorPH - Monthly Payroll Summary Report Generator (HR)");
             
-            // Setup enhanced table
-            setupEnhancedPayrollTable();
+            // Setup enhanced table with wider columns
+            setupEnhancedPayrollTableWithWiderColumns();
             
             // Set initial UI state
             updateUIState();
             
-            System.out.println("Enhanced UI components setup completed successfully");
+            System.out.println("Enhanced UI components setup completed successfully with HR integration");
         } catch (Exception e) {
             System.err.println("Error during enhanced UI setup: " + e.getMessage());
             e.printStackTrace();
@@ -111,9 +161,9 @@ public class PayrollSummaryReport extends javax.swing.JFrame {
     }
     
     /**
-     * Setup the enhanced payroll summary table matching PDF format
+     * Setup the enhanced payroll summary table with wider columns to prevent number wrapping
      */
-    private void setupEnhancedPayrollTable() {
+    private void setupEnhancedPayrollTableWithWiderColumns() {
         // Enhanced column names matching the PDF format
         String[] columnNames = {
             "Emp ID", "Employee Name", "Position", "Department", 
@@ -142,23 +192,23 @@ public class PayrollSummaryReport extends javax.swing.JFrame {
         // ENABLE HORIZONTAL SCROLLING for wide table
         jTable1.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
 
-        // Set optimized column widths matching PDF proportions
+        // Set WIDER column widths to ensure numbers don't wrap to next line
         TableColumnModel columnModel = jTable1.getColumnModel();
         if (columnModel.getColumnCount() > 0) {
-            columnModel.getColumn(0).setPreferredWidth(60);   // Emp ID
-            columnModel.getColumn(1).setPreferredWidth(150);  // Employee Name
-            columnModel.getColumn(2).setPreferredWidth(180);  // Position
-            columnModel.getColumn(3).setPreferredWidth(120);  // Department
-            columnModel.getColumn(4).setPreferredWidth(90);   // Base Salary
-            columnModel.getColumn(5).setPreferredWidth(70);   // Leaves
-            columnModel.getColumn(6).setPreferredWidth(70);   // Overtime
-            columnModel.getColumn(7).setPreferredWidth(100);  // Gross Income
-            columnModel.getColumn(8).setPreferredWidth(90);   // Total Benefits
-            columnModel.getColumn(9).setPreferredWidth(70);   // SSS
-            columnModel.getColumn(10).setPreferredWidth(80);  // PhilHealth
-            columnModel.getColumn(11).setPreferredWidth(70);  // Pag-Ibig
-            columnModel.getColumn(12).setPreferredWidth(70);  // With. Tax
-            columnModel.getColumn(13).setPreferredWidth(100); // Net Pay
+            columnModel.getColumn(0).setPreferredWidth(70);   // Emp ID - wider
+            columnModel.getColumn(1).setPreferredWidth(180);  // Employee Name - wider
+            columnModel.getColumn(2).setPreferredWidth(200);  // Position - wider
+            columnModel.getColumn(3).setPreferredWidth(140);  // Department - wider
+            columnModel.getColumn(4).setPreferredWidth(120);  // Base Salary - much wider
+            columnModel.getColumn(5).setPreferredWidth(100);  // Leaves - wider
+            columnModel.getColumn(6).setPreferredWidth(100);  // Overtime - wider
+            columnModel.getColumn(7).setPreferredWidth(130);  // Gross Income - wider
+            columnModel.getColumn(8).setPreferredWidth(120);  // Total Benefits - wider
+            columnModel.getColumn(9).setPreferredWidth(100);  // SSS - wider
+            columnModel.getColumn(10).setPreferredWidth(100); // PhilHealth - wider
+            columnModel.getColumn(11).setPreferredWidth(100); // Pag-Ibig - wider
+            columnModel.getColumn(12).setPreferredWidth(100); // With. Tax - wider
+            columnModel.getColumn(13).setPreferredWidth(130); // Net Pay - wider
         }
 
         // Enhanced scroll pane settings
@@ -166,7 +216,7 @@ public class PayrollSummaryReport extends javax.swing.JFrame {
         jScrollPane1.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
         
         // Enhanced table appearance
-        jTable1.setRowHeight(22);
+        jTable1.setRowHeight(25); // Slightly taller rows
         jTable1.setShowGrid(true);
         jTable1.setGridColor(java.awt.Color.LIGHT_GRAY);
         jTable1.getTableHeader().setBackground(new java.awt.Color(52, 73, 94));
@@ -197,7 +247,7 @@ public class PayrollSummaryReport extends javax.swing.JFrame {
                 selectDateJComboBox2.addItem(period);
             }
             
-            System.out.println("Enhanced initial data loaded: " + departments.size() + " departments");
+            System.out.println("Enhanced initial data loaded: " + departments.size() + " departments (HR Model)");
             
         } catch (Exception e) {
             System.err.println("Error loading enhanced initial data: " + e.getMessage());
@@ -257,15 +307,15 @@ public class PayrollSummaryReport extends javax.swing.JFrame {
             selectDateJComboBox2.addItem(period);
         }
         
-        System.out.println("Enhanced fallback data loaded");
+        System.out.println("Enhanced fallback data loaded (HR Model)");
     }
     
     /**
-     * Update UI state based on current data
+     * Update UI state based on current data and HR permissions
      */
     private void updateUIState() {
         boolean hasData = (currentReportData != null && currentReportData.isSuccess());
-        viewGeneratedReportsHistoryBtn.setEnabled(true);
+        viewGeneratedReportsHistoryBtn.setEnabled(hrModel.isCanGenerateReports());
         
         // Update generate button text
         if (hasData) {
@@ -273,13 +323,22 @@ public class PayrollSummaryReport extends javax.swing.JFrame {
         } else {
             generatePayrollSummaryBtn.setText("Generate Payroll Summary");
         }
+        
+        // Enable/disable based on HR permissions
+        generatePayrollSummaryBtn.setEnabled(hrModel.isCanGenerateReports());
     }
     
     /**
-     * Enhanced payroll summary generation handler
+     * Enhanced payroll summary generation handler with HR model integration
      */
     private void handleGeneratePayrollSummary() {
         try {
+            // Check HR permissions first
+            if (!hrModel.isCanGenerateReports()) {
+                showErrorDialog("You do not have permission to generate reports.\nPlease contact your administrator.", "Permission Denied");
+                return;
+            }
+            
             // Validate inputs
             String selectedPeriod = (String) selectDateJComboBox2.getSelectedItem();
             String selectedDepartment = (String) selectDepJComboBox1.getSelectedItem();
@@ -296,7 +355,15 @@ public class PayrollSummaryReport extends javax.swing.JFrame {
             final String finalSelectedPeriod = selectedPeriod;
             final String finalSelectedDepartment = selectedDepartment;
 
-            System.out.println("Generating enhanced payroll summary - Period: " + finalSelectedPeriod + ", Department: " + finalSelectedDepartment);
+            System.out.println("HR Model generating enhanced payroll summary - Period: " + finalSelectedPeriod + 
+                             ", Department: " + finalSelectedDepartment + 
+                             ", Generated by: " + hrModel.getDisplayName());
+
+            // Log HR activity
+            hrModel.generateHRReport("Payroll Summary", 
+                java.sql.Date.valueOf(YearMonth.parse(finalSelectedPeriod).atDay(1)),
+                java.sql.Date.valueOf(YearMonth.parse(finalSelectedPeriod).atEndOfMonth()),
+                new ArrayList<>());
 
             // Show enhanced loading state
             setLoadingState(true);
@@ -319,9 +386,10 @@ public class PayrollSummaryReport extends javax.swing.JFrame {
                         // Update table with enhanced data display
                         updateEnhancedTableWithData(currentReportData);
 
-                        // Show enhanced success message
+                        // Show enhanced success message with HR context
                         showSuccessDialog(
-                            "Payroll Summary Generated Successfully!\n\n" +
+                            "Payroll Summary Generated Successfully by HR!\n\n" +
+                            "Generated by: " + hrModel.getDisplayName() + "\n" +
                             "Records found: " + currentReportData.getPayrollEntries().size() + " employees\n" +
                             "Period: " + finalSelectedPeriod + "\n" +
                             "Department: " + finalSelectedDepartment + "\n\n" +
@@ -335,7 +403,8 @@ public class PayrollSummaryReport extends javax.swing.JFrame {
                         showErrorDialog(
                             "No Payroll Data Found\n\n" +
                             "Period: " + finalSelectedPeriod + "\n" +
-                            "Department: " + finalSelectedDepartment + "\n\n" +
+                            "Department: " + finalSelectedDepartment + "\n" +
+                            "Generated by: " + hrModel.getDisplayName() + "\n\n" +
                             "Possible reasons:\n" +
                             "• No payroll processed for this period\n" +
                             "• No employees in selected department\n" +
@@ -376,7 +445,7 @@ public class PayrollSummaryReport extends javax.swing.JFrame {
             currentReportData.setPayrollEntries(filteredEntries);
             currentReportData.setTotalEmployees(filteredEntries.size());
             
-            System.out.println("Filtered to " + filteredEntries.size() + " employees in " + department + " department");
+            System.out.println("HR Model filtered to " + filteredEntries.size() + " employees in " + department + " department");
         }
     }
     
@@ -393,21 +462,30 @@ public class PayrollSummaryReport extends javax.swing.JFrame {
                 record.getEmployeeName(),
                 record.getPosition(),
                 record.getDepartment(),
-                formatCurrency(record.getBaseSalary()),
-                formatCurrency(record.getLeaves()),
-                formatCurrency(record.getOvertime()),
-                formatCurrency(record.getGrossIncome()),
-                formatCurrency(record.getTotalBenefits()),
-                formatCurrency(record.getSssContribution()),
-                formatCurrency(record.getPhilhealthContribution()),
-                formatCurrency(record.getPagibigContribution()),
-                formatCurrency(record.getWithholdingTax()),
-                formatCurrency(record.getNetPay())
+                formatCurrencyForTable(record.getBaseSalary()),
+                formatCurrencyForTable(record.getLeaves()),
+                formatCurrencyForTable(record.getOvertime()),
+                formatCurrencyForTable(record.getGrossIncome()),
+                formatCurrencyForTable(record.getTotalBenefits()),
+                formatCurrencyForTable(record.getSssContribution()),
+                formatCurrencyForTable(record.getPhilhealthContribution()),
+                formatCurrencyForTable(record.getPagibigContribution()),
+                formatCurrencyForTable(record.getWithholdingTax()),
+                formatCurrencyForTable(record.getNetPay())
             };
             tableModel.addRow(row);
         }
         
-        System.out.println("Enhanced table updated with " + reportData.getPayrollEntries().size() + " records");
+        System.out.println("Enhanced table updated with " + reportData.getPayrollEntries().size() + " records (HR Model)");
+    }
+    
+    /**
+     * Format currency for enhanced display in table - ensures no wrapping
+     */
+    private String formatCurrencyForTable(BigDecimal amount) {
+        if (amount == null) return "₱0.00";
+        // Use proper formatting to prevent wrapping
+        return String.format("₱%,.2f", amount);
     }
     
     /**
@@ -419,11 +497,17 @@ public class PayrollSummaryReport extends javax.swing.JFrame {
     }
     
     /**
-     * Enhanced PDF download handler with professional formatting
+     * Enhanced PDF download handler with HR model integration
      */
     private void handleDownloadEnhancedPayrollSummaryPDF() {
         if (currentReportData == null || !currentReportData.isSuccess()) {
             showWarningDialog("Please generate a payroll summary report first.", "No Data Available");
+            return;
+        }
+
+        // Check HR permissions
+        if (!hrModel.isCanGenerateReports()) {
+            showErrorDialog("You do not have permission to generate PDF reports.\nPlease contact your administrator.", "Permission Denied");
             return;
         }
 
@@ -440,19 +524,18 @@ public class PayrollSummaryReport extends javax.swing.JFrame {
                 selectedDepartment = "All";
             }
 
-            System.out.println("Generating PDF for period: " + selectedPeriod + ", department: " + selectedDepartment);
+            System.out.println("HR Model generating PDF for period: " + selectedPeriod + ", department: " + selectedDepartment);
 
-            // Determine who generated the report
-            String generatedBy = "System";
-            Integer generatedByEmployeeId = null;
+            // Use HR model for generated by information
+            String generatedBy = hrModel.getDisplayName();
+            Integer generatedByEmployeeId = hrModel.getHrId();
 
             if (loggedInUser != null) {
-                generatedBy = loggedInUser.getFirstName() + " " + loggedInUser.getLastName();
                 generatedByEmployeeId = loggedInUser.getEmployeeId();
             }
 
-            // Create enhanced filename
-            String baseFileName = String.format("MotorPH_Payroll_Summary_%s_%s.pdf", 
+            // Create enhanced filename with HR context
+            String baseFileName = String.format("MotorPH_Payroll_Summary_%s_%s_HR.pdf", 
                 selectedPeriod, selectedDepartment.replaceAll("[^a-zA-Z0-9]", ""));
             String basePath = System.getProperty("user.home") + "\\Downloads\\" + baseFileName;
 
@@ -460,7 +543,7 @@ public class PayrollSummaryReport extends javax.swing.JFrame {
             String uniqueFilePath = PurePDFPayrollSummaryGenerator.generateUniqueFilePath(basePath);
             String uniqueFileName = new File(uniqueFilePath).getName();
 
-            // Generate the enhanced PDF
+            // Generate the enhanced PDF with HR context
             boolean pdfGenerated = PurePDFPayrollSummaryGenerator.generatePayrollSummaryPDF(
                 currentReportData, 
                 selectedPeriod, 
@@ -491,12 +574,12 @@ public class PayrollSummaryReport extends javax.swing.JFrame {
             );
 
             if (dbSaved) {
-                // Show enhanced success message with file details
+                // Show enhanced success message with HR context
                 String message = String.format(
-                    "PDF Payroll Summary Generated Successfully!\n\n" +
+                    "PDF Payroll Summary Generated Successfully by HR!\n\n" +
                     "File: %s\n" +
                     "Location: %s\n" +
-                    "Generated by: %s\n" +
+                    "Generated by: %s (HR)\n" +
                     "Records: %d employees\n" +
                     "File size: %s\n\n" +
                     "The report has been saved to your Downloads folder and recorded in the database.\n\n" +
@@ -508,7 +591,7 @@ public class PayrollSummaryReport extends javax.swing.JFrame {
                     formatFileSize(fileSize)
                 );
 
-                int choice = JOptionPane.showConfirmDialog(this, message, "PDF Generated Successfully", 
+                int choice = JOptionPane.showConfirmDialog(this, message, "PDF Generated Successfully by HR", 
                     JOptionPane.YES_NO_OPTION, JOptionPane.INFORMATION_MESSAGE);
                 
                 if (choice == JOptionPane.YES_OPTION) {
@@ -519,7 +602,7 @@ public class PayrollSummaryReport extends javax.swing.JFrame {
                     }
                 }
 
-                System.out.println("Enhanced PDF payroll summary generated successfully: " + uniqueFilePath);
+                System.out.println("Enhanced PDF payroll summary generated successfully by HR: " + uniqueFilePath);
             } else {
                 showWarningDialog("PDF generated successfully but failed to save record to database.\n\nFile location: " + uniqueFilePath, "Partial Success");
             }
@@ -532,7 +615,7 @@ public class PayrollSummaryReport extends javax.swing.JFrame {
     }
 
     /**
-     * Enhanced database save with better tracking
+     * Enhanced database save with better tracking and HR context
      */
     private boolean saveEnhancedReportToDatabase(String period, String department, String fileName, 
                                                 String filePath, long fileSize, int recordCount, 
@@ -551,8 +634,8 @@ public class PayrollSummaryReport extends javax.swing.JFrame {
             LocalDate periodStart = LocalDate.parse(period + "-01");
             LocalDate periodEnd = periodStart.withDayOfMonth(periodStart.lengthOfMonth());
 
-            // Create enhanced report title
-            String reportTitle = String.format("Payroll Summary - %s (%s) - %s", 
+            // Create enhanced report title with HR context
+            String reportTitle = String.format("Payroll Summary - %s (%s) - %s (HR)", 
                 period, department, generatedBy);
 
             // Set parameters
@@ -576,7 +659,7 @@ public class PayrollSummaryReport extends javax.swing.JFrame {
             int rowsAffected = pstmt.executeUpdate();
 
             if (rowsAffected > 0) {
-                System.out.println("Enhanced report saved to database with user: " + generatedBy);
+                System.out.println("Enhanced report saved to database with HR user: " + generatedBy);
                 return true;
             } else {
                 System.err.println("Failed to save enhanced report: No rows affected");
@@ -591,12 +674,12 @@ public class PayrollSummaryReport extends javax.swing.JFrame {
     }
     
     /**
-     * Enhanced reports history viewer with better UI
+     * Enhanced reports history viewer with HR context
      */
     private void showEnhancedGeneratedReportsHistory() {
         try {
-            // Create enhanced dialog
-            JDialog historyDialog = new JDialog(this, "MotorPH - Generated Payroll Reports History", true);
+            // Create enhanced dialog with HR context
+            JDialog historyDialog = new JDialog(this, "MotorPH - Generated Payroll Reports History (HR)", true);
             historyDialog.setSize(1200, 800);
             historyDialog.setLocationRelativeTo(this);
             
@@ -680,10 +763,10 @@ public class PayrollSummaryReport extends javax.swing.JFrame {
             buttonsPanel.add(downloadButton);
             buttonsPanel.add(closeButton);
             
-            // Enhanced title panel
+            // Enhanced title panel with HR context
             JPanel titlePanel = new JPanel();
             titlePanel.setBackground(new java.awt.Color(52, 73, 94));
-            JLabel titleLabel = new JLabel("MotorPH Payroll Reports History");
+            JLabel titleLabel = new JLabel("MotorPH Payroll Reports History - HR (" + hrModel.getDisplayName() + ")");
             titleLabel.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 16));
             titleLabel.setForeground(java.awt.Color.WHITE);
             titlePanel.add(titleLabel);
@@ -775,7 +858,7 @@ public class PayrollSummaryReport extends javax.swing.JFrame {
                 recordCount++;
             }
 
-            System.out.println("Loaded " + recordCount + " enhanced report records");
+            System.out.println("Loaded " + recordCount + " enhanced report records (HR)");
 
         } catch (SQLException e) {
             System.err.println("Error loading enhanced report history: " + e.getMessage());
@@ -826,8 +909,8 @@ public class PayrollSummaryReport extends javax.swing.JFrame {
      */
     private void setLoadingState(boolean loading) {
         setCursor(loading ? new Cursor(Cursor.WAIT_CURSOR) : new Cursor(Cursor.DEFAULT_CURSOR));
-        generatePayrollSummaryBtn.setEnabled(!loading);
-        viewGeneratedReportsHistoryBtn.setEnabled(!loading);
+        generatePayrollSummaryBtn.setEnabled(!loading && hrModel.isCanGenerateReports());
+        viewGeneratedReportsHistoryBtn.setEnabled(!loading && hrModel.isCanGenerateReports());
         selectDepJComboBox1.setEnabled(!loading);
         selectDateJComboBox2.setEnabled(!loading);
         
@@ -839,7 +922,7 @@ public class PayrollSummaryReport extends javax.swing.JFrame {
     }
     
     /**
-     * Enhanced navigation back to dashboard
+     * Enhanced navigation back to dashboard with HR context
      */
     private void navigateBackToDashboard() {
         try {
@@ -851,7 +934,7 @@ public class PayrollSummaryReport extends javax.swing.JFrame {
             }
             
             String role = loggedInUser.getUserRole();
-            System.out.println("Navigating back to " + role + " dashboard");
+            System.out.println("Navigating back to " + role + " dashboard (HR Model context)");
             
             String upperRole = role.toUpperCase();
             

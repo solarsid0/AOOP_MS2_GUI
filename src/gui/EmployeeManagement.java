@@ -21,7 +21,8 @@ import javax.swing.table.TableModel;
 import javax.swing.table.TableRowSorter;
 
 /**
- * Employee Management GUI with integrated Government ID handling and Position Benefits
+ * Employee Management GUI with integrated Government ID and Address handling
+ * Enhanced to save/update employee data across employee, govid, and address tables
  * @author User
  */
 public class EmployeeManagement extends javax.swing.JFrame {
@@ -35,12 +36,14 @@ public class EmployeeManagement extends javax.swing.JFrame {
     private final DatabaseConnection databaseConnection;
     private final EmployeeDAO employeeDAO;
     private final PositionDAO positionDAO;
+    private final AddressDAO addressDAO; // NEW: Address DAO
     
     // Current employee data
     private List<EmployeeModel> employeeList;
     private List<PositionModel> positionList;
     private EmployeeModel selectedEmployee;
     private GovIdModel selectedGovIds;
+    private AddressModel selectedAddress; // NEW: Selected address
     
     // Position benefits cache
     private Map<Integer, Map<String, BigDecimal>> positionBenefitsCache = new HashMap<>();
@@ -63,6 +66,7 @@ public class EmployeeManagement extends javax.swing.JFrame {
         this.databaseConnection = new DatabaseConnection();
         this.employeeDAO = new EmployeeDAO(databaseConnection);
         this.positionDAO = new PositionDAO(databaseConnection);
+        this.addressDAO = new AddressDAO(databaseConnection); // NEW: Initialize Address DAO
         
         initializeGUI();
     }
@@ -75,6 +79,7 @@ public class EmployeeManagement extends javax.swing.JFrame {
         this.databaseConnection = new DatabaseConnection();
         this.employeeDAO = new EmployeeDAO(databaseConnection);
         this.positionDAO = new PositionDAO(databaseConnection);
+        this.addressDAO = new AddressDAO(databaseConnection); // NEW: Initialize Address DAO
         
         initializeGUI();
     }
@@ -88,9 +93,12 @@ public class EmployeeManagement extends javax.swing.JFrame {
             setupDropdowns();
             loadEmployeeData();
             
+            // Get proper HR user display name
+            String hrDisplayName = getHRUserDisplayName();
+            
             JOptionPane.showMessageDialog(this, 
                 "Employee Management System loaded successfully!\n" +
-                "HR: " + hrModel.getDisplayName() + "\n" +
+                "HR: " + hrDisplayName + "\n" +
                 "Benefits are automatically populated based on position\n" +
                 "Click on any employee row to view/edit details",
                 "System Ready", JOptionPane.INFORMATION_MESSAGE);
@@ -103,10 +111,56 @@ public class EmployeeManagement extends javax.swing.JFrame {
                 "Initialization Error", JOptionPane.ERROR_MESSAGE);
         }
     }
+
+    /**
+     * Get the proper HR user display name for system messages
+     */
+    private String getHRUserDisplayName() {
+        if (loggedInUser != null) {
+            if (loggedInUser.getFirstName() != null && loggedInUser.getLastName() != null && 
+                !loggedInUser.getFirstName().trim().isEmpty() && !loggedInUser.getLastName().trim().isEmpty()) {
+                return loggedInUser.getFirstName().trim() + " " + loggedInUser.getLastName().trim();
+            }
+            
+            String displayName = loggedInUser.getDisplayName();
+            if (displayName != null && !displayName.startsWith("User ") && 
+                !displayName.equals("HR") && !displayName.contains("HR ")) {
+                return displayName;
+            }
+            
+            if (loggedInUser.getEmail() != null && !loggedInUser.getEmail().trim().isEmpty()) {
+                return loggedInUser.getEmail();
+            }
+            
+            return "HR Employee #" + loggedInUser.getEmployeeId();
+        }
+        
+        if (hrModel != null) {
+            if (hrModel.getFirstName() != null && hrModel.getLastName() != null && 
+                !hrModel.getFirstName().trim().isEmpty() && !hrModel.getLastName().trim().isEmpty()) {
+                return hrModel.getFirstName().trim() + " " + hrModel.getLastName().trim();
+            }
+            
+            String hrDisplayName = hrModel.getDisplayName();
+            if (hrDisplayName != null && !hrDisplayName.startsWith("HR ") && 
+                !hrDisplayName.equals("HR") && !hrDisplayName.contains("HR ")) {
+                return hrDisplayName;
+            }
+            
+            if (hrModel.getEmail() != null && !hrModel.getEmail().trim().isEmpty()) {
+                return hrModel.getEmail();
+            }
+            
+            if (hrModel.getHrId() > 0) {
+                return "HR Employee #" + hrModel.getHrId();
+            }
+        }
+        
+        return "HR Administrator";
+    }
     
     private void setupGUI() {
-        TFAddress.setLineWrap(true);
-        TFAddress.setWrapStyleWord(true);
+        // Remove old TFAddress setup since we now use individual fields
         tblERecords.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
         
         tblERecords.addMouseListener(new java.awt.event.MouseAdapter() {
@@ -307,7 +361,10 @@ public class EmployeeManagement extends javax.swing.JFrame {
                 rowData[3] = "";
             }
             
-            rowData[4] = "";
+            // NEW: Load and display address
+            AddressModel employeeAddress = getEmployeeAddress(employee.getEmployeeId());
+            rowData[4] = employeeAddress != null ? employeeAddress.getShortAddress() : "";
+            
             rowData[5] = employee.getPhoneNumber() != null ? employee.getPhoneNumber() : "";
             
             GovIdModel govIds = employeeDAO.getEmployeeGovIds(employee.getEmployeeId());
@@ -350,6 +407,53 @@ public class EmployeeManagement extends javax.swing.JFrame {
         } catch (Exception e) {
             System.err.println("Error adding employee to table: " + e.getMessage());
         }
+    }
+    
+    /**
+     * Get employee address from database via employeeaddress relationship
+     */
+    private AddressModel getEmployeeAddress(Integer employeeId) {
+        if (employeeId == null) {
+            return null;
+        }
+        
+        try {
+            String sql = """
+                SELECT a.* FROM address a 
+                JOIN employeeaddress ea ON a.addressId = ea.addressId 
+                WHERE ea.employeeId = ?
+                """;
+            
+            java.sql.Connection conn = databaseConnection.createConnection();
+            java.sql.PreparedStatement pstmt = conn.prepareStatement(sql);
+            pstmt.setInt(1, employeeId);
+            java.sql.ResultSet rs = pstmt.executeQuery();
+            
+            if (rs.next()) {
+                AddressModel address = new AddressModel();
+                address.setAddressId(rs.getInt("addressId"));
+                address.setStreet(rs.getString("street"));
+                address.setBarangay(rs.getString("barangay"));
+                address.setCity(rs.getString("city"));
+                address.setProvince(rs.getString("province"));
+                address.setZipCode(rs.getString("zipCode"));
+                
+                rs.close();
+                pstmt.close();
+                conn.close();
+                
+                return address;
+            }
+            
+            rs.close();
+            pstmt.close();
+            conn.close();
+            
+        } catch (Exception e) {
+            System.err.println("Error getting employee address: " + e.getMessage());
+        }
+        
+        return null;
     }
     
     private PositionModel getEmployeePosition(Integer positionId) {
@@ -416,6 +520,7 @@ public class EmployeeManagement extends javax.swing.JFrame {
             
             selectedEmployee = employeeWithGovIds.getEmployee();
             selectedGovIds = employeeWithGovIds.getGovIds();
+            selectedAddress = getEmployeeAddress(employeeId); // NEW: Load address
             
             TFenum.setText(String.valueOf(selectedEmployee.getEmployeeId()));
             TFlastn.setText(selectedEmployee.getLastName() != null ? selectedEmployee.getLastName() : "");
@@ -427,7 +532,21 @@ public class EmployeeManagement extends javax.swing.JFrame {
                 jDateChooserBday.setDate(null);
             }
             
-            TFAddress.setText("");
+            // Display address in individual fields instead of text area
+            if (selectedAddress != null) {
+                TFAddressStreet.setText(selectedAddress.getStreet() != null ? selectedAddress.getStreet() : "");
+                TFAddressBarangay.setText(selectedAddress.getBarangay() != null ? selectedAddress.getBarangay() : "");
+                TFAddressCity.setText(selectedAddress.getCity() != null ? selectedAddress.getCity() : "");
+                TFAddressProvince.setText(selectedAddress.getProvince() != null ? selectedAddress.getProvince() : "");
+                TFAddressZipcode.setText(selectedAddress.getZipCode() != null ? selectedAddress.getZipCode() : "");
+            } else {
+                TFAddressStreet.setText("");
+                TFAddressBarangay.setText("");
+                TFAddressCity.setText("");
+                TFAddressProvince.setText("");
+                TFAddressZipcode.setText("");
+            }
+            
             TFphonenum.setText(selectedEmployee.getPhoneNumber() != null ? selectedEmployee.getPhoneNumber() : "");
             
             if (selectedGovIds != null) {
@@ -487,6 +606,9 @@ public class EmployeeManagement extends javax.swing.JFrame {
         }
     }
     
+    /**
+     * Add employee with address and government IDs
+     */
     private void addEmployee() {
         try {
             if (!hrModel.isCanManageEmployees()) {
@@ -508,7 +630,9 @@ public class EmployeeManagement extends javax.swing.JFrame {
                 return;
             }
             
+            // Create employee, address, and government IDs from form
             EmployeeModel newEmployee = createEmployeeFromForm();
+            AddressModel newAddress = createAddressFromForm(); // NEW: Create address
             GovIdModel newGovIds = createGovIdsFromForm();
             
             Integer positionId = findPositionIdByName(TFpos.getSelectedItem().toString());
@@ -527,7 +651,8 @@ public class EmployeeManagement extends javax.swing.JFrame {
                 return;
             }
             
-            boolean success = employeeDAO.saveEmployeeWithGovIds(newEmployee, newGovIds);
+            // NEW: Save employee with address and government IDs
+            boolean success = saveEmployeeWithAddressAndGovIds(newEmployee, newAddress, newGovIds);
             
             if (success) {
                 loadEmployeeData();
@@ -535,8 +660,9 @@ public class EmployeeManagement extends javax.swing.JFrame {
                 clearFields();
                 
                 JOptionPane.showMessageDialog(this, 
-                    "Employee and government IDs added successfully!\n" +
+                    "Employee, address, and government IDs added successfully!\n" +
                     "Employee ID: " + newEmployee.getEmployeeId() + "\n" +
+                    "Address: " + (newAddress != null ? newAddress.getShortAddress() : "No address") + "\n" +
                     "Created by: " + hrModel.getDisplayName(), 
                     "Success", JOptionPane.INFORMATION_MESSAGE);
             } else {
@@ -552,6 +678,9 @@ public class EmployeeManagement extends javax.swing.JFrame {
         }
     }
     
+    /**
+     * Update employee with address and government IDs
+     */
     private void updateEmployee() {
         try {
             if (!hrModel.isCanManageEmployees()) {
@@ -590,6 +719,7 @@ public class EmployeeManagement extends javax.swing.JFrame {
                 return;
             }
             
+            // Update employee object
             selectedEmployee.setFirstName(TFfirstn.getText().trim());
             selectedEmployee.setLastName(TFlastn.getText().trim());
             selectedEmployee.setPhoneNumber(TFphonenum.getText().trim());
@@ -620,12 +750,16 @@ public class EmployeeManagement extends javax.swing.JFrame {
             Integer supervisorId = findSupervisorIdBySelection(TFsupervisor.getSelectedItem().toString());
             selectedEmployee.setSupervisorId(supervisorId);
             
+            // NEW: Update address from form
+            AddressModel updatedAddress = createAddressFromForm();
+            
             if (selectedGovIds == null) {
                 selectedGovIds = new GovIdModel(selectedEmployee.getEmployeeId());
             }
             updateGovIdsFromForm(selectedGovIds);
             
-            boolean success = performDirectUpdate();
+            // NEW: Update employee with address and government IDs
+            boolean success = updateEmployeeWithAddressAndGovIds(selectedEmployee, updatedAddress, selectedGovIds);
             
             if (success) {
                 loadEmployeeData();
@@ -634,6 +768,7 @@ public class EmployeeManagement extends javax.swing.JFrame {
                 JOptionPane.showMessageDialog(this, 
                     "Employee information updated successfully!\n" +
                     "Employee: " + selectedEmployee.getFirstName() + " " + selectedEmployee.getLastName() + "\n" +
+                    "Address: " + (updatedAddress != null ? updatedAddress.getShortAddress() : "No address") + "\n" +
                     "Updated by: " + hrModel.getDisplayName(), 
                     "Success", JOptionPane.INFORMATION_MESSAGE);
                     
@@ -652,121 +787,239 @@ public class EmployeeManagement extends javax.swing.JFrame {
         }
     }
     
-    private boolean performDirectUpdate() {
+    /**
+     * Save employee with address and government IDs in a single transaction
+     */
+    private boolean saveEmployeeWithAddressAndGovIds(EmployeeModel employee, AddressModel address, GovIdModel govIds) {
+        java.sql.Connection conn = null;
         try {
-            java.sql.Connection conn = databaseConnection.createConnection();
-            conn.setAutoCommit(false);
+            conn = databaseConnection.createConnection();
+            conn.setAutoCommit(false); // Start transaction
             
-            String employeeSQL = """
-                UPDATE employee SET 
-                firstName = ?, lastName = ?, birthDate = ?, phoneNumber = ?, email = ?, 
-                basicSalary = ?, hourlyRate = ?, userRole = ?, passwordHash = ?, status = ?, 
-                lastLogin = ?, positionId = ?, supervisorId = ? 
-                WHERE employeeId = ?
-                """;
+            // 1. Save employee first
+            boolean employeeSaved = employeeDAO.save(employee);
+            if (!employeeSaved) {
+                conn.rollback();
+                System.err.println("Failed to save employee");
+                return false;
+            }
             
-            try (java.sql.PreparedStatement empStmt = conn.prepareStatement(employeeSQL)) {
-                int paramIndex = 1;
-                empStmt.setString(paramIndex++, selectedEmployee.getFirstName());
-                empStmt.setString(paramIndex++, selectedEmployee.getLastName());
-                
-                if (selectedEmployee.getBirthDate() != null) {
-                    empStmt.setDate(paramIndex++, java.sql.Date.valueOf(selectedEmployee.getBirthDate()));
+            // 2. Save address if provided and link to employee
+            if (address != null && address.isValid()) {
+                boolean addressSaved = addressDAO.save(address);
+                if (addressSaved) {
+                    // Link employee to address via employeeaddress table
+                    String linkSQL = "INSERT INTO employeeaddress (employeeId, addressId) VALUES (?, ?)";
+                    try (java.sql.PreparedStatement linkStmt = conn.prepareStatement(linkSQL)) {
+                        linkStmt.setInt(1, employee.getEmployeeId());
+                        linkStmt.setInt(2, address.getAddressId());
+                        int linkResult = linkStmt.executeUpdate();
+                        if (linkResult == 0) {
+                            conn.rollback();
+                            System.err.println("Failed to link employee to address");
+                            return false;
+                        }
+                    }
                 } else {
-                    empStmt.setNull(paramIndex++, java.sql.Types.DATE);
+                    conn.rollback();
+                    System.err.println("Failed to save address");
+                    return false;
                 }
-                
-                empStmt.setString(paramIndex++, selectedEmployee.getPhoneNumber());
-                empStmt.setString(paramIndex++, selectedEmployee.getEmail());
-                empStmt.setBigDecimal(paramIndex++, selectedEmployee.getBasicSalary());
-                empStmt.setBigDecimal(paramIndex++, selectedEmployee.getHourlyRate());
-                empStmt.setString(paramIndex++, selectedEmployee.getUserRole());
-                empStmt.setString(paramIndex++, selectedEmployee.getPasswordHash());
-                empStmt.setString(paramIndex++, selectedEmployee.getStatus().getValue());
-                
-                if (selectedEmployee.getLastLogin() != null) {
-                    empStmt.setTimestamp(paramIndex++, selectedEmployee.getLastLogin());
-                } else {
-                    empStmt.setNull(paramIndex++, java.sql.Types.TIMESTAMP);
-                }
-                
-                empStmt.setInt(paramIndex++, selectedEmployee.getPositionId());
-                
-                if (selectedEmployee.getSupervisorId() != null) {
-                    empStmt.setInt(paramIndex++, selectedEmployee.getSupervisorId());
-                } else {
-                    empStmt.setNull(paramIndex++, java.sql.Types.INTEGER);
-                }
-                
-                empStmt.setInt(paramIndex++, selectedEmployee.getEmployeeId());
-                
-                int empRows = empStmt.executeUpdate();
-                
-                if (empRows > 0 && selectedGovIds != null) {
-                    String govIdSQL = """
-                        INSERT INTO govid (sss, philhealth, tin, pagibig, employeeId) 
-                        VALUES (?, ?, ?, ?, ?) 
-                        ON DUPLICATE KEY UPDATE 
-                        sss = VALUES(sss), 
-                        philhealth = VALUES(philhealth), 
-                        tin = VALUES(tin), 
-                        pagibig = VALUES(pagibig)
-                        """;
-                    
-                    try (java.sql.PreparedStatement govStmt = conn.prepareStatement(govIdSQL)) {
-                        govStmt.setString(1, selectedGovIds.getSss());
-                        govStmt.setString(2, selectedGovIds.getPhilhealth());
-                        govStmt.setString(3, selectedGovIds.getTin());
-                        govStmt.setString(4, selectedGovIds.getPagibig());
-                        govStmt.setInt(5, selectedEmployee.getEmployeeId());
-                        
-                        govStmt.executeUpdate();
+            }
+            
+            // 3. Save government IDs if provided
+            if (govIds != null) {
+                govIds.setEmployeeId(employee.getEmployeeId());
+                String govIdSQL = "INSERT INTO govid (sss, philhealth, tin, pagibig, employeeId) VALUES (?, ?, ?, ?, ?)";
+                try (java.sql.PreparedStatement govStmt = conn.prepareStatement(govIdSQL)) {
+                    govStmt.setString(1, govIds.getSss());
+                    govStmt.setString(2, govIds.getPhilhealth());
+                    govStmt.setString(3, govIds.getTin());
+                    govStmt.setString(4, govIds.getPagibig());
+                    govStmt.setInt(5, employee.getEmployeeId());
+                    int govResult = govStmt.executeUpdate();
+                    if (govResult == 0) {
+                        conn.rollback();
+                        System.err.println("Failed to save government IDs");
+                        return false;
                     }
                 }
-                
-                conn.commit();
-                conn.close();
-                return empRows > 0;
-                
             }
             
+            conn.commit(); // Commit transaction
+            System.out.println("Employee, address, and government IDs saved successfully");
+            return true;
+            
         } catch (Exception e) {
-            System.err.println("Direct update failed: " + e.getMessage());
+            try {
+                if (conn != null) {
+                    conn.rollback();
+                }
+            } catch (Exception rollbackEx) {
+                System.err.println("Error rolling back transaction: " + rollbackEx.getMessage());
+            }
+            System.err.println("Error saving employee with address and government IDs: " + e.getMessage());
+            e.printStackTrace();
             return false;
+        } finally {
+            try {
+                if (conn != null) {
+                    conn.setAutoCommit(true);
+                    conn.close();
+                }
+            } catch (Exception e) {
+                System.err.println("Error closing connection: " + e.getMessage());
+            }
         }
     }
     
-    private void updateEmployeeManually() {
+    /**
+     * NEW: Update employee with address and government IDs in a single transaction
+     */
+    private boolean updateEmployeeWithAddressAndGovIds(EmployeeModel employee, AddressModel address, GovIdModel govIds) {
+        java.sql.Connection conn = null;
         try {
-            boolean employeeUpdated = employeeDAO.update(selectedEmployee);
+            conn = databaseConnection.createConnection();
+            conn.setAutoCommit(false); // Start transaction
             
+            // 1. Update employee
+            boolean employeeUpdated = employeeDAO.update(employee);
             if (!employeeUpdated) {
-                System.err.println("Failed to update employee information");
-                return;
+                conn.rollback();
+                return false;
             }
             
-            if (selectedGovIds != null) {
-                try {
-                    updateGovIdsManually(selectedGovIds);
-                } catch (Exception govIdError) {
-                    System.err.println("Government ID update failed but employee updated: " + govIdError.getMessage());
+            // 2. Update or save address
+            if (address != null && address.isValid()) {
+                if (selectedAddress != null && selectedAddress.getAddressId() != null) {
+                    // Update existing address
+                    address.setAddressId(selectedAddress.getAddressId());
+                    addressDAO.update(address);
+                } else {
+                    // Save new address and link to employee
+                    boolean addressSaved = addressDAO.save(address);
+                    if (addressSaved) {
+                        // Link employee to new address
+                        String linkSQL = """
+                            INSERT INTO employeeaddress (employeeId, addressId) 
+                            VALUES (?, ?) 
+                            ON DUPLICATE KEY UPDATE addressId = VALUES(addressId)
+                            """;
+                        try (java.sql.PreparedStatement linkStmt = conn.prepareStatement(linkSQL)) {
+                            linkStmt.setInt(1, employee.getEmployeeId());
+                            linkStmt.setInt(2, address.getAddressId());
+                            linkStmt.executeUpdate();
+                        }
+                    }
                 }
             }
             
+            // 3. Update or save government IDs
+            if (govIds != null) {
+                govIds.setEmployeeId(employee.getEmployeeId());
+                
+                // Check if government IDs exist
+                String checkSQL = "SELECT COUNT(*) FROM govid WHERE employeeId = ?";
+                try (java.sql.PreparedStatement checkStmt = conn.prepareStatement(checkSQL)) {
+                    checkStmt.setInt(1, employee.getEmployeeId());
+                    java.sql.ResultSet rs = checkStmt.executeQuery();
+                    
+                    if (rs.next() && rs.getInt(1) > 0) {
+                        // Update existing government IDs
+                        String updateSQL = "UPDATE govid SET sss = ?, philhealth = ?, tin = ?, pagibig = ? WHERE employeeId = ?";
+                        try (java.sql.PreparedStatement updateStmt = conn.prepareStatement(updateSQL)) {
+                            updateStmt.setString(1, govIds.getSss());
+                            updateStmt.setString(2, govIds.getPhilhealth());
+                            updateStmt.setString(3, govIds.getTin());
+                            updateStmt.setString(4, govIds.getPagibig());
+                            updateStmt.setInt(5, employee.getEmployeeId());
+                            updateStmt.executeUpdate();
+                        }
+                    } else {
+                        // Insert new government IDs
+                        String insertSQL = "INSERT INTO govid (sss, philhealth, tin, pagibig, employeeId) VALUES (?, ?, ?, ?, ?)";
+                        try (java.sql.PreparedStatement insertStmt = conn.prepareStatement(insertSQL)) {
+                            insertStmt.setString(1, govIds.getSss());
+                            insertStmt.setString(2, govIds.getPhilhealth());
+                            insertStmt.setString(3, govIds.getTin());
+                            insertStmt.setString(4, govIds.getPagibig());
+                            insertStmt.setInt(5, employee.getEmployeeId());
+                            insertStmt.executeUpdate();
+                        }
+                    }
+                    rs.close();
+                }
+            }
+            
+            conn.commit(); // Commit transaction
+            System.out.println("✅ Employee, address, and government IDs updated successfully");
+            return true;
+            
         } catch (Exception e) {
-            System.err.println("Manual update failed: " + e.getMessage());
+            try {
+                if (conn != null) {
+                    conn.rollback();
+                }
+            } catch (Exception rollbackEx) {
+                System.err.println("Error rolling back transaction: " + rollbackEx.getMessage());
+            }
+            System.err.println("Error updating employee with address and government IDs: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        } finally {
+            try {
+                if (conn != null) {
+                    conn.setAutoCommit(true);
+                    conn.close();
+                }
+            } catch (Exception e) {
+                System.err.println("Error closing connection: " + e.getMessage());
+            }
         }
     }
     
-    private void updateGovIdsManually(GovIdModel govIds) {
-        try {
-            System.out.println("Government IDs updated (manual approach): " + govIds.toString());
-        } catch (Exception e) {
-            System.err.println("Error in manual government ID update: " + e.getMessage());
+    /**
+     * Create AddressModel from individual address form fields
+     */
+    private AddressModel createAddressFromForm() {
+        // Check if at least one address field has data
+        if (TFAddressStreet.getText().trim().isEmpty() && 
+            TFAddressBarangay.getText().trim().isEmpty() && 
+            TFAddressCity.getText().trim().isEmpty() && 
+            TFAddressProvince.getText().trim().isEmpty() && 
+            TFAddressZipcode.getText().trim().isEmpty()) {
+            return null; // No address data provided
         }
+        
+        AddressModel address = new AddressModel();
+        
+        // Set fields directly from individual text fields
+        String street = TFAddressStreet.getText().trim();
+        String barangay = TFAddressBarangay.getText().trim();
+        String city = TFAddressCity.getText().trim();
+        String province = TFAddressProvince.getText().trim();
+        String zipCode = TFAddressZipcode.getText().trim();
+        
+        address.setStreet(street.isEmpty() ? null : street);
+        address.setBarangay(barangay.isEmpty() ? null : barangay);
+        address.setCity(city.isEmpty() ? null : city);
+        address.setProvince(province.isEmpty() ? null : province);
+        address.setZipCode(zipCode.isEmpty() ? null : zipCode);
+        
+        // Apply defaults for empty required fields
+        if (address.getCity() == null || address.getCity().isEmpty()) {
+            address.setCity("Manila"); // Default city
+        }
+        
+        if (address.getProvince() == null || address.getProvince().isEmpty()) {
+            address.setProvince("Metro Manila"); // Default province
+        }
+        
+        // Normalize the address
+        address.normalizeAddress();
+        
+        return address;
     }
-    
-
     
     private void deleteEmployee() {
         try {
@@ -780,7 +1033,8 @@ public class EmployeeManagement extends javax.swing.JFrame {
             int confirm = JOptionPane.showConfirmDialog(this, 
                     "Are you sure you want to terminate employee " + 
                     selectedEmployee.getEmployeeId() + ": " + empName + "?\n\n" +
-                    "This will set their status to TERMINATED (soft delete).", 
+                    "This will set their status to TERMINATED (soft delete).\n" +
+                    "Address and Government ID records will be preserved.", 
                     "Confirm Termination", JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE);
             
             if (confirm == JOptionPane.YES_OPTION) {
@@ -792,6 +1046,7 @@ public class EmployeeManagement extends javax.swing.JFrame {
                     clearFields();
                     selectedEmployee = null;
                     selectedGovIds = null;
+                    selectedAddress = null;
                     
                     JOptionPane.showMessageDialog(this, "Employee terminated successfully!", 
                             "Success", JOptionPane.INFORMATION_MESSAGE);
@@ -899,6 +1154,57 @@ public class EmployeeManagement extends javax.swing.JFrame {
         return null;
     }
     
+    /**
+     * Validate individual address fields
+     */
+    private boolean isValidAddressInput() {
+        // At least city should be provided for a valid address
+        String city = TFAddressCity.getText().trim();
+        String province = TFAddressProvince.getText().trim();
+        String zipCode = TFAddressZipcode.getText().trim();
+        
+        // If any address field is filled, city should be mandatory
+        boolean hasAnyAddressData = !TFAddressStreet.getText().trim().isEmpty() ||
+                                   !TFAddressBarangay.getText().trim().isEmpty() ||
+                                   !city.isEmpty() ||
+                                   !province.isEmpty() ||
+                                   !zipCode.isEmpty();
+        
+        if (hasAnyAddressData && city.isEmpty()) {
+            JOptionPane.showMessageDialog(this, 
+                "City is required when providing address information", 
+                "Address Validation", JOptionPane.WARNING_MESSAGE);
+            TFAddressCity.requestFocus();
+            return false;
+        }
+        
+        // Validate ZIP code format if provided
+        if (!zipCode.isEmpty() && !zipCode.matches("\\d{4}")) {
+            JOptionPane.showMessageDialog(this, 
+                "ZIP code must be 4 digits (e.g., 1000)", 
+                "Address Validation", JOptionPane.WARNING_MESSAGE);
+            TFAddressZipcode.requestFocus();
+            return false;
+        }
+        
+        return true;
+    }
+    
+    private void addMonetaryFieldTooltips() {
+        TFbasicsalary.setToolTipText("Enter amount without commas (e.g., 50000 not 50,000)");
+        TFricesub.setToolTipText("Auto-populated based on position");
+        TFphoneallow.setToolTipText("Auto-populated based on position");
+        TFclothingallow.setToolTipText("Auto-populated based on position");
+        TFhourlyrate.setToolTipText("Enter amount without commas (e.g., 250 not 250.00)");
+        
+        // Individual address field tooltips
+        TFAddressStreet.setToolTipText("Enter house no./unit no., bldg. name, and street address (e.g., House #27, 123 Main Street)");
+        TFAddressBarangay.setToolTipText("Enter barangay name (e.g., Barangay San Antonio)");
+        TFAddressCity.setToolTipText("Enter city name (e.g., Manila City, Quezon City)");
+        TFAddressProvince.setToolTipText("Enter province name (e.g., Metro Manila, Rizal)");
+        TFAddressZipcode.setToolTipText("Enter 4-digit ZIP code (e.g., 1000)");
+    }
+    
     private boolean validateInput() {
         try {
             if (TFenum.getText().trim().isEmpty() ||
@@ -921,6 +1227,11 @@ public class EmployeeManagement extends javax.swing.JFrame {
             
             if (TFpos.getSelectedItem() == null || 
                 TFpos.getSelectedItem().toString().equals("Select Position")) {
+                return false;
+            }
+            
+            // Validate address fields
+            if (!isValidAddressInput()) {
                 return false;
             }
             
@@ -966,10 +1277,16 @@ public class EmployeeManagement extends javax.swing.JFrame {
         TFclothingallow.setText("");
         TFhourlyrate.setText("");
         jDateChooserBday.setDate(null);
-        TFAddress.setText("");
+        // Clear individual address fields
+        TFAddressStreet.setText("");
+        TFAddressBarangay.setText("");
+        TFAddressCity.setText("");
+        TFAddressProvince.setText("");
+        TFAddressZipcode.setText("");
         TFphonenum.setText("");
         selectedEmployee = null;
         selectedGovIds = null;
+        selectedAddress = null;
     }
     
     private void searchEmployees(String searchQuery) {
@@ -1003,13 +1320,6 @@ public class EmployeeManagement extends javax.swing.JFrame {
         }
     }
     
-    private void addMonetaryFieldTooltips() {
-        TFbasicsalary.setToolTipText("Enter amount without commas (e.g., 50000 not 50,000)");
-        TFricesub.setToolTipText("Auto-populated based on position");
-        TFphoneallow.setToolTipText("Auto-populated based on position");
-        TFclothingallow.setToolTipText("Auto-populated based on position");
-        TFhourlyrate.setToolTipText("Enter amount without commas (e.g., 250 not 250.00)");
-    }
     
     private void adjustRowHeight() {
         for (int row = 0; row < tblERecords.getRowCount(); row++) {
@@ -1061,6 +1371,7 @@ public class EmployeeManagement extends javax.swing.JFrame {
         }
     }
     
+    
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
@@ -1102,8 +1413,6 @@ public class EmployeeManagement extends javax.swing.JFrame {
         jLabel13 = new javax.swing.JLabel();
         jLabel6 = new javax.swing.JLabel();
         jLabel7 = new javax.swing.JLabel();
-        jScrollPane3 = new javax.swing.JScrollPane();
-        TFAddress = new javax.swing.JTextArea();
         LBLphonenum = new javax.swing.JLabel();
         TFphonenum = new javax.swing.JTextField();
         btnSave = new javax.swing.JButton();
@@ -1113,6 +1422,11 @@ public class EmployeeManagement extends javax.swing.JFrame {
         jDateChooserBday = new com.toedter.calendar.JDateChooser();
         TFpos = new javax.swing.JComboBox<>();
         TFsupervisor = new javax.swing.JComboBox<>();
+        TFAddressStreet = new javax.swing.JTextField();
+        TFAddressBarangay = new javax.swing.JTextField();
+        TFAddressCity = new javax.swing.JTextField();
+        TFAddressProvince = new javax.swing.JTextField();
+        TFAddressZipcode = new javax.swing.JTextField();
         btnSearch1 = new javax.swing.JButton();
         unifiedSearchBar = new java.awt.TextField();
 
@@ -1143,6 +1457,7 @@ public class EmployeeManagement extends javax.swing.JFrame {
             }
         });
         tblERecords.setAutoResizeMode(javax.swing.JTable.AUTO_RESIZE_ALL_COLUMNS);
+        tblERecords.setPreferredSize(new java.awt.Dimension(1450, 920));
         jScrollPane1.setViewportView(tblERecords);
         if (tblERecords.getColumnModel().getColumnCount() > 0) {
             tblERecords.getColumnModel().getColumn(0).setMinWidth(60);
@@ -1220,6 +1535,11 @@ public class EmployeeManagement extends javax.swing.JFrame {
         lblphoneallow.setText("Phone Allowance");
 
         TFphoneallow.setHorizontalAlignment(javax.swing.JTextField.LEFT);
+        TFphoneallow.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                TFphoneallowActionPerformed(evt);
+            }
+        });
 
         jLabel4.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         jLabel4.setText("Last Name");
@@ -1258,13 +1578,28 @@ public class EmployeeManagement extends javax.swing.JFrame {
         lblricesubsidy.setText("Rice Subsidy");
 
         TFricesub.setHorizontalAlignment(javax.swing.JTextField.LEFT);
+        TFricesub.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                TFricesubActionPerformed(evt);
+            }
+        });
 
         TFhourlyrate.setHorizontalAlignment(javax.swing.JTextField.LEFT);
+        TFhourlyrate.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                TFhourlyrateActionPerformed(evt);
+            }
+        });
 
         lbhourlyrate.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         lbhourlyrate.setText("Hourly Rate");
 
         TFsss.setHorizontalAlignment(javax.swing.JTextField.LEFT);
+        TFsss.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                TFsssActionPerformed(evt);
+            }
+        });
 
         jLabel9.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         jLabel9.setText("SSS Number");
@@ -1281,10 +1616,6 @@ public class EmployeeManagement extends javax.swing.JFrame {
 
         jLabel7.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         jLabel7.setText("Address");
-
-        TFAddress.setColumns(20);
-        TFAddress.setRows(5);
-        jScrollPane3.setViewportView(TFAddress);
 
         LBLphonenum.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
         LBLphonenum.setText("Phone Number");
@@ -1335,6 +1666,16 @@ public class EmployeeManagement extends javax.swing.JFrame {
 
         TFsupervisor.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Select" }));
 
+        TFAddressStreet.setText("House No. & Street Name");
+
+        TFAddressBarangay.setText("Barangay");
+
+        TFAddressCity.setText("City");
+
+        TFAddressProvince.setText("Province");
+
+        TFAddressZipcode.setText("ZIP Code");
+
         javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);
         jPanel2.setLayout(jPanel2Layout);
         jPanel2Layout.setHorizontalGroup(
@@ -1362,11 +1703,9 @@ public class EmployeeManagement extends javax.swing.JFrame {
                                     .addGroup(jPanel2Layout.createSequentialGroup()
                                         .addComponent(jLabel16, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                                         .addGap(31, 31, 31))
-                                    .addGroup(jPanel2Layout.createSequentialGroup()
-                                        .addComponent(lblclothingallow, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                        .addGap(52, 52, 52))
-                                    .addComponent(TFclothingallow, javax.swing.GroupLayout.Alignment.TRAILING)
-                                    .addComponent(TFsupervisor, 0, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
+                                    .addComponent(TFsupervisor, 0, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                    .addComponent(lblclothingallow, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                    .addComponent(TFclothingallow, javax.swing.GroupLayout.Alignment.TRAILING)))
                             .addGroup(jPanel2Layout.createSequentialGroup()
                                 .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                                     .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -1413,7 +1752,7 @@ public class EmployeeManagement extends javax.swing.JFrame {
                     .addComponent(TFhourlyrate)
                     .addGroup(jPanel2Layout.createSequentialGroup()
                         .addComponent(lbhourlyrate, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                        .addGap(101, 101, 101))
+                        .addGap(110, 110, 110))
                     .addComponent(TFsss)
                     .addComponent(TFstatus, 0, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addGroup(jPanel2Layout.createSequentialGroup()
@@ -1425,91 +1764,100 @@ public class EmployeeManagement extends javax.swing.JFrame {
                     .addComponent(jLabel9, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(jDateChooserBday, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                 .addGap(47, 47, 47)
-                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                    .addGroup(javax.swing.GroupLayout.Alignment.LEADING, jPanel2Layout.createSequentialGroup()
-                        .addComponent(jLabel7, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                        .addGap(135, 135, 135))
-                    .addGroup(javax.swing.GroupLayout.Alignment.LEADING, jPanel2Layout.createSequentialGroup()
-                        .addComponent(LBLphonenum, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                        .addGap(87, 87, 87))
-                    .addGroup(javax.swing.GroupLayout.Alignment.LEADING, jPanel2Layout.createSequentialGroup()
-                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                            .addComponent(TFphonenum)
-                            .addComponent(jScrollPane3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                        .addGap(0, 0, Short.MAX_VALUE))
-                    .addGroup(javax.swing.GroupLayout.Alignment.LEADING, jPanel2Layout.createSequentialGroup()
+                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(jPanel2Layout.createSequentialGroup()
                         .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(btnUpdate, javax.swing.GroupLayout.PREFERRED_SIZE, 90, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(btnReset1, javax.swing.GroupLayout.PREFERRED_SIZE, 90, javax.swing.GroupLayout.PREFERRED_SIZE))
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(btnDelete, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 90, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(btnSave, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 90, javax.swing.GroupLayout.PREFERRED_SIZE))))
-                .addGap(25, 25, 25))
+                            .addGroup(jPanel2Layout.createSequentialGroup()
+                                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                    .addComponent(btnUpdate, javax.swing.GroupLayout.PREFERRED_SIZE, 90, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                    .addComponent(btnReset1, javax.swing.GroupLayout.PREFERRED_SIZE, 90, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                    .addComponent(btnDelete, javax.swing.GroupLayout.PREFERRED_SIZE, 90, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                    .addComponent(btnSave, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 90, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                            .addComponent(TFphonenum, javax.swing.GroupLayout.Alignment.TRAILING)
+                            .addGroup(jPanel2Layout.createSequentialGroup()
+                                .addComponent(jLabel7, javax.swing.GroupLayout.DEFAULT_SIZE, 127, Short.MAX_VALUE)
+                                .addGap(135, 135, 135))
+                            .addComponent(TFAddressStreet, javax.swing.GroupLayout.Alignment.TRAILING)
+                            .addComponent(TFAddressBarangay, javax.swing.GroupLayout.Alignment.TRAILING)
+                            .addComponent(TFAddressCity)
+                            .addComponent(TFAddressProvince)
+                            .addGroup(jPanel2Layout.createSequentialGroup()
+                                .addComponent(TFAddressZipcode, javax.swing.GroupLayout.PREFERRED_SIZE, 131, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addGap(0, 0, Short.MAX_VALUE)))
+                        .addGap(25, 25, 25))
+                    .addGroup(jPanel2Layout.createSequentialGroup()
+                        .addComponent(LBLphonenum, javax.swing.GroupLayout.PREFERRED_SIZE, 111, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))))
         );
         jPanel2Layout.setVerticalGroup(
             jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel2Layout.createSequentialGroup()
                 .addGap(20, 20, 20)
-                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                    .addGroup(javax.swing.GroupLayout.Alignment.LEADING, jPanel2Layout.createSequentialGroup()
+                        .addGap(98, 98, 98)
+                        .addComponent(TFpagibig, javax.swing.GroupLayout.PREFERRED_SIZE, 33, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(18, 18, 18)
+                        .addComponent(lblbasicsalary)
+                        .addGap(0, 0, Short.MAX_VALUE))
                     .addGroup(jPanel2Layout.createSequentialGroup()
                         .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                            .addGroup(jPanel2Layout.createSequentialGroup()
-                                .addComponent(jLabel5, javax.swing.GroupLayout.PREFERRED_SIZE, 18, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(TFfirstn, javax.swing.GroupLayout.PREFERRED_SIZE, 31, javax.swing.GroupLayout.PREFERRED_SIZE))
-                            .addGroup(jPanel2Layout.createSequentialGroup()
-                                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                                    .addComponent(jLabel4, javax.swing.GroupLayout.PREFERRED_SIZE, 11, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                    .addComponent(jLabel3, javax.swing.GroupLayout.PREFERRED_SIZE, 14, javax.swing.GroupLayout.PREFERRED_SIZE))
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                                    .addComponent(TFenum, javax.swing.GroupLayout.DEFAULT_SIZE, 31, Short.MAX_VALUE)
-                                    .addComponent(TFlastn))))
-                        .addGap(18, 18, 18)
-                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                            .addComponent(jLabel11, javax.swing.GroupLayout.PREFERRED_SIZE, 13, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(jLabel10, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addComponent(jLabel12, javax.swing.GroupLayout.PREFERRED_SIZE, 17, javax.swing.GroupLayout.PREFERRED_SIZE))
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                            .addComponent(TFtin, javax.swing.GroupLayout.DEFAULT_SIZE, 32, Short.MAX_VALUE)
-                            .addComponent(TFphilh))
-                        .addGap(20, 20, 20)
-                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                            .addComponent(jLabel15, javax.swing.GroupLayout.PREFERRED_SIZE, 12, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(jLabel16, javax.swing.GroupLayout.PREFERRED_SIZE, 15, javax.swing.GroupLayout.PREFERRED_SIZE))
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addGroup(jPanel2Layout.createSequentialGroup()
-                                .addComponent(TFpos, javax.swing.GroupLayout.PREFERRED_SIZE, 29, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addGroup(javax.swing.GroupLayout.Alignment.LEADING, jPanel2Layout.createSequentialGroup()
+                                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
+                                    .addGroup(jPanel2Layout.createSequentialGroup()
+                                        .addGap(2, 2, 2)
+                                        .addComponent(jLabel5, javax.swing.GroupLayout.PREFERRED_SIZE, 18, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                        .addComponent(TFfirstn, javax.swing.GroupLayout.PREFERRED_SIZE, 31, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                    .addGroup(jPanel2Layout.createSequentialGroup()
+                                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                            .addComponent(jLabel3, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                            .addComponent(jLabel4, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                                            .addComponent(TFenum, javax.swing.GroupLayout.DEFAULT_SIZE, 31, Short.MAX_VALUE)
+                                            .addComponent(TFlastn))))
                                 .addGap(18, 18, 18)
-                                .addComponent(lblphoneallow, javax.swing.GroupLayout.PREFERRED_SIZE, 14, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                            .addGroup(jPanel2Layout.createSequentialGroup()
                                 .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                                    .addComponent(TFbasicsalary, javax.swing.GroupLayout.DEFAULT_SIZE, 28, Short.MAX_VALUE)
-                                    .addComponent(TFsss)
-                                    .addComponent(TFsupervisor))
-                                .addGap(13, 13, 13)
-                                .addComponent(lblclothingallow, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                .addGap(4, 4, 4)))
-                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(TFclothingallow)
-                            .addComponent(TFphoneallow)))
-                    .addGroup(jPanel2Layout.createSequentialGroup()
-                        .addGap(98, 98, 98)
-                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                            .addComponent(TFpagibig, javax.swing.GroupLayout.PREFERRED_SIZE, 33, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(TFstatus, javax.swing.GroupLayout.PREFERRED_SIZE, 30, javax.swing.GroupLayout.PREFERRED_SIZE))
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addComponent(lblbasicsalary, javax.swing.GroupLayout.PREFERRED_SIZE, 18, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(58, 58, 58)
-                        .addComponent(lblricesubsidy, javax.swing.GroupLayout.PREFERRED_SIZE, 18, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(TFricesub, javax.swing.GroupLayout.DEFAULT_SIZE, 27, Short.MAX_VALUE))
-                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel2Layout.createSequentialGroup()
-                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                    .addComponent(jLabel11, javax.swing.GroupLayout.PREFERRED_SIZE, 13, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                    .addComponent(jLabel10, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                    .addComponent(jLabel12))
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                                    .addComponent(TFtin, javax.swing.GroupLayout.DEFAULT_SIZE, 32, Short.MAX_VALUE)
+                                    .addComponent(TFphilh))
+                                .addGap(16, 16, 16)
+                                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                    .addComponent(jLabel16, javax.swing.GroupLayout.PREFERRED_SIZE, 24, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                    .addComponent(jLabel15, javax.swing.GroupLayout.PREFERRED_SIZE, 20, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                    .addGroup(jPanel2Layout.createSequentialGroup()
+                                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                                            .addGroup(jPanel2Layout.createSequentialGroup()
+                                                .addGap(1, 1, 1)
+                                                .addComponent(TFsupervisor, javax.swing.GroupLayout.PREFERRED_SIZE, 28, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                            .addComponent(TFsss, javax.swing.GroupLayout.PREFERRED_SIZE, 29, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                            .addComponent(TFbasicsalary))
+                                        .addGap(18, 18, 18)
+                                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                            .addComponent(lbhourlyrate)
+                                            .addComponent(lblricesubsidy, javax.swing.GroupLayout.PREFERRED_SIZE, 18, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                            .addComponent(lblclothingallow))
+                                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                                            .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                                .addComponent(TFricesub, javax.swing.GroupLayout.PREFERRED_SIZE, 28, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                .addComponent(TFclothingallow, javax.swing.GroupLayout.PREFERRED_SIZE, 28, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                            .addComponent(TFhourlyrate)))
+                                    .addGroup(jPanel2Layout.createSequentialGroup()
+                                        .addComponent(TFpos, javax.swing.GroupLayout.PREFERRED_SIZE, 29, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addGap(18, 18, 18)
+                                        .addComponent(lblphoneallow, javax.swing.GroupLayout.PREFERRED_SIZE, 20, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                        .addComponent(TFphoneallow, javax.swing.GroupLayout.PREFERRED_SIZE, 29, javax.swing.GroupLayout.PREFERRED_SIZE))))
                             .addGroup(jPanel2Layout.createSequentialGroup()
                                 .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                                     .addComponent(jLabel6, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
@@ -1517,31 +1865,36 @@ public class EmployeeManagement extends javax.swing.JFrame {
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                                 .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                                     .addGroup(jPanel2Layout.createSequentialGroup()
-                                        .addComponent(jDateChooserBday, javax.swing.GroupLayout.PREFERRED_SIZE, 31, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                        .addGap(12, 12, 12)
-                                        .addComponent(jLabel13, javax.swing.GroupLayout.PREFERRED_SIZE, 12, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                        .addGap(55, 55, 55))
+                                        .addComponent(TFAddressStreet, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                        .addComponent(TFAddressBarangay, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                        .addComponent(TFAddressCity, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                        .addComponent(TFAddressProvince, javax.swing.GroupLayout.PREFERRED_SIZE, 23, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addGap(24, 24, 24)
+                                        .addComponent(TFAddressZipcode, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addGap(22, 22, 22)
+                                        .addComponent(LBLphonenum, javax.swing.GroupLayout.DEFAULT_SIZE, 22, Short.MAX_VALUE)
+                                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                        .addComponent(TFphonenum, javax.swing.GroupLayout.PREFERRED_SIZE, 25, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                            .addComponent(btnUpdate)
+                                            .addComponent(btnSave))
+                                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                            .addComponent(btnReset1)
+                                            .addComponent(btnDelete)))
                                     .addGroup(jPanel2Layout.createSequentialGroup()
-                                        .addComponent(jScrollPane3)
-                                        .addGap(18, 18, 18)))
-                                .addComponent(LBLphonenum, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(TFphonenum))
-                            .addGroup(jPanel2Layout.createSequentialGroup()
-                                .addGap(0, 0, Short.MAX_VALUE)
-                                .addComponent(jLabel9, javax.swing.GroupLayout.PREFERRED_SIZE, 14, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addGap(43, 43, 43)))
-                        .addGap(12, 12, 12)
-                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                            .addComponent(lbhourlyrate)
-                            .addComponent(btnUpdate)
-                            .addComponent(btnSave))
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                            .addComponent(TFhourlyrate, javax.swing.GroupLayout.PREFERRED_SIZE, 26, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(btnDelete)
-                            .addComponent(btnReset1))))
-                .addGap(51, 51, 51))
+                                        .addComponent(jDateChooserBday, javax.swing.GroupLayout.PREFERRED_SIZE, 31, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addGap(13, 13, 13)
+                                        .addComponent(jLabel13, javax.swing.GroupLayout.PREFERRED_SIZE, 18, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                        .addComponent(TFstatus, javax.swing.GroupLayout.PREFERRED_SIZE, 30, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                        .addComponent(jLabel9)
+                                        .addGap(0, 0, Short.MAX_VALUE)))))
+                        .addGap(31, 31, 31))))
         );
 
         btnSearch1.setBackground(new java.awt.Color(220, 95, 0));
@@ -1572,16 +1925,14 @@ public class EmployeeManagement extends javax.swing.JFrame {
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(jScrollPane1)
                     .addGroup(layout.createSequentialGroup()
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                            .addComponent(jPanel2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
-                                .addComponent(btnShowAll)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                .addComponent(unifiedSearchBar, javax.swing.GroupLayout.PREFERRED_SIZE, 293, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(btnSearch1)))
-                        .addGap(0, 0, Short.MAX_VALUE)))
-                .addGap(23, 23, 23))
+                        .addComponent(btnShowAll)
+                        .addGap(652, 652, 652)
+                        .addComponent(unifiedSearchBar, javax.swing.GroupLayout.PREFERRED_SIZE, 293, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(btnSearch1)
+                        .addGap(0, 0, Short.MAX_VALUE))
+                    .addComponent(jPanel2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addGap(24, 24, 24))
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -1661,6 +2012,22 @@ public class EmployeeManagement extends javax.swing.JFrame {
         }
     }//GEN-LAST:event_unifiedSearchBarActionPerformed
 
+    private void TFricesubActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_TFricesubActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_TFricesubActionPerformed
+
+    private void TFphoneallowActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_TFphoneallowActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_TFphoneallowActionPerformed
+
+    private void TFsssActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_TFsssActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_TFsssActionPerformed
+
+    private void TFhourlyrateActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_TFhourlyrateActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_TFhourlyrateActionPerformed
+
     /**
     /**
      * Main method for testing
@@ -1685,7 +2052,11 @@ public class EmployeeManagement extends javax.swing.JFrame {
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JLabel LBLphonenum;
-    private javax.swing.JTextArea TFAddress;
+    private javax.swing.JTextField TFAddressBarangay;
+    private javax.swing.JTextField TFAddressCity;
+    private javax.swing.JTextField TFAddressProvince;
+    private javax.swing.JTextField TFAddressStreet;
+    private javax.swing.JTextField TFAddressZipcode;
     private javax.swing.JTextField TFbasicsalary;
     private javax.swing.JTextField TFclothingallow;
     private javax.swing.JTextField TFenum;
@@ -1726,7 +2097,6 @@ public class EmployeeManagement extends javax.swing.JFrame {
     private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel2;
     private javax.swing.JScrollPane jScrollPane1;
-    private javax.swing.JScrollPane jScrollPane3;
     private javax.swing.JLabel lbhourlyrate;
     private javax.swing.JLabel lblbasicsalary;
     private javax.swing.JLabel lblclothingallow;

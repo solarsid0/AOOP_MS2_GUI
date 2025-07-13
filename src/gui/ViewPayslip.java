@@ -306,11 +306,8 @@ public class ViewPayslip extends javax.swing.JFrame {
      * Shows welcome message
      */
     private void showWelcomeMessage() {
-        jTextArea1.setText("Select a pay period from the dropdown, then click 'View Payslip' to display your payslip.\n\n" +
-                          "Click 'Download Payslip' to save a professional PDF copy.\n\n" +
-                          "Available periods: June 2024 - December 2024\n\n" +
-                          "PDF template: MotorPH Employee Payslip.jrxml\n" +
-                          "Logo: src/media/OG Logo _ 100X124.png");
+        jTextArea1.setText("Select a pay period from the dropdown, then click \n" + "'View Payslip' to display your payslip.\n\n" +
+                          "Click 'Download Payslip' to save a PDF copy.\n\n");
     }
     
     /**
@@ -624,7 +621,7 @@ private void handleDownloadPayslipRequest() {
                 .addComponent(backpayslipbttn)
                 .addGap(39, 39, 39)
                 .addComponent(jLabel1)
-                .addContainerGap(483, Short.MAX_VALUE))
+                .addContainerGap(506, Short.MAX_VALUE))
         );
         jPanel1Layout.setVerticalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -633,7 +630,7 @@ private void handleDownloadPayslipRequest() {
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel1)
                     .addComponent(backpayslipbttn))
-                .addContainerGap(13, Short.MAX_VALUE))
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
 
         jPanel2.setBackground(new java.awt.Color(255, 255, 255));
@@ -714,7 +711,7 @@ private void handleDownloadPayslipRequest() {
                         .addComponent(monthcombo, javax.swing.GroupLayout.PREFERRED_SIZE, 127, javax.swing.GroupLayout.PREFERRED_SIZE)))
                 .addGap(18, 18, 18)
                 .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 423, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(34, Short.MAX_VALUE))
+                .addContainerGap(45, Short.MAX_VALUE))
         );
         jPanel2Layout.setVerticalGroup(
             jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -754,7 +751,7 @@ private void handleDownloadPayslipRequest() {
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, 749, Short.MAX_VALUE)
+            .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, 760, Short.MAX_VALUE)
             .addComponent(jPanel2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
         );
         layout.setVerticalGroup(

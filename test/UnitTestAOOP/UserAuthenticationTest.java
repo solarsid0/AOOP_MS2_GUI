@@ -41,7 +41,7 @@ public class UserAuthenticationTest {
         dbConnection = new DatabaseConnection(
         "jdbc:mysql://localhost:3306/payrollsystem_db",
         "root", 
-        "Mmdc_2025*");
+        "Mmdc_20250*");
         
         // Test connection
         if (!dbConnection.testConnection()) {

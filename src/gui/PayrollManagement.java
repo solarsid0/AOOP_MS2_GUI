@@ -539,7 +539,7 @@ private void populateDepartmentDropdown() {
             
             // ENSURE: Gross income does NOT include benefits (this should be base salary calculation only)
             // The ReportService should already handle this correctly, but we verify here
-            BigDecimal grossIncomeWithoutBenefits = payslip.getGrossIncome(); // This should already be correct
+            BigDecimal grossIncomeWithoutBenefits = payslip.getGrossIncome(); 
             
             model.addRow(new Object[]{
                 payslip.getEmployeeId(),
@@ -670,18 +670,13 @@ private void generatePayslipsForSelectedMonth(String selectedMonth) {
                 accountingModel.verifyPayrollForPeriod(payPeriod.getPayPeriodId());
 
             String verificationMsg = verification.isSuccess() ? 
-                "\n✅ Verification: " + verification.getVerifiedRecords() + "/" + 
+                "\n Verification: " + verification.getVerifiedRecords() + "/" + 
                 verification.getTotalRecords() + " records verified" : 
-                "\n⚠️ Verification issues detected";
+                "\n Verification issues detected";
 
             JOptionPane.showMessageDialog(this,
                 "Payslips for " + selectedMonth + " generated successfully!\n" +
                 "Generated payslips for " + result.getGeneratedCount() + " employees.\n" +
-                "Detail tables populated: " + (result.isDetailTablesPopulated() ? "✅ Yes" : "❌ No") + "\n" +
-                "• payrollattendance\n" +
-                "• payrollbenefit\n" +
-                "• payrollleave\n" +
-                "• payrollovertime" +
                 verificationMsg,
                 "Payslips Generated Successfully",
                 JOptionPane.INFORMATION_MESSAGE);

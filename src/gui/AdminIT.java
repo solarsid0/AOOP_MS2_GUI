@@ -413,8 +413,11 @@ public class AdminIT extends JFrame {
 
     private void userManagementActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_userManagementActionPerformed
     try {
-        // Close current window 
+      
             this.setVisible(false);
+        
+        // Close the current window
+        this.dispose();
         
         // Open User Management window with the logged-in user
         UserManagement userManagementWindow = new UserManagement(loggedInUser);

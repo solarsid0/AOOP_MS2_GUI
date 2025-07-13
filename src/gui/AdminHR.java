@@ -444,8 +444,8 @@ public class AdminHR extends JFrame {
         PayrollSummaryReport payrollReport = new PayrollSummaryReport(loggedInUser);
         payrollReport.setVisible(true);
         
-        // Optional: Close current window (uncomment if you want this behavior)
-        // this.dispose();
+        //Close the current dashboard (user will return via AboutPage back button
+        this.dispose();
         
     } catch (Exception e) {
         System.err.println("Error launching Payroll Summary Report: " + e.getMessage());

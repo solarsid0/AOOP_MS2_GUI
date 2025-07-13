@@ -12,10 +12,9 @@ import java.awt.Color;
 import java.io.File;
 import java.util.List;
 import java.io.IOException;
-import java.io.IOException;
 
 /**
- * Pure Java PDF Payroll Summary Generator
+ * Pure Java PDF Payroll Summary Generator with left-aligned title and wider columns
  * Creates professional payroll summary reports matching MotorPH format
  * Uses iText directly for PDF generation with landscape orientation
  */
@@ -100,17 +99,17 @@ public class PurePDFPayrollSummaryGenerator {
             
             document.open();
             
-            // Add company header
-            addCompanyHeader(document, period, department);
+            // Add company header with left-aligned title
+            addCompanyHeaderWithLeftAlignedTitle(document, period, department);
             
-            // Add main payroll table
-            addPayrollTable(document, summaryData.getPayrollEntries());
+            // Add main payroll table with wider columns
+            addPayrollTableWithWiderColumns(document, summaryData.getPayrollEntries());
             
             // Add totals row
             addTotalsRow(document, summaryData.getTotals());
             
             document.close();
-            System.out.println("Payroll Summary PDF generated successfully: " + outputPath);
+            System.out.println("Payroll Summary PDF generated successfully with left-aligned title: " + outputPath);
             return true;
             
         } catch (Exception e) {
@@ -170,9 +169,9 @@ public class PurePDFPayrollSummaryGenerator {
     }
     
     /**
-     * Adds MotorPH company header with logo and title
+     * Adds MotorPH company header with logo and left-aligned title
      */
-    private static void addCompanyHeader(Document document, String period, String department) throws DocumentException {
+    private static void addCompanyHeaderWithLeftAlignedTitle(Document document, String period, String department) throws DocumentException {
         try {
             // Main header table with logo, company info, and period info
             PdfPTable headerTable = new PdfPTable(3);
@@ -201,23 +200,23 @@ public class PurePDFPayrollSummaryGenerator {
             }
             headerTable.addCell(logoCell);
             
-            // Company info and title (center)
+            // Company info and title (center) - changed to left alignment
             PdfPCell titleCell = new PdfPCell();
             titleCell.setBorder(Rectangle.NO_BORDER);
             titleCell.setVerticalAlignment(Element.ALIGN_MIDDLE);
-            titleCell.setHorizontalAlignment(Element.ALIGN_CENTER);
+            titleCell.setHorizontalAlignment(Element.ALIGN_LEFT);
             
             Paragraph companyName = new Paragraph("MotorPH", 
                 FontFactory.getFont(FontFactory.HELVETICA_BOLD, 20, MOTORPH_BLUE));
-            companyName.setAlignment(Element.ALIGN_CENTER);
+            companyName.setAlignment(Element.ALIGN_LEFT);
             
             Paragraph tagline = new Paragraph("The Filipino's Choice", 
                 FontFactory.getFont(FontFactory.HELVETICA, 12, MOTORPH_BLUE));
-            tagline.setAlignment(Element.ALIGN_CENTER);
+            tagline.setAlignment(Element.ALIGN_LEFT);
             
             Paragraph reportTitle = new Paragraph("MONTHLY PAYROLL SUMMARY REPORT", 
                 FontFactory.getFont(FontFactory.HELVETICA_BOLD, 16, MOTORPH_BLUE));
-            reportTitle.setAlignment(Element.ALIGN_CENTER);
+            reportTitle.setAlignment(Element.ALIGN_LEFT);
             reportTitle.setSpacingBefore(10f);
             
             titleCell.addElement(companyName);
@@ -272,25 +271,25 @@ public class PurePDFPayrollSummaryGenerator {
     }
     
     /**
-     * Adds the main payroll summary table with professional styling
+     * Adds the main payroll summary table with wider columns to prevent number wrapping
      */
-    private static void addPayrollTable(Document document, List<PayrollSummaryEntry> records) throws DocumentException {
-        // Define table structure - matching the PDF format shown
+    private static void addPayrollTableWithWiderColumns(Document document, List<PayrollSummaryEntry> records) throws DocumentException {
+        // Wider column widths - significantly increased to prevent number wrapping
         float[] columnWidths = {
-            6f,   // Emp ID
-            15f,  // Employee Name
-            20f,  // Position
-            12f,  // Department
-            10f,  // Base Salary
-            8f,   // Leaves
-            8f,   // Overtime
-            12f,  // Gross Income
-            10f,  // Total Benefits
-            8f,   // SSS
-            8f,   // PhilHealth
-            8f,   // Pag-Ibig
-            8f,   // Withholding Tax
-            12f   // Net Pay
+            8f,   // Emp ID - increased from 6f
+            18f,  // Employee Name - increased from 15f
+            22f,  // Position - increased from 20f
+            15f,  // Department - increased from 12f
+            15f,  // Base Salary - increased from 10f
+            12f,  // Leaves - increased from 8f
+            12f,  // Overtime - increased from 8f
+            15f,  // Gross Income - increased from 12f
+            14f,  // Total Benefits - increased from 10f
+            12f,  // SSS - increased from 8f
+            12f,  // PhilHealth - increased from 8f
+            12f,  // Pag-Ibig - increased from 8f
+            14f,  // Withholding Tax - increased from 8f
+            16f   // Net Pay - increased from 12f
         };
         
         PdfPTable table = new PdfPTable(columnWidths.length);
@@ -319,6 +318,8 @@ public class PurePDFPayrollSummaryGenerator {
                 addStyledDataCell(table, record.getEmployeeName(), rowColor, Element.ALIGN_LEFT);
                 addStyledDataCell(table, record.getPosition(), rowColor, Element.ALIGN_LEFT);
                 addStyledDataCell(table, record.getDepartment(), rowColor, Element.ALIGN_LEFT);
+                
+                // Enhanced currency formatting - using proper currency symbols and better formatting
                 addStyledCurrencyCell(table, record.getBaseSalary(), rowColor);
                 addStyledCurrencyCell(table, record.getLeaves(), rowColor);
                 addStyledCurrencyCell(table, record.getOvertime(), rowColor);
@@ -338,15 +339,16 @@ public class PurePDFPayrollSummaryGenerator {
     }
     
     /**
-     * Adds totals row at the bottom
+     * Adds totals row at the bottom with wider columns
      */
     private static void addTotalsRow(Document document, Services.ReportService.PayrollTotals totals) throws DocumentException {
         if (totals == null) return;
         
-        // Create totals table
+        // Create totals table with wider column proportions
         PdfPTable totalsTable = new PdfPTable(14);
         totalsTable.setWidthPercentage(100);
-        totalsTable.setWidths(new float[]{6f, 15f, 20f, 12f, 10f, 8f, 8f, 12f, 10f, 8f, 8f, 8f, 8f, 12f});
+        // Using the same wider column proportions as the main table
+        totalsTable.setWidths(new float[]{8f, 18f, 22f, 15f, 15f, 12f, 12f, 15f, 14f, 12f, 12f, 12f, 14f, 16f});
         totalsTable.setSpacingBefore(5f);
         
         // Add "TOTAL" label and values
@@ -388,7 +390,7 @@ public class PurePDFPayrollSummaryGenerator {
     private static void addStyledDataCell(PdfPTable table, String text, Color backgroundColor, int alignment) {
         PdfPCell cell = new PdfPCell();
         cell.setBackgroundColor(backgroundColor);
-        cell.setPadding(5);
+        cell.setPadding(6); // Slightly more padding for better readability
         cell.setHorizontalAlignment(alignment);
         cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
         cell.setBorder(Rectangle.BOX);
@@ -405,7 +407,7 @@ public class PurePDFPayrollSummaryGenerator {
     private static void addStyledCurrencyCell(PdfPTable table, BigDecimal amount, Color backgroundColor) {
         PdfPCell cell = new PdfPCell();
         cell.setBackgroundColor(backgroundColor);
-        cell.setPadding(5);
+        cell.setPadding(6); // Slightly more padding
         cell.setHorizontalAlignment(Element.ALIGN_RIGHT);
         cell.setVerticalAlignment(Element.ALIGN_MIDDLE);
         cell.setBorder(Rectangle.BOX);
@@ -413,7 +415,9 @@ public class PurePDFPayrollSummaryGenerator {
         cell.setBorderColor(Color.LIGHT_GRAY);
         
         Font font = FontFactory.getFont(FontFactory.HELVETICA, 8, MOTORPH_BLUE);
-        Paragraph para = new Paragraph(formatCurrency(amount), font);
+        // Enhanced currency formatting - ensure no wrapping with proper spacing
+        String formattedAmount = formatCurrencyForPDF(amount);
+        Paragraph para = new Paragraph(formattedAmount, font);
         cell.addElement(para);
         
         table.addCell(cell);
@@ -448,10 +452,20 @@ public class PurePDFPayrollSummaryGenerator {
         cell.setBorderColor(Color.WHITE);
         
         Font font = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 9, Color.WHITE);
-        Paragraph para = new Paragraph(formatCurrency(amount), font);
+        Paragraph para = new Paragraph(formatCurrencyForPDF(amount), font);
         cell.addElement(para);
         
         table.addCell(cell);
+    }
+    
+    /**
+     * Enhanced currency formatting for PDF - prevents wrapping and ensures proper display
+     */
+    private static String formatCurrencyForPDF(BigDecimal amount) {
+        if (amount == null) return "₱0.00";
+        
+        // Format with Philippine peso symbol and proper spacing to prevent wrapping
+        return String.format("₱%,.2f", amount);
     }
     
     private static String formatCurrency(BigDecimal amount) {
